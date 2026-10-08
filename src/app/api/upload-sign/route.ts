@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
+import { cloudinaryConfigProblem } from "@/lib/cloudinary-config";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
@@ -14,6 +15,7 @@ export async function POST(req: NextRequest) {
   const host = req.headers.get("x-forwarded-host") || req.headers.get("host");
   if (!origin || new URL(origin).host !== host) return NextResponse.json({ error: "Bad origin" }, { status: 403 });
 
+  if (cloudinaryConfigProblem()) return NextResponse.json({ error: "Uploads are unavailable" }, { status: 503 }); // detail is only shown to admins
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const secret = process.env.CLOUDINARY_API_SECRET;

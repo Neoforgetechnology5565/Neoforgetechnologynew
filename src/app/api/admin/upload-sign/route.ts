@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 import { adminRoute } from "@/lib/auth";
+import { cloudinaryConfigProblem } from "@/lib/cloudinary-config";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,8 @@ const ALLOWED = {
 export const POST = adminRoute(async (req) => {
   const { kind, folder } = (await req.json().catch(() => ({}))) as { kind?: "image" | "video" | "raw"; folder?: string };
   if (!kind || !(kind in ALLOWED)) return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
+  const problem = cloudinaryConfigProblem();
+  if (problem) return NextResponse.json({ error: problem }, { status: 503 });
   const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const secret = process.env.CLOUDINARY_API_SECRET;
