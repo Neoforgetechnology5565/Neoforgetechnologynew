@@ -14,15 +14,19 @@ const REQUIRED = [
 /** Deployment self-check. Reports which variables are present (never their values) and whether Firebase answers. */
 export async function GET() {
   const env = Object.fromEntries(REQUIRED.map((k) => [k, Boolean(process.env[k])]));
-  const out: Record<string, unknown> = { firestore: "skipped", auth: "skipped", cloudinary: cloudinaryConfigProblem() ?? "ok" };
+  const out: Record<string, unknown> = { firestore: "skipped", firestoreWrite: "skipped", auth: "skipped", cloudinary: cloudinaryConfigProblem() ?? "ok" };
   if (isFirebaseConfigured()) {
     try { await adminDb().collection("meta").doc("schema").get(); out.firestore = "ok"; }
     catch (e) { out.firestore = `error: ${errCode(e)}`; }
+    try { // write + delete a scratch doc: proves the service account can create data, not just read it
+      const ref = adminDb().collection("meta").doc("healthcheck");
+      await ref.set({ at: Date.now() }); await ref.delete(); out.firestoreWrite = "ok";
+    } catch (e) { out.firestoreWrite = `error: ${errCode(e)}`; }
     try { await adminAuth().listUsers(1); out.auth = "ok"; }
     catch (e) { out.auth = `error: ${errCode(e)}`; }
   }
   const missing = Object.entries(env).filter(([, v]) => !v).map(([k]) => k);
-  return NextResponse.json({ ok: !missing.length && out.firestore === "ok" && out.auth === "ok" && out.cloudinary === "ok", missing, ...out });
+  return NextResponse.json({ ok: !missing.length && out.firestore === "ok" && out.firestoreWrite === "ok" && out.auth === "ok" && out.cloudinary === "ok", missing, ...out });
 }
 
 const errCode = (e: unknown) => {

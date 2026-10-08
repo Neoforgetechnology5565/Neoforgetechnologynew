@@ -77,7 +77,9 @@ export function errorResponse(e: unknown): Response {
   }
   if (e instanceof HttpError) return NextResponse.json({ error: e.message }, { status: e.status });
   console.error(e);
-  return NextResponse.json({ error: "Server error" }, { status: 500 });
+  // Only a short error code is exposed (never messages, which may contain identifiers), to make setup problems diagnosable.
+  const code = (e as { code?: string | number })?.code;
+  return NextResponse.json({ error: "Server error", ...(code !== undefined ? { code: String(code).slice(0, 40) } : {}) }, { status: 500 });
 }
 
 export class HttpError extends Error {

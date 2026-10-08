@@ -54,7 +54,7 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
     const f = Object.fromEntries(new FormData(e.currentTarget).entries());
     const r = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(f) });
     setBusy(false);
-    if (!r.ok) { setError((await r.json().catch(() => ({}))).error || "Could not start the chat."); return; }
+    if (!r.ok) { const j = await r.json().catch(() => ({})); setError((j.error || "Could not start the chat.") + (j.code ? ` (code ${j.code})` : "")); return; }
     const c = (await r.json()) as Conv;
     localStorage.setItem(KEY, JSON.stringify(c));
     last.current = 0; setMsgs([]); setConv(c);
