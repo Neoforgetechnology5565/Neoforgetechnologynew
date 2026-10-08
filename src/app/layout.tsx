@@ -1,8 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import { GeistMono } from "geist/font/mono";
-import "@fontsource-variable/inter";
-import "@fontsource/playfair-display/600.css";
-import "@fontsource/playfair-display/700.css";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";

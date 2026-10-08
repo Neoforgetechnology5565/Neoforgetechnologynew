@@ -12,8 +12,8 @@ const config: Config = {
         paper: { DEFAULT: "#0b1f3f", 200: "#1c3560", 300: "#3a5384" },
       },
       fontFamily: {
-        sans: ["Inter Variable", "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
-        display: ["Playfair Display", "Georgia", "serif"],
+        sans: ["Georgia", "Cambria", "'Times New Roman'", "serif"],
+        display: ["Georgia", "Cambria", "'Times New Roman'", "serif"],
         mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       keyframes: {
