@@ -46,6 +46,7 @@ export function toProject(id: string, d: FirebaseFirestore.DocumentData): Projec
     division: d.division ?? "computer-vision",
     categoryId: d.categoryId ?? "",
     categoryName: d.categoryName ?? "",
+    categorySlug: d.categorySlug ?? "",
     summary: d.summary ?? "",
     description: d.description ?? "",
     cover: d.cover ?? null,

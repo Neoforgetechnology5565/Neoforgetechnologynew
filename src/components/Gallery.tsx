@@ -24,7 +24,7 @@ export default function Gallery({ items, title }: { items: MediaRef[]; title: st
       <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
         {images.map((m, idx) => (
           <li key={m.publicId}>
-            <button onClick={() => setI(idx)} className="block aspect-[4/3] w-full overflow-hidden border border-paper/15 bg-ink-900 hover:border-forge" aria-label={`Open image ${idx + 1} of ${images.length}`}>
+            <button onClick={() => setI(idx)} className="block aspect-[4/3] w-full overflow-hidden rounded-2xl border border-stone-200 bg-stone-100 hover:border-blue-500" aria-label={`Open image ${idx + 1} of ${images.length}`}>
               <CldImg media={m} alt={`${title} — image ${idx + 1}`} sizes="(min-width:1024px) 33vw, 50vw" widths={[400, 700, 1000]} />
             </button>
           </li>

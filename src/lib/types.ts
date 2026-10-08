@@ -29,6 +29,7 @@ export interface Project {
   division: DivisionSlug;
   categoryId: string;
   categoryName: string;
+  categorySlug: string;
   summary: string;
   description: string;
   cover: MediaRef | null;

@@ -11,11 +11,13 @@ export async function saveProject(id: string | null, body: unknown): Promise<str
   const db = adminDb();
 
   let categoryName = "";
+  let categorySlug = "";
   if (data.categoryId) {
     const cat = await db.collection(C.categories).doc(data.categoryId).get();
     if (!cat.exists) throw new HttpError(400, "Unknown category");
     if (cat.data()!.division !== data.division) throw new HttpError(400, "Category belongs to a different division");
     categoryName = cat.data()!.name;
+    categorySlug = cat.data()!.slug ?? "";
   }
 
   const slug = slugify(data.slug || data.title);
@@ -30,9 +32,9 @@ export async function saveProject(id: string | null, body: unknown): Promise<str
   if (id) {
     const existing = await ref.get();
     if (!existing.exists) throw new HttpError(404, "Not found");
-    await ref.set({ ...data, slug, categoryName, createdAt: existing.data()!.createdAt ?? now, updatedAt: now });
+    await ref.set({ ...data, slug, categoryName, categorySlug, createdAt: existing.data()!.createdAt ?? now, updatedAt: now });
   } else {
-    await ref.set({ ...data, slug, categoryName, createdAt: now, updatedAt: now });
+    await ref.set({ ...data, slug, categoryName, categorySlug, createdAt: now, updatedAt: now });
   }
   invalidate();
   return ref.id;

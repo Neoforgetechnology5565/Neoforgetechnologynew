@@ -1,12 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import "@fontsource-variable/inter";
+import "@fontsource/playfair-display/600.css";
+import "@fontsource/playfair-display/700.css";
 import "./globals.css";
-import Header from "@/components/Header";
-import ChatWidget from "@/components/ChatWidget";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import ContactWidget from "@/components/ContactWidget";
 import Tracker from "@/components/Tracker";
-import FooterGate from "@/components/FooterGate";
-import { getContactSettings } from "@/lib/db";
+import { getCategories, getContactSettings } from "@/lib/db";
 import { siteUrl } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -20,18 +22,17 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { themeColor: "#ffffff", width: "device-width", initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const contact = await getContactSettings();
+  const [contact, categories] = await Promise.all([getContactSettings(), getCategories()]);
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="font-sans">
-        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:bg-forge focus:px-3 focus:py-2 focus:text-ink-950">Skip to content</a>
-        <Header />
+    <html lang="en" className={GeistMono.variable} data-scroll-behavior="smooth">
+      <body className="min-h-screen font-sans">
+        <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-full focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
+        <Navbar categories={categories} />
         <main id="main">{children}</main>
-        <FooterGate contact={contact} />
-        <ChatWidget enabled={contact.chatEnabled} greeting={contact.chatGreeting} whatsapp={contact.whatsapp} />
+        <Footer contact={contact} categories={categories} />
+        <ContactWidget enabled={contact.chatEnabled} greeting={contact.chatGreeting} whatsapp={contact.whatsapp} email={contact.email} />
         <Tracker />
       </body>
     </html>
   );
 }
-

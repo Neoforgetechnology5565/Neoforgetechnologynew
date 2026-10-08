@@ -4,7 +4,7 @@
 
 :root { color-scheme: light; }
 html { scroll-behavior: smooth; }
-body { @apply bg-ink-950 text-paper antialiased; font-feature-settings: "ss01", "cv11"; }
+body { @apply bg-white text-stone-900 antialiased; }
 ::selection { background: #1d5bd8; color: #ffffff; }
 
 @layer components {

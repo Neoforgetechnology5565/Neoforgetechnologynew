@@ -186,11 +186,38 @@ export const PROJECT_TYPES = [
   "Revit", "AutoCAD", "SketchUp", "BricsCAD", "BIM", "CAD Automation", "Custom Software", "Other",
 ] as const;
 
-/** Default sub-categories seeded by the idempotent migration. Admin can add / edit / remove afterwards. */
-export const DEFAULT_CATEGORIES: Record<DivisionSlug, string[]> = {
-  "computer-vision": ["Computer Vision", "Object Detection", "Tracking", "Video Analytics", "OCR", "AI Inspection", "Edge AI", "Machine Learning", "Deep Learning"],
-  "crm-hrm-erp": ["CRM", "HRM", "ERP", "AI Automation", "Workflow Automation", "AI Agents", "Business Intelligence"],
-  "cad-bim": ["Revit", "AutoCAD", "SketchUp", "SketchUp Dynamic Components", "BricsCAD", "BIM", "CAD Automation", "Engineering Software"],
+/** Default sub-categories [name, description] seeded by the idempotent migration. Admin can add / edit / remove afterwards. */
+export const DEFAULT_CATEGORIES: Record<DivisionSlug, [string, string][]> = {
+  "computer-vision": [
+    ["Computer Vision", "Systems that understand images and video: recognition, measurement and scene understanding."],
+    ["Object Detection", "Locating and classifying objects in images and live video with trained detection models."],
+    ["Tracking", "Following people, vehicles and products across frames for counting, flow and behaviour analysis."],
+    ["Video Analytics", "Turning camera streams into events, metrics and dashboards in real time."],
+    ["OCR", "Reading text, numbers and documents from images, labels, plates and scans."],
+    ["AI Inspection", "Automated visual quality inspection that finds defects faster and more consistently."],
+    ["Edge AI", "Optimised models running on-device (Jetson and embedded hardware) with low latency."],
+    ["Machine Learning", "Predictive models, anomaly detection and custom ML pipelines built on your data."],
+    ["Deep Learning", "Custom neural networks: training, optimisation and production deployment."],
+  ],
+  "crm-hrm-erp": [
+    ["CRM", "Customer, lead and pipeline management with sales automation and analytics."],
+    ["HRM", "Employee management, recruitment, attendance, payroll and self-service portals."],
+    ["ERP", "Finance, inventory, procurement and operations in one connected business platform."],
+    ["AI Automation", "AI that removes manual work: document processing, data extraction and intelligent workflows."],
+    ["Workflow Automation", "Business process automation that connects your tools and removes hand-offs."],
+    ["AI Agents", "Task-focused AI agents for support, sales and operations, wired into your systems."],
+    ["Business Intelligence", "Dashboards and AI-assisted reporting that turn operational data into decisions."],
+  ],
+  "cad-bim": [
+    ["Revit", "Revit plugins and automation using the Revit API: families, parameters and model data."],
+    ["AutoCAD", "AutoCAD plugins, AutoLISP and .NET tools for drawing automation and batch processing."],
+    ["SketchUp", "SketchUp extensions in Ruby for model automation and custom tools."],
+    ["SketchUp Dynamic Components", "Parametric, configurable SketchUp components that adapt to inputs."],
+    ["BricsCAD", "BricsCAD plugins, custom commands and CAD workflow automation."],
+    ["BIM", "BIM data processing, IFC handling, model coordination and workflow automation."],
+    ["CAD Automation", "Automating repetitive CAD work across platforms: drawings, data extraction and output."],
+    ["Engineering Software", "Calculators, configurators and parametric design tools for engineering teams."],
+  ],
 };
 
 export const WHY_US = [

@@ -42,10 +42,10 @@ export default function FileDrop({ label, accept, multiple, kind, endpoint, fold
     if (results.length) onChange(multiple ? [...value, ...results] : results.slice(0, 1));
   }
 
-  const border = light ? "border-ink-950/25 hover:border-forge" : "border-paper/25 hover:border-forge";
+  const border = light ? "border-stone-300 hover:border-blue-600" : "border-paper/25 hover:border-forge";
   return (
     <div>
-      <span className={light ? "mb-1.5 block font-mono text-[11px] uppercase tracking-wider text-ink-950/60" : "label"}>{label}</span>
+      <span className={light ? "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500" : "label"}>{label}</span>
       <div
         role="button" tabIndex={0}
         onClick={() => input.current?.click()}
@@ -53,10 +53,10 @@ export default function FileDrop({ label, accept, multiple, kind, endpoint, fold
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); handle(e.dataTransfer.files); }}
-        className={`cursor-pointer border border-dashed px-4 py-5 text-center text-sm transition-colors ${border} ${over ? "bg-forge/10" : ""}`}
+        className={`cursor-pointer rounded-lg border border-dashed px-4 py-5 text-center text-sm transition-colors ${border} ${over ? "bg-forge/10" : ""}`}
       >
-        <p className={light ? "text-ink-950/70" : "text-paper/70"}>Tap to choose or drag &amp; drop{multiple ? " files" : " a file"}</p>
-        {hint && <p className={`mt-1 text-xs ${light ? "text-ink-950/45" : "text-paper/40"}`}>{hint}</p>}
+        <p className={light ? "text-stone-600" : "text-paper/70"}>Tap to choose or drag &amp; drop{multiple ? " files" : " a file"}</p>
+        {hint && <p className={`mt-1 text-xs ${light ? "text-stone-400" : "text-paper/40"}`}>{hint}</p>}
         <input ref={input} type="file" hidden accept={accept} multiple={multiple} onChange={(e) => { if (e.target.files) handle(e.target.files); e.target.value = ""; }} />
       </div>
       {busy.map((b) => (
@@ -69,7 +69,7 @@ export default function FileDrop({ label, accept, multiple, kind, endpoint, fold
       {value.length > 0 && (
         <ul className="mt-2 space-y-1">
           {value.map((m, i) => (
-            <li key={m.publicId + i} className={`flex items-center justify-between gap-3 px-3 py-1.5 text-xs ${light ? "bg-ink-950/5" : "bg-paper/5"}`}>
+            <li key={m.publicId + i} className={`flex items-center justify-between gap-3 px-3 py-1.5 text-xs ${light ? "bg-stone-100 text-stone-700" : "bg-paper/5"}`}>
               <span className="truncate">{m.name || m.publicId} <span className="opacity-50">{formatBytes(m.bytes)}</span></span>
               <button type="button" className="shrink-0 text-red-400 hover:underline" onClick={() => onChange(value.filter((_, j) => j !== i))}>Remove</button>
             </li>

@@ -13,14 +13,14 @@ export default function PortfolioFilter({ projects, categories }: { projects: Pr
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by sub-category">
           {[{ id: "", name: "All" }, ...used].map((c) => (
             <button key={c.id} onClick={() => setCat(c.id)} aria-pressed={cat === c.id}
-              className={`border px-3 py-1.5 font-mono text-xs transition-colors ${cat === c.id ? "border-forge bg-forge text-white" : "border-paper/25 hover:border-forge"}`}>{c.name}</button>
+              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${cat === c.id ? "border-blue-600 bg-blue-600 text-white" : "border-stone-300 text-stone-700 hover:border-blue-600 hover:text-blue-600"}`}>{c.name}</button>
           ))}
         </div>
       )}
       {shown.length ? (
-        <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{shown.map((p) => <ProjectCard key={p.id} p={p} />)}</div>
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{shown.map((p) => <ProjectCard key={p.id} p={p} />)}</div>
       ) : (
-        <p className="mt-8 border border-dashed border-paper/25 p-8 text-paper/60">No published projects here yet.</p>
+        <p className="mt-8 rounded-2xl border border-dashed border-stone-300 p-12 text-center text-stone-500">No published projects here yet.</p>
       )}
     </>
   );

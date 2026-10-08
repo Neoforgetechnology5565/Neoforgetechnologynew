@@ -16,7 +16,7 @@ export const PUT = adminRoute<{ id: string }>(async (req, { params }) => {
   const projects = await adminDb().collection(C.projects).where("categoryId", "==", id).get();
   if (!projects.empty) {
     const batch = adminDb().batch();
-    projects.docs.forEach((p) => batch.update(p.ref, { categoryName: data.name, division: data.division }));
+    projects.docs.forEach((p) => batch.update(p.ref, { categoryName: data.name, categorySlug: slug, division: data.division }));
     await batch.commit();
   }
   invalidate();

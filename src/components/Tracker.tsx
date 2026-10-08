@@ -20,7 +20,7 @@ export default function Tracker() {
   const path = usePathname();
   useEffect(() => {
     if (path.startsWith("/admin") || navigator.doNotTrack === "1") return;
-    const m = path.match(/^\/portfolio\/([^/]+)\/([^/]+)$/);
+    const m = path.match(/^\/portfolio\/([^/]+)\/([^/]+)$/) || path.match(/^\/(computer-vision|crm-hrm-erp|cad-bim)\/[^/]+\/([^/]+)$/);
     const body = JSON.stringify({ path, vid: visitorId(), project: m ? `${m[1]}/${m[2]}` : undefined });
     if (navigator.sendBeacon) navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
     else fetch("/api/track", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});

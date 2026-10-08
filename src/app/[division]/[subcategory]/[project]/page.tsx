@@ -4,19 +4,18 @@ import ProjectView, { projectMetadata } from "@/components/ProjectView";
 import { getProject } from "@/lib/db";
 import { projectHref } from "@/lib/paths";
 
-type Params = { params: Promise<{ division: string; slug: string }> };
+type Params = { params: Promise<{ division: string; subcategory: string; project: string }> };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
-  const { division, slug } = await params;
-  const p = await getProject(division, slug);
+  const { division, project } = await params;
+  const p = await getProject(division, project);
   return p ? projectMetadata(p) : {};
 }
 
-/** Legacy / uncategorised URL. Categorised projects live at /division/sub-category/project. */
 export default async function Page({ params }: Params) {
-  const { division, slug } = await params;
-  const p = await getProject(division, slug);
+  const { division, subcategory, project } = await params;
+  const p = await getProject(division, project);
   if (!p) notFound();
-  if (p.categorySlug) redirect(projectHref(p));
+  if (p.categorySlug !== subcategory) redirect(projectHref(p)); // keep one canonical URL per project
   return <ProjectView p={p} />;
 }

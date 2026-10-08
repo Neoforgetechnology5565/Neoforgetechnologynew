@@ -21,21 +21,20 @@ export default async function DivisionPortfolio({ params }: { params: Promise<{ 
   if (!isDivisionSlug(division)) notFound();
   const d = DIVISION_MAP[division];
   const [all, cats] = await Promise.all([getPublishedProjects(), getCategories()]);
-  const projects = all.filter((p) => p.division === division);
   return (
     <>
-      <section className="border-b border-paper/10 grid-bg">
-        <div className="container-x py-16 sm:py-20">
-          <p className="eyebrow"><Link href="/portfolio" className="hover:underline">Portfolio</Link> / {d.code}</p>
-          <h1 className="h-display mt-3 text-4xl sm:text-5xl">{d.name}</h1>
-          <p className="mt-4 max-w-2xl text-paper/65">{d.tagline}</p>
-          <div className="mt-6 flex gap-2 font-mono text-xs">
-            {DIVISIONS.filter((x) => x.slug !== division).map((x) => <Link key={x.slug} href={`/portfolio/${x.slug}`} className="border border-paper/20 px-3 py-1.5 hover:border-forge hover:text-forge">{x.short} →</Link>)}
+      <section className="bg-slate-950 py-16 text-white sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-2 text-sm text-slate-400"><Link href="/portfolio" className="hover:text-blue-400">Portfolio</Link><span>/</span><span className="text-slate-200">{d.short}</span></div>
+          <h1 className="mt-4 font-display text-4xl font-semibold sm:text-5xl">{d.name}</h1>
+          <p className="mt-4 max-w-2xl text-slate-300">{d.tagline}</p>
+          <div className="mt-6 flex flex-wrap gap-2 text-sm">
+            {DIVISIONS.filter((x) => x.slug !== division).map((x) => <Link key={x.slug} href={`/portfolio/${x.slug}`} className="rounded-full border border-slate-600 px-4 py-1.5 hover:border-blue-400 hover:text-blue-300">{x.short} →</Link>)}
           </div>
         </div>
       </section>
-      <section className="container-x py-12 sm:py-16">
-        <PortfolioFilter projects={projects} categories={cats.filter((c) => c.division === division).map((c) => ({ id: c.id, name: c.name }))} />
+      <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <PortfolioFilter projects={all.filter((p) => p.division === division)} categories={cats.filter((c) => c.division === division).map((c) => ({ id: c.id, name: c.name }))} />
       </section>
       <CtaBand division={division} />
     </>

@@ -24,12 +24,13 @@ const migrations: Migration[] = [
       const db = adminDb();
       let created = 0;
       for (const d of DIVISIONS) {
-        const names = DEFAULT_CATEGORIES[d.slug];
-        for (let i = 0; i < names.length; i++) {
-          const id = `${d.slug}--${slugify(names[i])}`;
+        const defaults = DEFAULT_CATEGORIES[d.slug];
+        for (let i = 0; i < defaults.length; i++) {
+          const [name, description] = defaults[i];
+          const id = `${d.slug}--${slugify(name)}`;
           const ref = db.collection(C.categories).doc(id);
           try {
-            await ref.create({ name: names[i], slug: slugify(names[i]), division: d.slug, description: "", capabilities: [], enabled: true, order: i });
+            await ref.create({ name, slug: slugify(name), division: d.slug, description, capabilities: [], enabled: true, order: i });
             created++;
           } catch (e) {
             if ((e as { code?: number }).code !== 6) throw e; // 6 = ALREADY_EXISTS
@@ -70,6 +71,41 @@ const migrations: Migration[] = [
       }
       if (n) await batch.commit();
       return `${n} projects updated`;
+    },
+  },
+  {
+    version: 4,
+    name: "Backfill project category slugs",
+    async run() {
+      const db = adminDb();
+      const [cats, projects] = await Promise.all([db.collection(C.categories).get(), db.collection(C.projects).get()]);
+      const slugById = new Map(cats.docs.map((c) => [c.id, c.data().slug as string]));
+      const batch = db.batch();
+      let n = 0;
+      for (const p of projects.docs) {
+        const want = slugById.get(p.data().categoryId) ?? "";
+        if (want && p.data().categorySlug !== want) { batch.update(p.ref, { categorySlug: want }); n++; }
+      }
+      if (n) await batch.commit();
+      return `${n} projects updated`;
+    },
+  },
+  {
+    version: 5,
+    name: "Fill blank descriptions on default categories",
+    async run() {
+      const db = adminDb();
+      const batch = db.batch();
+      let n = 0;
+      for (const d of DIVISIONS) {
+        for (const [name, description] of DEFAULT_CATEGORIES[d.slug]) {
+          const ref = db.collection(C.categories).doc(`${d.slug}--${slugify(name)}`);
+          const snap = await ref.get();
+          if (snap.exists && !snap.data()?.description) { batch.update(ref, { description }); n++; } // never overwrites edited text
+        }
+      }
+      if (n) await batch.commit();
+      return `${n} descriptions filled`;
     },
   },
 ];
