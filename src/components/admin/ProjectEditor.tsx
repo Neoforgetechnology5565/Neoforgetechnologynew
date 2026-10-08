@@ -8,15 +8,16 @@ import { DIVISION_MAP, DIVISIONS } from "@/lib/divisions";
 import type { Category, MediaRef, Project } from "@/lib/types";
 import { api } from "./api";
 import { Card, Field, PageTitle, lines, useToast } from "./ui";
+import VideoLinksField from "./VideoLinksField";
 
 interface Form {
   title: string; slug: string; division: string; categoryId: string; summary: string; description: string;
-  cover: MediaRef[]; gallery: MediaRef[]; documents: MediaRef[]; files: MediaRef[]; video: MediaRef[]; videoUrl: string;
+  cover: MediaRef[]; gallery: MediaRef[]; documents: MediaRef[]; files: MediaRef[]; video: MediaRef[]; videoLinks: string[];
   technologies: string; features: string; challenge: string; solution: string; results: string; pipeline: string;
   featured: boolean; status: "draft" | "published"; order: number;
 }
 const blank: Form = {
-  title: "", slug: "", division: "computer-vision", categoryId: "", summary: "", description: "", cover: [], gallery: [], documents: [], files: [], video: [], videoUrl: "",
+  title: "", slug: "", division: "computer-vision", categoryId: "", summary: "", description: "", cover: [], gallery: [], documents: [], files: [], video: [], videoLinks: [],
   technologies: "", features: "", challenge: "", solution: "", results: "", pipeline: "", featured: false, status: "draft", order: 0,
 };
 
@@ -32,7 +33,7 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
   useEffect(() => {
     api<{ items: Category[] }>("/api/admin/categories").then((r) => setCats(r.items)).catch(toast.err);
     if (initialId) api<{ item: Project }>(`/api/admin/projects/${initialId}`).then(({ item: p }) => {
-      setF({ title: p.title, slug: p.slug, division: p.division, categoryId: p.categoryId, summary: p.summary, description: p.description, cover: p.cover ? [p.cover] : [], gallery: p.gallery, documents: p.documents, files: p.files, video: p.video ? [p.video] : [], videoUrl: p.videoUrl, technologies: p.technologies.join("\n"), features: p.features.join("\n"), challenge: p.challenge, solution: p.solution, results: p.results, pipeline: p.pipeline.join(", "), featured: p.featured, status: p.status, order: p.order });
+      setF({ title: p.title, slug: p.slug, division: p.division, categoryId: p.categoryId, summary: p.summary, description: p.description, cover: p.cover ? [p.cover] : [], gallery: p.gallery, documents: p.documents, files: p.files, video: p.video ? [p.video] : [], videoLinks: p.videoLinks, technologies: p.technologies.join("\n"), features: p.features.join("\n"), challenge: p.challenge, solution: p.solution, results: p.results, pipeline: p.pipeline.join(", "), featured: p.featured, status: p.status, order: p.order });
       setLoading(false);
     }).catch((e) => { toast.err(e); setLoading(false); });
   }, [initialId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -41,7 +42,7 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
     setSaving(true);
     const body = {
       title: f.title, slug: f.slug || undefined, division: f.division, categoryId: f.categoryId, summary: f.summary, description: f.description,
-      cover: f.cover[0] ?? null, gallery: f.gallery, documents: f.documents, files: f.files, video: f.video[0] ?? null, videoUrl: f.videoUrl,
+      cover: f.cover[0] ?? null, gallery: f.gallery, documents: f.documents, files: f.files, video: f.video[0] ?? null, videoUrl: "", videoLinks: f.videoLinks,
       technologies: lines(f.technologies), features: lines(f.features), challenge: f.challenge, solution: f.solution, results: f.results,
       pipeline: f.pipeline.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 6),
       featured: f.featured, status: status ?? f.status, order: f.order,
@@ -110,8 +111,8 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
               <ul className="flex flex-wrap gap-2">{f.documents.filter(isPdf).map((m) => <li key={m.publicId}><img src={pdfThumb(m, 160)} alt={`Preview of ${m.name}`} className="h-24 border border-paper/15 bg-white" /></li>)}</ul>
             )}
             <FileDrop label="Additional files" accept=".zip,.dwg,.dxf,.rvt,.rfa,.skp,.rbz,.ifc,.json,.csv,.txt,.docx,.xlsx,.pptx,.dll,.bundle" multiple max={20} kind="raw" folder="files" value={f.files} onChange={(v) => set("files", v)} hint="Up to 50 MB each" />
-            <FileDrop label="Project video (upload)" accept=".mp4,.webm,.mov" kind="video" folder="video" value={f.video} onChange={(v) => set("video", v)} hint="MP4 / WEBM / MOV up to 100 MB" />
-            <Field label="…or video link (YouTube / Vimeo / https)"><input className="field" value={f.videoUrl} onChange={(e) => set("videoUrl", e.target.value)} placeholder="https://" /></Field>
+            <FileDrop label="Or upload a video file" accept=".mp4,.webm,.mov" kind="video" folder="video" value={f.video} onChange={(v) => set("video", v)} hint="MP4 / WEBM / MOV up to 100 MB" />
+            <VideoLinksField value={f.videoLinks} onChange={(v) => set("videoLinks", v)} />
           </Card>
         </div>
 

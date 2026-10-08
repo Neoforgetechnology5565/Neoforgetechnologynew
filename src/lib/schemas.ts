@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { DIVISIONS, PROJECT_TYPES } from "./divisions";
+import { isVideoLink } from "./video";
 
 /** Strip markup + control chars. React escapes output too; this is defence in depth for stored data. */
 export const stripTags = (s: string) =>
@@ -64,6 +65,7 @@ export const projectSchema = z.object({
   documents: z.array(mediaSchema).max(20).default([]),
   files: z.array(mediaSchema).max(20).default([]),
   videoUrl: httpUrl.default(""),
+  videoLinks: z.array(z.string().trim().max(500).refine(isVideoLink, "Must be a YouTube or Vimeo link")).max(6).default([]),
   video: mediaSchema.nullable().default(null),
   technologies: z.array(shortText).max(40).default([]),
   features: z.array(shortText).max(40).default([]),

@@ -54,6 +54,7 @@ export function toProject(id: string, d: FirebaseFirestore.DocumentData): Projec
     documents: d.documents ?? [],
     files: d.files ?? [],
     videoUrl: d.videoUrl ?? "",
+    videoLinks: d.videoLinks ?? (d.videoUrl ? [d.videoUrl] : []),
     video: d.video ?? null,
     technologies: d.technologies ?? [],
     features: d.features ?? [],

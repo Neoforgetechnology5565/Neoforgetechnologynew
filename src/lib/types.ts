@@ -37,6 +37,8 @@ export interface Project {
   documents: MediaRef[];
   files: MediaRef[];
   videoUrl: string;
+  /** YouTube / Vimeo links shown as clickable thumbnails */
+  videoLinks: string[];
   video: MediaRef | null;
   technologies: string[];
   features: string[];

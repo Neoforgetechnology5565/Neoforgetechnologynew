@@ -6,7 +6,9 @@ import Gallery from "@/components/Gallery";
 import { CldImg } from "@/components/Media";
 import ProjectCard from "@/components/ProjectCard";
 import { Pipeline } from "@/components/Visuals";
-import { embedUrl, img, isPdf, pdfThumb, videoPoster } from "@/lib/cloudinary";
+import { img, isPdf, pdfThumb, videoPoster } from "@/lib/cloudinary";
+import { resolveVideos } from "@/lib/video-server";
+import VideoLinks from "@/components/VideoLinks";
 import { getRelated } from "@/lib/db";
 import { DIVISION_MAP } from "@/lib/divisions";
 import { projectHref } from "@/lib/paths";
@@ -29,7 +31,7 @@ const Label = ({ children }: { children: React.ReactNode }) => <p className="tex
 export default async function ProjectView({ p }: { p: Project }) {
   const d = DIVISION_MAP[p.division];
   const related = await getRelated(p);
-  const embed = embedUrl(p.videoUrl);
+  const videos = await resolveVideos(p.videoLinks);
   const steps = p.pipeline.length ? p.pipeline : d.pipeline;
   const jsonLd = { "@context": "https://schema.org", "@type": "CreativeWork", name: p.title, description: p.summary, creator: { "@type": "Organization", name: "Neo Forge Technology" }, dateModified: new Date(p.updatedAt).toISOString() };
 
@@ -83,15 +85,15 @@ export default async function ProjectView({ p }: { p: Project }) {
           </section>
         )}
 
-        {(p.gallery.length > 0 || p.video || embed) && (
+        {(p.gallery.length > 0 || p.video || videos.length > 0) && (
           <section>
             <SectionHead eyebrow="Visuals" title="Screenshots, diagrams & video" />
-            {(p.video || embed) && (
+            {p.video && (
               <div className="mt-8 aspect-video overflow-hidden rounded-2xl bg-black">
-                {p.video ? <video controls preload="none" poster={videoPoster(p.video)} className="h-full w-full"><source src={p.video.url} /></video>
-                  : <iframe src={embed} title={`${p.title} video`} loading="lazy" allow="encrypted-media; picture-in-picture" allowFullScreen className="h-full w-full" />}
+                <video controls preload="none" poster={videoPoster(p.video)} className="h-full w-full"><source src={p.video.url} /></video>
               </div>
             )}
+            {videos.length > 0 && <div className="mt-8"><VideoLinks items={videos} /></div>}
             {p.gallery.length > 0 && <div className="mt-6"><Gallery items={p.gallery} title={p.title} /></div>}
           </section>
         )}
