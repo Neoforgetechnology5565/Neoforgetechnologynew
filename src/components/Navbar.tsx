@@ -7,7 +7,6 @@ import type { Category } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/portfolio", label: "Portfolio" },
   { href: "/live-chat", label: "Live Chat" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },
