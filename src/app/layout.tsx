@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   openGraph: { type: "website", siteName: "Neo Forge Technology", locale: "en_US" },
   twitter: { card: "summary_large_image" },
 };
-export const viewport: Viewport = { themeColor: "#06080c", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#ffffff", width: "device-width", initialScale: 1 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const contact = await getContactSettings();

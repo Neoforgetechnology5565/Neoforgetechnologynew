@@ -2,22 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root { color-scheme: light; }
 html { scroll-behavior: smooth; }
 body { @apply bg-ink-950 text-paper antialiased; font-feature-settings: "ss01", "cv11"; }
-::selection { background: #ff6a1a; color: #06080c; }
+::selection { background: #1d5bd8; color: #ffffff; }
 
 @layer components {
   .container-x { @apply mx-auto w-full max-w-7xl px-5 sm:px-8; }
   .eyebrow { @apply font-mono text-[11px] uppercase tracking-[0.22em] text-forge; }
   .h-display { @apply font-sans font-semibold leading-[0.98] tracking-tight; }
   .btn { @apply inline-flex items-center justify-center gap-2 px-5 py-3 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-forge disabled:opacity-50 disabled:pointer-events-none; }
-  .btn-primary { @apply btn bg-forge text-ink-950 hover:bg-forge-soft; }
+  .btn-primary { @apply btn bg-forge text-white hover:bg-forge-dim; }
   .btn-ghost { @apply btn border border-paper/25 text-paper hover:border-forge hover:text-forge; }
-  .btn-dark { @apply btn bg-ink-950 text-paper hover:bg-ink-700; }
+  .btn-dark { @apply btn bg-white text-forge-dim hover:bg-ink-800; }
   .hairline { @apply border-paper/10; }
   .grid-bg {
-    background-image: linear-gradient(to right, rgba(244,245,242,.045) 1px, transparent 1px), linear-gradient(to bottom, rgba(244,245,242,.045) 1px, transparent 1px);
+    background-image: linear-gradient(to right, rgba(29,91,216,.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(29,91,216,.08) 1px, transparent 1px);
     background-size: 48px 48px;
   }
   .grid-bg-light {

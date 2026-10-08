@@ -17,7 +17,7 @@ export const Field = ({ label, children, hint }: { label: string; children: Reac
 export function useToast() {
   const [t, setT] = useState<{ msg: string; err?: boolean } | null>(null);
   useEffect(() => { if (t) { const id = setTimeout(() => setT(null), 4500); return () => clearTimeout(id); } }, [t]);
-  const el = t && <div role="status" className={`fixed bottom-4 left-4 right-4 z-[80] max-w-md px-4 py-3 text-sm shadow-xl sm:left-auto ${t.err ? "bg-red-600 text-white" : "bg-signal text-ink-950"}`}>{t.msg}</div>;
+  const el = t && <div role="status" className={`fixed bottom-4 left-4 right-4 z-[80] max-w-md px-4 py-3 text-sm shadow-xl sm:left-auto ${t.err ? "bg-red-600 text-white" : "bg-signal text-white"}`}>{t.msg}</div>;
   return { ok: (msg: string) => setT({ msg }), err: (e: unknown) => setT({ msg: (e as Error).message || "Error", err: true }), el };
 }
 

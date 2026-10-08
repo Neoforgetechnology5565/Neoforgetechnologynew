@@ -128,12 +128,12 @@ export default function ChatWidget({ enabled, greeting, whatsapp }: { enabled: b
       )}
       <div className="flex items-center gap-2">
         {wa && !open && (
-          <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp" className="flex h-12 w-12 items-center justify-center bg-[#25d366] text-ink-950 shadow-lg" title="WhatsApp">
+          <a href={wa} target="_blank" rel="noopener noreferrer" aria-label="Chat on WhatsApp" className="flex h-12 w-12 items-center justify-center bg-[#25d366] text-white shadow-lg" title="WhatsApp">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.2 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.2-4.6-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.8s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6c-.1.2-.3.3-.1.6.2.3.8 1.300 1.700 2.100 1.200 1 2.200 1.400 2.500 1.500.3.1.5.1.7-.1l.9-1c.2-.3.4-.2.6-.1l1.900.9c.3.1.5.2.5.3.1.2.1.700-.1 1.300Z" /></svg>
           </a>
         )}
         {enabled && (
-          <button onClick={() => setOpen(!open)} aria-expanded={open} className="relative flex h-12 items-center gap-2 bg-forge px-4 text-sm font-medium text-ink-950 shadow-lg hover:bg-forge-soft">
+          <button onClick={() => setOpen(!open)} aria-expanded={open} className="relative flex h-12 items-center gap-2 bg-forge px-4 text-sm font-medium text-white shadow-lg hover:bg-forge-dim">
             <span aria-hidden>💬</span> {open ? "Close" : "Chat"}
             {unseen > 0 && <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center bg-ink-950 px-1 font-mono text-[10px] text-forge ring-1 ring-forge">{unseen}</span>}
           </button>

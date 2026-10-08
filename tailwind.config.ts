@@ -5,10 +5,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: { 950: "#06080c", 900: "#0a0e14", 800: "#0f151d", 700: "#17202b", 600: "#243040" },
-        forge: { DEFAULT: "#ff6a1a", soft: "#ff8a4a", dim: "#c4500f" },
-        signal: { DEFAULT: "#35e0c2", dim: "#1f8f7c" },
-        paper: { DEFAULT: "#f4f5f2", 200: "#e6e8e2", 300: "#cfd3ca" },
+        // "ink" = surfaces (white → pale blue), "paper" = text (navy). Names kept from the original dark theme.
+        ink: { 950: "#ffffff", 900: "#f3f7fd", 800: "#e8effb", 700: "#d9e4f7", 600: "#c3d3ee" },
+        forge: { DEFAULT: "#1d5bd8", soft: "#3f7cf0", dim: "#1546ad" },
+        signal: { DEFAULT: "#0891b2", dim: "#0e7490" },
+        paper: { DEFAULT: "#0b1f3f", 200: "#1c3560", 300: "#3a5384" },
       },
       fontFamily: {
         sans: ["var(--font-geist-sans)", "ui-sans-serif", "system-ui", "sans-serif"],

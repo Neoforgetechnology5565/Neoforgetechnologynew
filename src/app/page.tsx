@@ -69,13 +69,13 @@ export default async function Home() {
 
       {/* FEATURED WORK */}
       {featured.length > 0 && (
-        <section className="bg-paper text-ink-950">
+        <section className="bg-ink-900">
           <div className="container-x py-20 sm:py-28">
             <div className="flex flex-wrap items-end justify-between gap-4">
-              <SectionHead eyebrow="Selected work" title="Featured projects" light />
+              <SectionHead eyebrow="Selected work" title="Featured projects" />
               <Link href="/portfolio" className="text-sm font-medium text-forge-dim hover:underline">All projects →</Link>
             </div>
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.map((p) => <ProjectCard key={p.id} p={p} light />)}</div>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{featured.map((p) => <ProjectCard key={p.id} p={p} />)}</div>
           </div>
         </section>
       )}

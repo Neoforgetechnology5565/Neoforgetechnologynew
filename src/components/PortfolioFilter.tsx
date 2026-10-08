@@ -13,7 +13,7 @@ export default function PortfolioFilter({ projects, categories }: { projects: Pr
         <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by sub-category">
           {[{ id: "", name: "All" }, ...used].map((c) => (
             <button key={c.id} onClick={() => setCat(c.id)} aria-pressed={cat === c.id}
-              className={`border px-3 py-1.5 font-mono text-xs transition-colors ${cat === c.id ? "border-forge bg-forge text-ink-950" : "border-paper/25 hover:border-forge"}`}>{c.name}</button>
+              className={`border px-3 py-1.5 font-mono text-xs transition-colors ${cat === c.id ? "border-forge bg-forge text-white" : "border-paper/25 hover:border-forge"}`}>{c.name}</button>
           ))}
         </div>
       )}

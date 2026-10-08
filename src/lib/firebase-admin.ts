@@ -10,12 +10,20 @@ export function isFirebaseConfigured(): boolean {
   );
 }
 
+/** Vercel users paste the key in several shapes: with quotes, with literal \\n, or with real newlines. Accept all. */
+function normalizeKey(raw?: string): string | undefined {
+  if (!raw) return undefined;
+  let k = raw.trim();
+  if ((k.startsWith('"') && k.endsWith('"')) || (k.startsWith("'") && k.endsWith("'"))) k = k.slice(1, -1);
+  return k.replace(/\\n/g, "\n");
+}
+
 function app(): App {
   const existing = getApps()[0];
   if (existing) return existing;
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
-  const privateKey = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n");
+  const privateKey = normalizeKey(process.env.FIREBASE_PRIVATE_KEY);
   if (clientEmail && privateKey) {
     return initializeApp({ credential: cert({ projectId, clientEmail, privateKey }), projectId });
   }

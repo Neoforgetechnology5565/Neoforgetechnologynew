@@ -19,7 +19,7 @@ export default function AdminShell({ email, children }: { email: string; childre
     <nav className="space-y-0.5 p-3" aria-label="Admin">
       {NAV.map(([href, label]) => {
         const on = href === "/admin" ? path === href : path.startsWith(href);
-        return <Link key={href} href={href} onClick={() => setOpen(false)} className={`block px-3 py-2 text-sm ${on ? "bg-forge text-ink-950" : "text-paper/75 hover:bg-paper/10"}`}>{label}</Link>;
+        return <Link key={href} href={href} onClick={() => setOpen(false)} className={`block px-3 py-2 text-sm ${on ? "bg-forge text-white" : "text-paper/75 hover:bg-paper/10"}`}>{label}</Link>;
       })}
     </nav>
   );

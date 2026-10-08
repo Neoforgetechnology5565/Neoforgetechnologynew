@@ -30,7 +30,7 @@ export default function Projects() {
     <>
       <PageTitle title="Projects"><Link href="/admin/projects/new" className="btn-primary !py-2">New project</Link></PageTitle>
       <div className="mb-4 flex flex-wrap gap-2">
-        {[{ slug: "", short: "All" }, ...DIVISIONS].map((d) => <button key={d.slug} onClick={() => setDiv(d.slug)} className={`border px-3 py-1.5 font-mono text-xs ${div === d.slug ? "border-forge bg-forge text-ink-950" : "border-paper/25"}`}>{d.short}</button>)}
+        {[{ slug: "", short: "All" }, ...DIVISIONS].map((d) => <button key={d.slug} onClick={() => setDiv(d.slug)} className={`border px-3 py-1.5 font-mono text-xs ${div === d.slug ? "border-forge bg-forge text-white" : "border-paper/25"}`}>{d.short}</button>)}
       </div>
       {div === "" && <p className="mb-3 text-xs text-paper/45">Ordering applies to the list currently shown. Filter by division to reorder within it.</p>}
       <div className="divide-y divide-paper/10 border border-paper/15 bg-ink-900">

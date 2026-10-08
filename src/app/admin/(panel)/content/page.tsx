@@ -27,7 +27,7 @@ export default function Content() {
   return (
     <>
       <PageTitle title="Site content" />
-      <div className="mb-5 flex gap-2">{tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`border px-4 py-2 text-sm ${tab === k ? "border-forge bg-forge text-ink-950" : "border-paper/25"}`}>{l}</button>)}</div>
+      <div className="mb-5 flex gap-2">{tabs.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`border px-4 py-2 text-sm ${tab === k ? "border-forge bg-forge text-white" : "border-paper/25"}`}>{l}</button>)}</div>
 
       {tab === "home" && home && (
         <Card className="grid gap-4">

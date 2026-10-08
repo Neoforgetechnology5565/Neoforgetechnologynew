@@ -45,7 +45,13 @@ export async function POST(req: NextRequest) {
     return res;
   } catch (e) {
     console.error("session error", e);
-    return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+    // Separate "your sign-in was bad" from "the server is misconfigured" so setup problems are visible.
+    const code = String((e as { code?: string }).code || "");
+    const bad = code.startsWith("auth/id-token") || code === "auth/argument-error" || code === "auth/user-disabled";
+    return NextResponse.json(
+      bad ? { error: "Invalid credentials" } : { error: "Server setup problem — open /api/health on this site to see what is missing", code: "server" },
+      { status: bad ? 401 : 500 },
+    );
   }
 }
 

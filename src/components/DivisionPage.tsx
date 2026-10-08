@@ -50,16 +50,16 @@ export default async function DivisionPage({ slug }: { slug: DivisionSlug }) {
         ))}
       </section>
 
-      <section className="bg-paper text-ink-950">
+      <section className="bg-ink-900">
         <div className="container-x py-16 sm:py-24">
           <div className="flex flex-wrap items-end justify-between gap-4">
-            <SectionHead eyebrow="Portfolio" title={`Recent ${d.short} work`} light />
+            <SectionHead eyebrow="Portfolio" title={`Recent ${d.short} work`} />
             <Link href={`/portfolio/${d.slug}`} className="text-sm font-medium text-forge-dim hover:underline">Full portfolio →</Link>
           </div>
           {projects.length ? (
-            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{projects.map((p) => <ProjectCard key={p.id} p={p} light />)}</div>
+            <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{projects.map((p) => <ProjectCard key={p.id} p={p} />)}</div>
           ) : (
-            <p className="mt-8 border border-dashed border-ink-950/25 p-8 text-ink-950/60">Case studies for this division are being added. Contact us to discuss a similar project.</p>
+            <p className="mt-8 border border-dashed border-paper/25 p-8 text-paper/60">Case studies for this division are being added. Contact us to discuss a similar project.</p>
           )}
         </div>
       </section>

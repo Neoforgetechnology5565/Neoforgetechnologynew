@@ -5,22 +5,22 @@ export function HeroVisual() {
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden border border-paper/15 bg-ink-900 grid-bg" aria-hidden>
       <svg viewBox="0 0 640 480" className="absolute inset-0 h-full w-full">
-        <g stroke="#f4f5f2" strokeOpacity=".35" fill="none" strokeWidth="1">
+        <g stroke="#0b1f3f" strokeOpacity=".4" fill="none" strokeWidth="1">
           <path d="M120 330 L260 400 L430 330 L290 260 Z" />
           <path d="M120 330 V210 L260 280 V400" /><path d="M430 330 V210 L290 140 L120 210" />
           <path d="M290 260 V140" /><path d="M260 280 L430 210" strokeDasharray="3 5" />
         </g>
         <g fill="none" strokeWidth="1.5">
-          <rect x="365" y="70" width="170" height="120" stroke="#35e0c2" />
-          <rect x="60" y="90" width="120" height="86" stroke="#ff6a1a" />
-          <path d="M365 70h14M365 70v14M535 190h-14M535 190v-14" stroke="#35e0c2" strokeWidth="3" />
+          <rect x="365" y="70" width="170" height="120" stroke="#0891b2" />
+          <rect x="60" y="90" width="120" height="86" stroke="#1d5bd8" />
+          <path d="M365 70h14M365 70v14M535 190h-14M535 190v-14" stroke="#0891b2" strokeWidth="3" />
         </g>
         <g fontFamily="var(--font-geist-mono), monospace" fontSize="11">
-          <rect x="365" y="52" width="104" height="17" fill="#35e0c2" /><text x="371" y="64" fill="#06080c">defect 0.97</text>
-          <rect x="60" y="72" width="92" height="17" fill="#ff6a1a" /><text x="66" y="84" fill="#06080c">tracked #14</text>
+          <rect x="365" y="52" width="104" height="17" fill="#0891b2" /><text x="371" y="64" fill="#ffffff">defect 0.97</text>
+          <rect x="60" y="72" width="92" height="17" fill="#1d5bd8" /><text x="66" y="84" fill="#ffffff">tracked #14</text>
         </g>
-        <path d="M20 440 C140 440 160 380 260 390 S420 450 620 400" stroke="#ff6a1a" strokeWidth="1.5" fill="none" strokeDasharray="6 6" className="animate-dash" />
-        {[[260, 390], [430, 330], [120, 330], [290, 260]].map(([x, y]) => (<circle key={x} cx={x} cy={y} r="4" fill="#ff6a1a" className="animate-pulseDot" />))}
+        <path d="M20 440 C140 440 160 380 260 390 S420 450 620 400" stroke="#1d5bd8" strokeWidth="1.5" fill="none" strokeDasharray="6 6" className="animate-dash" />
+        {[[260, 390], [430, 330], [120, 330], [290, 260]].map(([x, y]) => (<circle key={x} cx={x} cy={y} r="4" fill="#1d5bd8" className="animate-pulseDot" />))}
       </svg>
       <div className="pointer-events-none absolute inset-x-0 h-20 animate-scan bg-gradient-to-b from-transparent via-signal/15 to-transparent" />
       <div className="absolute bottom-3 left-3 font-mono text-[10px] uppercase tracking-widest text-paper/50">frame 04812 · 28 fps · infer 6.1 ms</div>

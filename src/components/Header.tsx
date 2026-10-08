@@ -35,7 +35,7 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-paper/10 bg-ink-950/90 backdrop-blur" onMouseLeave={() => setMega(null)}>
       <div className="container-x flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2.5" aria-label="Neo Forge Technology home">
-          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden><path d="M3 25V3l22 22V3" fill="none" stroke="#ff6a1a" strokeWidth="3" strokeLinejoin="miter" /></svg>
+          <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden><path d="M3 25V3l22 22V3" fill="none" stroke="#1d5bd8" strokeWidth="3" strokeLinejoin="miter" /></svg>
           <span className="font-semibold tracking-tight">NEO FORGE <span className="font-mono text-[10px] tracking-[0.25em] text-paper/50">TECHNOLOGY</span></span>
         </Link>
 

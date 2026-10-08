@@ -52,7 +52,7 @@ export default function Chats() {
           {chats.length === 0 && <p className="p-5 text-sm text-paper/50">No conversations yet.</p>}
           {chats.map((c) => (
             <button key={c.id} onClick={() => setSel(c.id)} className={`block w-full p-3 text-left text-sm hover:bg-paper/5 ${sel === c.id ? "bg-paper/10" : ""}`}>
-              <div className="flex justify-between gap-2"><span className={c.unreadAdmin ? "font-semibold" : ""}>{c.name}</span>{!!c.unreadAdmin && <span className="bg-forge px-1.5 font-mono text-[10px] text-ink-950">{c.unreadAdmin}</span>}</div>
+              <div className="flex justify-between gap-2"><span className={c.unreadAdmin ? "font-semibold" : ""}>{c.name}</span>{!!c.unreadAdmin && <span className="bg-forge px-1.5 font-mono text-[10px] text-white">{c.unreadAdmin}</span>}</div>
               <p className="truncate text-xs text-paper/50">{c.lastMessage}</p><p className="text-[11px] text-paper/35">{formatDateTime(c.updatedAt)}</p>
             </button>
           ))}
@@ -66,7 +66,7 @@ export default function Chats() {
             <div ref={box} className="flex-1 space-y-2 overflow-y-auto p-4">
               {msgs.map((m) => (
                 <div key={m.id} className={`flex ${m.from === "admin" ? "justify-end" : ""}`}>
-                  <div className={`max-w-[80%] px-3 py-2 text-sm ${m.from === "admin" ? "bg-forge text-ink-950" : "bg-ink-700"}`}>
+                  <div className={`max-w-[80%] px-3 py-2 text-sm ${m.from === "admin" ? "bg-forge text-white" : "bg-ink-700"}`}>
                     {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
                     {m.file && <a href={m.file.url} target="_blank" rel="noopener noreferrer" className="underline">📎 {m.file.name || "attachment"}</a>}
                     <p className="mt-1 text-[10px] opacity-60">{formatDateTime(m.createdAt)}</p>
