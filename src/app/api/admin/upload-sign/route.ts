@@ -6,7 +6,7 @@ import { cloudinaryConfigProblem } from "@/lib/cloudinary-config";
 export const runtime = "nodejs";
 
 const ALLOWED = {
-  image: ["jpg", "jpeg", "png", "webp", "gif", "pdf"], // PDFs are stored as image resources so Cloudinary can render page thumbnails
+  image: ["jpg", "jpeg", "png", "webp", "gif", "svg", "pdf"], // PDFs are stored as image resources so Cloudinary can render page thumbnails
   video: ["mp4", "webm", "mov"],
   raw: ["zip", "dwg", "dxf", "rvt", "rfa", "skp", "rbz", "ifc", "json", "csv", "txt", "docx", "xlsx", "pptx", "dll", "bundle"],
 };

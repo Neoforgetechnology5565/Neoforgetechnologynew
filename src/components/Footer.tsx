@@ -2,10 +2,11 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { DIVISIONS } from "@/lib/divisions";
-import type { Category, ContactSettings } from "@/lib/types";
+import type { Branding, Category, ContactSettings } from "@/lib/types";
+import Logo from "./Logo";
 
 /** Hidden inside /admin. Contains no link to the admin area. */
-export default function Footer({ contact, categories }: { contact: ContactSettings; categories: Category[] }) {
+export default function Footer({ contact, categories, branding }: { contact: ContactSettings; categories: Category[]; branding: Branding }) {
   if (usePathname().startsWith("/admin")) return null;
   const socials = [["LinkedIn", contact.linkedin], ["GitHub", contact.github], ["X", contact.x], ["YouTube", contact.youtube]].filter(([, u]) => u);
   return (
@@ -13,7 +14,7 @@ export default function Footer({ contact, categories }: { contact: ContactSettin
       <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div className="grid gap-10 md:grid-cols-4">
           <div>
-            <p className="font-display text-lg font-semibold text-white">Neo Forge Technology</p>
+            <Logo media={branding.logoDark} trim={branding.autoTrim} height={44} dark />
             <p className="mt-3 text-sm leading-relaxed">Software engineering, AI, automation and CAD/BIM engineering technology.</p>
             <ul className="mt-4 space-y-1 text-sm">
               {contact.email && <li><a className="hover:text-blue-400" href={`mailto:${contact.email}`}>{contact.email}</a></li>}

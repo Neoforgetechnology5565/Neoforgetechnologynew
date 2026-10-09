@@ -91,6 +91,17 @@ export interface ContactSettings {
   chatGreeting: string;
 }
 
+export interface Branding {
+  /** Logo for LIGHT backgrounds (dark lettering) — used in the header */
+  logoLight: MediaRef | null;
+  /** Logo for DARK backgrounds (white lettering) — used in the footer */
+  logoDark: MediaRef | null;
+  /** Square icon — favicon, app icon, browser tab */
+  icon: MediaRef | null;
+  /** Crop uniform empty margins around the logos automatically (Cloudinary e_trim) */
+  autoTrim: boolean;
+}
+
 export interface Inquiry {
   id: string;
   name: string;

@@ -115,7 +115,14 @@ export const contactSettingsSchema = z.object({
   chatGreeting: text(300),
 });
 
-export const contentSchemas = { home: homeSchema, about: aboutSchema, contact: contactSettingsSchema } as const;
+export const brandingSchema = z.object({
+  logoLight: mediaSchema.nullable(),
+  logoDark: mediaSchema.nullable(),
+  icon: mediaSchema.nullable(),
+  autoTrim: z.boolean(),
+});
+
+export const contentSchemas = { home: homeSchema, about: aboutSchema, contact: contactSettingsSchema, branding: brandingSchema } as const;
 export type ContentKey = keyof typeof contentSchemas;
 
 export const inquirySchema = z.object({

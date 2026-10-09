@@ -1,4 +1,6 @@
-import type { AboutContent, ContactSettings, HomeContent } from "./types";
+import type { AboutContent, Branding, ContactSettings, HomeContent } from "./types";
+
+export const BRANDING_DEFAULTS: Branding = { logoLight: null, logoDark: null, icon: null, autoTrim: true };
 
 export const HOME_DEFAULTS: HomeContent = {
   heroEyebrow: "Software engineering · AI · Automation · CAD/BIM",

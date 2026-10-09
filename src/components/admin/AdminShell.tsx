@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const NAV = [
-  ["/admin", "Dashboard"], ["/admin/projects", "Projects"], ["/admin/categories", "Categories"], ["/admin/content", "Site content"],
+  ["/admin", "Dashboard"], ["/admin/projects", "Projects"], ["/admin/categories", "Categories"], ["/admin/content", "Site content"], ["/admin/branding", "Branding"],
   ["/admin/faqs", "FAQs"], ["/admin/inbox", "Inquiries"], ["/admin/chats", "Live chat"], ["/admin/analytics", "Analytics"], ["/admin/maintenance", "Maintenance"],
 ];
 

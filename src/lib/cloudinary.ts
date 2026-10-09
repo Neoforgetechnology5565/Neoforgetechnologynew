@@ -12,6 +12,27 @@ export function img(m: MediaRef | null | undefined, opts: { w?: number; h?: numb
   return m.url.replace("/upload/", `/upload/${t}/`);
 }
 
+const isSvg = (m: MediaRef) => (m.format || "").toLowerCase() === "svg" || /\.svg($|\?)/i.test(m.url);
+
+/**
+ * Header/footer logo. `trim` crops uniform empty margins (transparent or solid background) before resizing,
+ * so logos exported on a big canvas still display tightly. Height is 3x the display height for sharp retina output.
+ */
+export function logoUrl(m: MediaRef | null | undefined, opts: { h: number; trim?: boolean }): string {
+  if (!m) return "";
+  if (m.resourceType !== "image" || !m.url.includes("/upload/")) return m.url;
+  if (isSvg(m)) return m.url;
+  const pre = opts.trim ? "e_trim:25/" : "";
+  return m.url.replace("/upload/", `/upload/${pre}c_fit,h_${opts.h * 3},f_auto,q_auto/`);
+}
+
+/** Square icon as PNG at the requested size (favicon, apple-touch-icon). */
+export function iconUrl(m: MediaRef | null | undefined, size: number): string {
+  if (!m) return "";
+  if (m.resourceType !== "image" || !m.url.includes("/upload/")) return m.url;
+  return m.url.replace("/upload/", `/upload/c_fill,g_auto,w_${size},h_${size},f_png/`).replace(/\.(svg|webp|jpe?g|gif)($|\?)/i, ".png$2");
+}
+
 export const isPdf = (m: MediaRef) => (m.format || "").toLowerCase() === "pdf" || /\.pdf($|\?)/i.test(m.url);
 
 /** First-page thumbnail of a PDF — Cloudinary renders it on the fly (PDFs are uploaded as image resources). */

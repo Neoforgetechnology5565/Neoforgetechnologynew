@@ -8,7 +8,7 @@ export const LIMITS: Record<UploadKind, number> = { image: 15 * 1024 * 1024, vid
 /** Decide which Cloudinary resource type a file belongs to from its extension. */
 export function kindOf(file: File): UploadKind {
   const ext = file.name.split(".").pop()?.toLowerCase() || "";
-  if (["jpg", "jpeg", "png", "webp", "gif", "pdf"].includes(ext)) return "image";
+  if (["jpg", "jpeg", "png", "webp", "gif", "svg", "pdf"].includes(ext)) return "image";
   if (["mp4", "webm", "mov"].includes(ext)) return "video";
   return "raw";
 }

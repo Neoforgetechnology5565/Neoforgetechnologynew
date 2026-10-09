@@ -3,7 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DIVISIONS, type Division } from "@/lib/divisions";
-import type { Category } from "@/lib/types";
+import type { Branding, Category } from "@/lib/types";
+import Logo from "./Logo";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -41,7 +42,7 @@ function Dropdown({ d, subs, path }: { d: Division; subs: Category[]; path: stri
   );
 }
 
-export default function Navbar({ categories }: { categories: Category[] }) {
+export default function Navbar({ categories, branding }: { categories: Category[]; branding: Branding }) {
   const path = usePathname();
   const [open, setOpen] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -59,9 +60,8 @@ export default function Navbar({ categories }: { categories: Category[] }) {
   return (
     <header className="sticky top-0 z-50 border-b border-stone-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex flex-col leading-tight" aria-label="Neo Forge Technology home">
-          <span className="font-display text-xl font-semibold tracking-tight text-stone-900">Neo Forge Technology</span>
-          <span className="text-[10px] font-medium uppercase tracking-[0.25em] text-blue-600">Software · AI · CAD/BIM</span>
+        <Link href="/" className="flex items-center" aria-label="Neo Forge Technology home">
+          <Logo media={branding.logoLight} trim={branding.autoTrim} height={44} priority />
         </Link>
         <nav className="hidden items-center gap-6 xl:gap-7 lg:flex" aria-label="Primary">
           {link("/", "Home")}

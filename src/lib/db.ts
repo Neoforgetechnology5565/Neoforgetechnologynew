@@ -1,8 +1,8 @@
 import "server-only";
 import { unstable_cache, revalidatePath, revalidateTag } from "next/cache";
 import { adminDb, isFirebaseConfigured } from "./firebase-admin";
-import { ABOUT_DEFAULTS, CONTACT_DEFAULTS, HOME_DEFAULTS } from "./defaults";
-import type { AboutContent, Category, ContactSettings, Faq, HomeContent, Project } from "./types";
+import { ABOUT_DEFAULTS, BRANDING_DEFAULTS, CONTACT_DEFAULTS, HOME_DEFAULTS } from "./defaults";
+import type { AboutContent, Branding, Category, ContactSettings, Faq, HomeContent, Project } from "./types";
 import type { DivisionSlug } from "./divisions";
 
 export const C = {
@@ -146,10 +146,11 @@ async function readContent<T extends object>(key: string, defaults: T): Promise<
 }
 export const getHome = cached("content-home", () => readContent<HomeContent>("home", HOME_DEFAULTS));
 export const getAbout = cached("content-about", () => readContent<AboutContent>("about", ABOUT_DEFAULTS));
+export const getBranding = cached("content-branding", () => readContent<Branding>("branding", BRANDING_DEFAULTS));
 export const getContactSettings = cached("content-contact", () => readContent<ContactSettings>("contact", CONTACT_DEFAULTS));
 
-export async function adminGetContent(key: "home" | "about" | "contact") {
-  const defaults = { home: HOME_DEFAULTS, about: ABOUT_DEFAULTS, contact: CONTACT_DEFAULTS }[key];
+export async function adminGetContent(key: "home" | "about" | "contact" | "branding") {
+  const defaults = { home: HOME_DEFAULTS, about: ABOUT_DEFAULTS, contact: CONTACT_DEFAULTS, branding: BRANDING_DEFAULTS }[key];
   return readContent(key, defaults as object);
 }
 
