@@ -34,7 +34,7 @@ export default async function Home() {
             <h1 className="mt-6 max-w-3xl font-display text-4xl font-semibold leading-tight sm:text-5xl lg:text-6xl">{home.heroHeading}</h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-300">{home.heroDescription}</p>
             <div className="mt-10 flex flex-wrap gap-4">
-              <Link href="/contact" className="rounded-full bg-blue-500 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-400">{home.primaryCta}</Link>
+              <Link href="/contact" className="rounded-full bg-blue-500 px-7 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-blue-400">{home.primaryCta}</Link>
               <Link href="#work" className="rounded-full border border-slate-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-blue-400 hover:text-blue-300">{home.secondaryCta}</Link>
             </div>
           </div>

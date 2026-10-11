@@ -6,7 +6,7 @@ import { HttpError } from "./auth";
 import { cloudinaryConfigProblem } from "./cloudinary-config";
 import type { MediaRef } from "./types";
 
-const ACCENT: Record<string, string> = { "computer-vision": "#2563eb", "crm-hrm-erp": "#0891b2", "cad-bim": "#4f46e5", "": "#2563eb" };
+const ACCENT: Record<string, string> = { "computer-vision": "#34821d", "crm-hrm-erp": "#2a6a18", "cad-bim": "#46a329", "": "#34821d" };
 const LABEL: Record<string, string> = { "computer-vision": "AI · COMPUTER VISION", "crm-hrm-erp": "CRM · HRM · ERP", "cad-bim": "CAD · BIM · AUTOMATION", "": "NEO FORGE TECHNOLOGY" };
 
 /** Uploads a generated image straight to our Cloudinary (server-side, signed). */
@@ -31,7 +31,7 @@ function motif(division: string, c: string) {
       <div style={{ ...base, right: 70, top: 70, flexDirection: "column" }}>
         {[0, 1, 2, 3].map((r) => (
           <div key={r} style={{ display: "flex" }}>
-            {[0, 1, 2, 3].map((k) => <div key={k} style={{ display: "flex", width: 54, height: 54, margin: 7, borderRadius: 10, background: (r + k) % 3 === 0 ? c : "#dbeafe", opacity: (r + k) % 3 === 0 ? 0.9 : 0.8 }} />)}
+            {[0, 1, 2, 3].map((k) => <div key={k} style={{ display: "flex", width: 54, height: 54, margin: 7, borderRadius: 10, background: (r + k) % 3 === 0 ? c : "#dff3d1", opacity: (r + k) % 3 === 0 ? 0.9 : 0.8 }} />)}
           </div>
         ))}
       </div>
@@ -40,7 +40,7 @@ function motif(division: string, c: string) {
   if (division === "cad-bim") {
     return (
       <div style={{ ...base, right: 80, top: 80, width: 330, height: 330 }}>
-        {[0, 1, 2].map((i) => <div key={i} style={{ ...base, left: 20 + i * 55, top: 200 - i * 70, width: 190, height: 70, background: i === 1 ? c : "#dbeafe", border: `3px solid ${c}`, borderRadius: 6, opacity: 0.9 }} />)}
+        {[0, 1, 2].map((i) => <div key={i} style={{ ...base, left: 20 + i * 55, top: 200 - i * 70, width: 190, height: 70, background: i === 1 ? c : "#dff3d1", border: `3px solid ${c}`, borderRadius: 6, opacity: 0.9 }} />)}
         <div style={{ ...base, left: 0, top: 290, width: 330, height: 4, background: c }} />
       </div>
     );
@@ -59,16 +59,16 @@ export async function renderCover(title: string, division: string): Promise<Buff
   const c = ACCENT[division] ?? ACCENT[""];
   const size = title.length > 90 ? 50 : title.length > 60 ? 58 : 66;
   return toBuffer(
-    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "64px 72px", background: "linear-gradient(135deg,#ffffff 0%,#eff6ff 100%)", position: "relative" }}>
+    <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: "64px 72px", background: "linear-gradient(135deg,#ffffff 0%,#f1faea 100%)", position: "relative" }}>
       {motif(division, c)}
       <div style={{ display: "flex", flexDirection: "column" }}>
         <div style={{ display: "flex", fontSize: 24, letterSpacing: 5, color: c, fontWeight: 700 }}>{LABEL[division] ?? LABEL[""]}</div>
         <div style={{ display: "flex", width: 90, height: 6, background: c, borderRadius: 4, marginTop: 18 }} />
       </div>
-      <div style={{ display: "flex", maxWidth: 650, fontSize: size - 6, lineHeight: 1.12, fontWeight: 700, color: "#0f172a", letterSpacing: -1 }}>{title}</div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 26, color: "#334155" }}>
+      <div style={{ display: "flex", maxWidth: 650, fontSize: size - 6, lineHeight: 1.12, fontWeight: 700, color: "#0a0a0a", letterSpacing: -1 }}>{title}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 26, color: "#333333" }}>
         <div style={{ display: "flex", fontWeight: 700 }}>Neo Forge Technology</div>
-        <div style={{ display: "flex", color: "#64748b" }}>neoforgetechnologies.com</div>
+        <div style={{ display: "flex", color: "#6b6b6b" }}>neoforgetechnologies.com</div>
       </div>
     </div>,
     1200, 630,
@@ -83,12 +83,12 @@ export async function renderFigure(f: Figure, division: string): Promise<Buffer>
   const items = f.items.map((s) => s.slice(0, 70)).slice(0, f.kind === "flow" ? 5 : 6);
   const head = (
     <div style={{ display: "flex", flexDirection: "column", marginBottom: 34 }}>
-      <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: "#0f172a" }}>{f.title.slice(0, 80)}</div>
+      <div style={{ display: "flex", fontSize: 40, fontWeight: 700, color: "#0a0a0a" }}>{f.title.slice(0, 80)}</div>
       <div style={{ display: "flex", width: 80, height: 5, background: c, borderRadius: 3, marginTop: 14 }} />
     </div>
   );
-  const foot = <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 20, color: "#94a3b8", marginTop: "auto" }}>Neo Forge Technology</div>;
-  const frame = { width: "100%", height: "100%", display: "flex", flexDirection: "column" as const, padding: "48px 56px", background: "#ffffff", border: "2px solid #dbeafe" };
+  const foot = <div style={{ display: "flex", justifyContent: "flex-end", fontSize: 20, color: "#8a8a8a", marginTop: "auto" }}>Neo Forge Technology</div>;
+  const frame = { width: "100%", height: "100%", display: "flex", flexDirection: "column" as const, padding: "48px 56px", background: "#ffffff", border: "2px solid #dff3d1" };
   if (f.kind === "flow") {
     return toBuffer(
       <div style={frame}>
@@ -96,9 +96,9 @@ export async function renderFigure(f: Figure, division: string): Promise<Buffer>
         <div style={{ display: "flex", alignItems: "stretch", flex: 1, maxHeight: 220 }}>
           {items.map((s, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
-              <div style={{ display: "flex", flexDirection: "column", flex: 1, height: "100%", padding: 18, borderRadius: 14, background: "#eff6ff", border: `2px solid ${c}` }}>
+              <div style={{ display: "flex", flexDirection: "column", flex: 1, height: "100%", padding: 18, borderRadius: 14, background: "#f1faea", border: `2px solid ${c}` }}>
                 <div style={{ display: "flex", width: 44, height: 44, borderRadius: 44, background: c, color: "#fff", fontSize: 24, fontWeight: 700, alignItems: "center", justifyContent: "center" }}>{i + 1}</div>
-                <div style={{ display: "flex", marginTop: 14, fontSize: 24, lineHeight: 1.25, color: "#0f172a" }}>{s}</div>
+                <div style={{ display: "flex", marginTop: 14, fontSize: 24, lineHeight: 1.25, color: "#0a0a0a" }}>{s}</div>
               </div>
               {i < items.length - 1 && <div style={{ display: "flex", fontSize: 40, color: c, padding: "0 8px" }}>→</div>}
             </div>
@@ -116,7 +116,7 @@ export async function renderFigure(f: Figure, division: string): Promise<Buffer>
         {items.map((s, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
             <div style={{ display: "flex", width: 36, height: 36, borderRadius: 36, background: c, color: "#fff", fontSize: 22, fontWeight: 700, alignItems: "center", justifyContent: "center", marginRight: 18 }}>{i + 1}</div>
-            <div style={{ display: "flex", fontSize: 28, color: "#0f172a" }}>{s}</div>
+            <div style={{ display: "flex", fontSize: 28, color: "#0a0a0a" }}>{s}</div>
           </div>
         ))}
       </div>

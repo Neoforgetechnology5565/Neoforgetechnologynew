@@ -45,7 +45,7 @@ export function CtaBand({ title = "Have a similar project? Let's talk.", sub = "
       <div className="mx-auto max-w-3xl px-4 text-center sm:px-6 lg:px-8">
         <h2 className="font-display text-3xl font-semibold sm:text-4xl">{title}</h2>
         <p className="mt-4 text-slate-300">{sub}</p>
-        <Link href={`/contact${division ? `?division=${division}` : ""}`} className="mt-8 inline-block rounded-full bg-blue-500 px-8 py-3.5 text-sm font-semibold text-white transition hover:bg-blue-400">Start a Project</Link>
+        <Link href={`/contact${division ? `?division=${division}` : ""}`} className="mt-8 inline-block rounded-full bg-blue-500 px-8 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-blue-400">Start a Project</Link>
       </div>
     </section>
   );

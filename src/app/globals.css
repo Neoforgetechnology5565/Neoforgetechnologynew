@@ -5,7 +5,7 @@
 :root { color-scheme: light; }
 html { scroll-behavior: smooth; }
 body { @apply bg-white text-stone-900 antialiased; }
-::selection { background: #1d5bd8; color: #ffffff; }
+::selection { background: #5bc236; color: #0b0b0b; }
 
 @layer components {
   .container-x { @apply mx-auto w-full max-w-7xl px-5 sm:px-8; }
@@ -17,7 +17,7 @@ body { @apply bg-white text-stone-900 antialiased; }
   .btn-dark { @apply btn bg-white text-forge-dim hover:bg-ink-800; }
   .hairline { @apply border-paper/10; }
   .grid-bg {
-    background-image: linear-gradient(to right, rgba(29,91,216,.08) 1px, transparent 1px), linear-gradient(to bottom, rgba(29,91,216,.08) 1px, transparent 1px);
+    background-image: linear-gradient(to right, rgba(91,194,54,.10) 1px, transparent 1px), linear-gradient(to bottom, rgba(91,194,54,.10) 1px, transparent 1px);
     background-size: 48px 48px;
   }
   .grid-bg-light {

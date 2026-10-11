@@ -32,7 +32,7 @@ export default async function DivisionPage({ slug }: { slug: DivisionSlug }) {
             <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">{d.name}</h1>
             <p className="mt-4 max-w-2xl text-slate-300">{d.intro}</p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link href={`/contact?division=${d.slug}`} className="rounded-full bg-blue-500 px-7 py-3.5 text-sm font-semibold text-white hover:bg-blue-400">Start a Project</Link>
+              <Link href={`/contact?division=${d.slug}`} className="rounded-full bg-blue-500 px-7 py-3.5 text-sm font-semibold text-slate-950 hover:bg-blue-400">Start a Project</Link>
               <Link href={`/portfolio/${d.slug}`} className="rounded-full border border-slate-600 px-7 py-3.5 text-sm font-semibold text-white hover:border-blue-400 hover:text-blue-300">View portfolio</Link>
             </div>
           </div>

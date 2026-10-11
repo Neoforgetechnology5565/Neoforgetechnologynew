@@ -11,14 +11,14 @@ export function HeroVisual() {
         </g>
         <g fill="none" strokeWidth="1.5">
           <rect x="365" y="70" width="170" height="120" rx="6" stroke="#38bdf8" />
-          <rect x="60" y="90" width="120" height="86" rx="6" stroke="#60a5fa" />
+          <rect x="60" y="90" width="120" height="86" rx="6" stroke="#7acf48" />
         </g>
         <g fontFamily="var(--font-geist-mono), monospace" fontSize="11">
-          <rect x="365" y="52" width="104" height="17" rx="8" fill="#38bdf8" /><text x="375" y="64" fill="#0f172a">defect 0.97</text>
-          <rect x="60" y="72" width="92" height="17" rx="8" fill="#60a5fa" /><text x="70" y="84" fill="#0f172a">tracked #14</text>
+          <rect x="365" y="52" width="104" height="17" rx="8" fill="#38bdf8" /><text x="375" y="64" fill="#0a0a0a">defect 0.97</text>
+          <rect x="60" y="72" width="92" height="17" rx="8" fill="#7acf48" /><text x="70" y="84" fill="#0a0a0a">tracked #14</text>
         </g>
-        <path d="M20 440 C140 440 160 380 260 390 S420 450 620 400" stroke="#60a5fa" strokeWidth="1.5" fill="none" strokeDasharray="6 6" className="animate-dash" />
-        {[[260, 390], [430, 330], [120, 330], [290, 260]].map(([x, y]) => (<circle key={x} cx={x} cy={y} r="4" fill="#60a5fa" className="animate-pulseDot" />))}
+        <path d="M20 440 C140 440 160 380 260 390 S420 450 620 400" stroke="#7acf48" strokeWidth="1.5" fill="none" strokeDasharray="6 6" className="animate-dash" />
+        {[[260, 390], [430, 330], [120, 330], [290, 260]].map(([x, y]) => (<circle key={x} cx={x} cy={y} r="4" fill="#7acf48" className="animate-pulseDot" />))}
       </svg>
       <div className="pointer-events-none absolute inset-x-0 h-20 animate-scan bg-gradient-to-b from-transparent via-blue-400/15 to-transparent" />
       <div className="absolute bottom-3 left-4 font-mono text-[10px] uppercase tracking-widest text-slate-400">frame 04812 · 28 fps · infer 6.1 ms</div>

@@ -49,11 +49,11 @@ export async function sendMail(opts: { to?: string; subject: string; text: strin
 }
 
 const shell = (title: string, rows: [string, string][], body: string, cta: { href: string; label: string }) => `
-<div style="font-family:Georgia,serif;max-width:600px;margin:auto;color:#0b1f3f">
+<div style="font-family:Georgia,serif;max-width:600px;margin:auto;color:#0b0b0b">
   <h2 style="margin:0 0 12px">${esc(title)}</h2>
   <table style="border-collapse:collapse;width:100%;font-size:14px">${rows.filter(([, v]) => v).map(([k, v]) => `<tr><td style="padding:6px 12px 6px 0;color:#64748b;white-space:nowrap;vertical-align:top">${esc(k)}</td><td style="padding:6px 0">${v}</td></tr>`).join("")}</table>
   <div style="margin:16px 0;padding:14px;background:#f1f5f9;border-radius:8px;white-space:pre-wrap;font-size:15px">${body}</div>
-  <a href="${cta.href}" style="display:inline-block;background:#1d5bd8;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-size:14px">${esc(cta.label)}</a>
+  <a href="${cta.href}" style="display:inline-block;background:#34821d;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-size:14px">${esc(cta.label)}</a>
 </div>`;
 
 export async function notifyInquiry(i: { name: string; email: string; company: string; projectType: string; division: string; budget: string; timeline: string; message: string; files: { url: string; name?: string }[] }) {

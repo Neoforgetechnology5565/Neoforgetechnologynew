@@ -23,7 +23,7 @@ export async function renderCard() {
   const logo = await logoData(ogLogoUrl(b.logoDark, b.autoTrim));
   return new ImageResponse(
     (
-      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "linear-gradient(135deg,#020617 0%,#0b1f3f 60%,#1d4ed8 140%)", color: "white" }}>
+      <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 72, background: "linear-gradient(135deg,#050505 0%,#0b0b0b 60%,#2f7d1a 150%)", color: "white" }}>
         <div style={{ display: "flex", alignItems: "center" }}>
           {logo ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -31,14 +31,14 @@ export async function renderCard() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
               <div style={{ fontSize: 44, fontWeight: 700, letterSpacing: -1, fontFamily: "Georgia, serif" }}>Neo Forge Technology</div>
-              <div style={{ fontSize: 18, letterSpacing: 6, color: "#60a5fa", marginTop: 6 }}>SOFTWARE · AI · CAD/BIM</div>
+              <div style={{ fontSize: 18, letterSpacing: 6, color: "#7acf48", marginTop: 6 }}>SOFTWARE · AI · CAD/BIM</div>
             </div>
           )}
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <div style={{ fontSize: 78, fontWeight: 700, lineHeight: 1.05, letterSpacing: -2, display: "flex", flexWrap: "wrap" }}>Software. AI. Automation. Engineering.</div>
-          <div style={{ height: 6, width: 120, background: "#3b82f6", marginTop: 34, borderRadius: 4 }} />
-          <div style={{ fontSize: 30, color: "#cbd5e1", marginTop: 28 }}>Computer Vision · CRM / HRM / ERP · CAD / BIM</div>
+          <div style={{ height: 6, width: 120, background: "#5bc236", marginTop: 34, borderRadius: 4 }} />
+          <div style={{ fontSize: 30, color: "#d4d4d4", marginTop: 28 }}>Computer Vision · CRM / HRM / ERP · CAD / BIM</div>
         </div>
       </div>
     ),
