@@ -65,7 +65,7 @@ export async function renderCover(title: string, division: string): Promise<Buff
         <div style={{ display: "flex", fontSize: 24, letterSpacing: 5, color: c, fontWeight: 700 }}>{LABEL[division] ?? LABEL[""]}</div>
         <div style={{ display: "flex", width: 90, height: 6, background: c, borderRadius: 4, marginTop: 18 }} />
       </div>
-      <div style={{ display: "flex", maxWidth: 800, fontSize: size, lineHeight: 1.12, fontWeight: 700, color: "#0f172a", letterSpacing: -1 }}>{title}</div>
+      <div style={{ display: "flex", maxWidth: 650, fontSize: size - 6, lineHeight: 1.12, fontWeight: 700, color: "#0f172a", letterSpacing: -1 }}>{title}</div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: 26, color: "#334155" }}>
         <div style={{ display: "flex", fontWeight: 700 }}>Neo Forge Technology</div>
         <div style={{ display: "flex", color: "#64748b" }}>neoforgetechnologies.com</div>
@@ -93,7 +93,7 @@ export async function renderFigure(f: Figure, division: string): Promise<Buffer>
     return toBuffer(
       <div style={frame}>
         {head}
-        <div style={{ display: "flex", alignItems: "stretch", flex: 1, maxHeight: 280 }}>
+        <div style={{ display: "flex", alignItems: "stretch", flex: 1, maxHeight: 220 }}>
           {items.map((s, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", flex: 1 }}>
               <div style={{ display: "flex", flexDirection: "column", flex: 1, height: "100%", padding: 18, borderRadius: 14, background: "#eff6ff", border: `2px solid ${c}` }}>
@@ -106,7 +106,7 @@ export async function renderFigure(f: Figure, division: string): Promise<Buffer>
         </div>
         {foot}
       </div>,
-      1200, 520,
+      1200, 450,
     );
   }
   return toBuffer(
@@ -115,7 +115,7 @@ export async function renderFigure(f: Figure, division: string): Promise<Buffer>
       <div style={{ display: "flex", flexDirection: "column" }}>
         {items.map((s, i) => (
           <div key={i} style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-            <div style={{ display: "flex", width: 36, height: 36, borderRadius: 36, background: c, color: "#fff", fontSize: 22, fontWeight: 700, alignItems: "center", justifyContent: "center", marginRight: 18 }}>✓</div>
+            <div style={{ display: "flex", width: 36, height: 36, borderRadius: 36, background: c, color: "#fff", fontSize: 22, fontWeight: 700, alignItems: "center", justifyContent: "center", marginRight: 18 }}>{i + 1}</div>
             <div style={{ display: "flex", fontSize: 28, color: "#0f172a" }}>{s}</div>
           </div>
         ))}
