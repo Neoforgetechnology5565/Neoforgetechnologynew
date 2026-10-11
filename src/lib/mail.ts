@@ -38,7 +38,13 @@ export async function sendMail(opts: { to?: string; subject: string; text: strin
   } catch (e) {
     const msg = (e as Error).message || "send failed";
     console.error("[mail]", msg);
-    return { ok: false, error: msg.slice(0, 200) };
+    // Plain-English next step for the failures people actually hit when setting up Zoho/SMTP. Never includes credentials.
+    const host = process.env.SMTP_HOST || "";
+    let hint = "";
+    if (/535|auth|invalid login/i.test(msg)) hint = ` — Check that SMTP_USER is the full, existing mailbox address and SMTP_PASS is an app password generated for that same mailbox.${/zoho\.(com|eu|in)$/i.test(host) && !/smtppro/i.test(host) ? " Paid Zoho business mailboxes usually need SMTP_HOST=smtppro.zoho.com." : ""}`;
+    else if (/ETIMEDOUT|ECONNREFUSED|ENOTFOUND|timed out|EAI_AGAIN/i.test(msg)) hint = " — Cannot reach the mail server: check SMTP_HOST and SMTP_PORT (465).";
+    else if (/553|550|relay|not allowed|sender/i.test(msg)) hint = " — The server refused the sender: SMTP_USER (or MAIL_FROM) must be a mailbox that belongs to this account.";
+    return { ok: false, error: (msg.slice(0, 160) + hint).slice(0, 420) };
   }
 }
 
