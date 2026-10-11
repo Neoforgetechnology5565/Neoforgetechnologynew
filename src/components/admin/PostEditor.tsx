@@ -29,6 +29,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   const [chosen, setChosen] = useState(!!initialId); // new articles start on the "manual or PDF" chooser
   const [importing, setImporting] = useState("");
   const [notes, setNotes] = useState<{ warnings: string[]; pages: number; words: number; headings: number } | null>(null);
+  const [drag, setDrag] = useState(false);
   const pdfInput = useRef<HTMLInputElement>(null);
   const ta = useRef<HTMLTextAreaElement>(null);
   const imgInput = useRef<HTMLInputElement>(null);
@@ -105,19 +106,28 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
 
   if (loading) return <p className="text-paper/50">Loading…</p>;
   const pdfPicker = <input ref={pdfInput} type="file" hidden accept=".pdf,application/pdf" data-testid="pdf-input" onChange={(e) => { const file = e.target.files?.[0]; if (file) importPdf(file); e.target.value = ""; }} />;
+  const dropProps = {
+    onDragOver: (e: React.DragEvent) => { e.preventDefault(); setDrag(true); },
+    onDragLeave: () => setDrag(false),
+    onDrop: (e: React.DragEvent) => {
+      e.preventDefault(); setDrag(false);
+      const file = e.dataTransfer.files?.[0];
+      if (!file) return;
+      if (!/\.pdf$/i.test(file.name)) { toast.err(new Error("Please drop a PDF file")); return; }
+      importPdf(file);
+    },
+  };
   if (!chosen) {
     return (
       <>
         <PageTitle title="New article"><Link href="/admin/blog" className="btn-ghost !py-2">Back</Link></PageTitle>
-        <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
-          <button type="button" className="border border-paper/15 bg-ink-900 p-6 text-left hover:border-forge" onClick={() => setChosen(true)}>
-            <p className="text-lg font-semibold">Write it myself</p>
-            <p className="mt-2 text-sm text-paper/60">Start with an empty article and type or paste the content.</p>
-          </button>
-          <button type="button" disabled={!!importing} className="border border-paper/15 bg-ink-900 p-6 text-left hover:border-forge" onClick={() => pdfInput.current?.click()}>
-            <p className="text-lg font-semibold">{importing || "Upload a PDF and auto-fill"}</p>
-            <p className="mt-2 text-sm text-paper/60">We read the PDF and fill in the title, summary, headings, text, tags and division. You review it before publishing.</p>
-          </button>
+        <div className="max-w-3xl space-y-4">
+          <div {...dropProps} role="button" tabIndex={0} onClick={() => !importing && pdfInput.current?.click()} onKeyDown={(e) => e.key === "Enter" && pdfInput.current?.click()}
+            className={`cursor-pointer border-2 border-dashed p-10 text-center transition ${drag ? "border-forge bg-blue-50" : "border-paper/25 bg-ink-900 hover:border-forge"}`}>
+            <p className="text-lg font-semibold">{importing || "Drop your PDF here, or click to choose it"}</p>
+            <p className="mt-2 text-sm text-paper/60">{importing ? "This takes a few seconds — the article opens filled in automatically." : "It uploads and fills the title, summary, headings, text, tags and division by itself. You review before publishing."}</p>
+          </div>
+          <p className="text-center text-sm text-paper/60">or <button type="button" className="text-forge underline" onClick={() => setChosen(true)}>write it myself</button></p>
         </div>
         <p className="mt-4 max-w-3xl text-xs text-paper/50">Works with PDFs that contain real text (Word, Google Docs, exports). Scanned/photographed pages can&apos;t be read. Images and tables are not converted.</p>
         {pdfPicker}
@@ -136,6 +146,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
         <button className="btn-ghost !py-2" disabled={saving || !f.title} onClick={() => save("draft")}>Save draft</button>
         <button className="btn-primary !py-2" disabled={saving || !f.title} onClick={() => save("published")}>{saving ? "Saving…" : "Save & publish"}</button>
       </PageTitle>
+      <div {...dropProps} className={drag ? "outline outline-2 outline-forge" : ""}>
       {notes && (
         <div className="mb-5 border border-forge/40 bg-blue-50 p-4 text-sm" data-testid="import-banner">
           <p className="font-semibold">Filled from your PDF — {notes.pages} page{notes.pages === 1 ? "" : "s"}, {notes.words} words, {notes.headings} heading{notes.headings === 1 ? "" : "s"} found.</p>
@@ -207,6 +218,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
             </div>
           </Card>
         </aside>
+      </div>
       </div>
       {toast.el}
     </>
