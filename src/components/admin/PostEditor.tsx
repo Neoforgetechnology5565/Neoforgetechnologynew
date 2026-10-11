@@ -26,6 +26,10 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   const [saving, setSaving] = useState(false);
   const [preview, setPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [chosen, setChosen] = useState(!!initialId); // new articles start on the "manual or PDF" chooser
+  const [importing, setImporting] = useState("");
+  const [notes, setNotes] = useState<{ warnings: string[]; pages: number; words: number; headings: number } | null>(null);
+  const pdfInput = useRef<HTMLInputElement>(null);
   const ta = useRef<HTMLTextAreaElement>(null);
   const imgInput = useRef<HTMLInputElement>(null);
   const toast = useToast();
@@ -67,6 +71,22 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
     setUploading(false);
   }
 
+  /** Upload the PDF, let the server read it, then pre-fill the form (nothing is saved until the admin saves). */
+  async function importPdf(file: File) {
+    if (id && (f.title || f.content) && !confirm("This replaces the title, summary, text, tags and division with what is read from the PDF. Continue?")) return;
+    try {
+      setImporting("Uploading PDF…");
+      const m = await uploadToCloudinary(file, { kind: "image", folder: "blog/imports" });
+      setImporting("Reading the PDF…");
+      const { item } = await api<{ item: { title: string; excerpt: string; content: string; tags: string[]; division: string; pages: number; words: number; headings: number; warnings: string[] } }>(
+        "/api/admin/posts/import-pdf", "POST", { file: { ...m, name: file.name } });
+      setF((x) => ({ ...x, title: item.title || x.title, excerpt: item.excerpt, content: item.content, tags: item.tags.join(", "), division: item.division, status: "draft" }));
+      setNotes({ warnings: item.warnings, pages: item.pages, words: item.words, headings: item.headings });
+      setChosen(true);
+    } catch (e) { toast.err(e); }
+    setImporting("");
+  }
+
   async function save(status?: "draft" | "published") {
     setSaving(true);
     const body = {
@@ -84,6 +104,27 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   }
 
   if (loading) return <p className="text-paper/50">Loading…</p>;
+  const pdfPicker = <input ref={pdfInput} type="file" hidden accept=".pdf,application/pdf" data-testid="pdf-input" onChange={(e) => { const file = e.target.files?.[0]; if (file) importPdf(file); e.target.value = ""; }} />;
+  if (!chosen) {
+    return (
+      <>
+        <PageTitle title="New article"><Link href="/admin/blog" className="btn-ghost !py-2">Back</Link></PageTitle>
+        <div className="grid max-w-3xl gap-5 sm:grid-cols-2">
+          <button type="button" className="border border-paper/15 bg-ink-900 p-6 text-left hover:border-forge" onClick={() => setChosen(true)}>
+            <p className="text-lg font-semibold">Write it myself</p>
+            <p className="mt-2 text-sm text-paper/60">Start with an empty article and type or paste the content.</p>
+          </button>
+          <button type="button" disabled={!!importing} className="border border-paper/15 bg-ink-900 p-6 text-left hover:border-forge" onClick={() => pdfInput.current?.click()}>
+            <p className="text-lg font-semibold">{importing || "Upload a PDF and auto-fill"}</p>
+            <p className="mt-2 text-sm text-paper/60">We read the PDF and fill in the title, summary, headings, text, tags and division. You review it before publishing.</p>
+          </button>
+        </div>
+        <p className="mt-4 max-w-3xl text-xs text-paper/50">Works with PDFs that contain real text (Word, Google Docs, exports). Scanned/photographed pages can&apos;t be read. Images and tables are not converted.</p>
+        {pdfPicker}
+        {toast.el}
+      </>
+    );
+  }
   const tb = "border border-paper/20 px-2.5 py-1 text-xs hover:border-forge hover:text-forge";
   const keep = (e: React.MouseEvent) => e.preventDefault(); // keeps the caret/selection in the text box when a toolbar button is pressed
   const words = f.content.split(/\s+/).filter(Boolean).length;
@@ -95,10 +136,22 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
         <button className="btn-ghost !py-2" disabled={saving || !f.title} onClick={() => save("draft")}>Save draft</button>
         <button className="btn-primary !py-2" disabled={saving || !f.title} onClick={() => save("published")}>{saving ? "Saving…" : "Save & publish"}</button>
       </PageTitle>
+      {notes && (
+        <div className="mb-5 border border-forge/40 bg-blue-50 p-4 text-sm" data-testid="import-banner">
+          <p className="font-semibold">Filled from your PDF — {notes.pages} page{notes.pages === 1 ? "" : "s"}, {notes.words} words, {notes.headings} heading{notes.headings === 1 ? "" : "s"} found.</p>
+          <p className="mt-1 text-paper/70">Please read it through, fix anything odd, add a cover image, then save. It is saved as a draft.</p>
+          {notes.warnings.length > 0 && <ul className="mt-2 list-disc pl-5 text-paper/70">{notes.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
+        </div>
+      )}
       <div className="grid gap-5 xl:grid-cols-[1fr_22rem]">
         <div className="space-y-5">
           <Card className="grid gap-4">
             <Field label="Title *" hint="Put the phrase people search for near the start. About 50–60 characters is ideal."><input className="field" maxLength={160} value={f.title} onChange={(e) => set("title", e.target.value)} /></Field>
+            <div className="flex flex-wrap items-center gap-3 text-xs text-paper/60">
+              <button type="button" className="btn-ghost !py-1.5 !text-xs" disabled={!!importing} onClick={() => pdfInput.current?.click()}>{importing || (f.content || f.title ? "Re-fill from a PDF" : "Auto-fill from a PDF")}</button>
+              <span>Reads the PDF and fills title, summary, text, tags and division.</span>
+              {pdfPicker}
+            </div>
             <Field label="Short summary" hint={`Shown on cards and in Google results (about 150 characters). ${f.excerpt.length}/300`}><textarea className="field" rows={2} maxLength={300} value={f.excerpt} onChange={(e) => set("excerpt", e.target.value)} /></Field>
           </Card>
 
