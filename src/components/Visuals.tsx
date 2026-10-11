@@ -5,16 +5,16 @@ export function HeroVisual() {
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-2xl border border-slate-700 bg-slate-900/70" aria-hidden>
       <svg viewBox="0 0 640 480" className="absolute inset-0 h-full w-full">
-        <g stroke="#cbd5e1" strokeOpacity=".35" fill="none" strokeWidth="1">
+        <g stroke="#d4d4d4" strokeOpacity=".35" fill="none" strokeWidth="1">
           <path d="M120 330 L260 400 L430 330 L290 260 Z" /><path d="M120 330 V210 L260 280 V400" /><path d="M430 330 V210 L290 140 L120 210" />
           <path d="M290 260 V140" /><path d="M260 280 L430 210" strokeDasharray="3 5" />
         </g>
         <g fill="none" strokeWidth="1.5">
-          <rect x="365" y="70" width="170" height="120" rx="6" stroke="#38bdf8" />
+          <rect x="365" y="70" width="170" height="120" rx="6" stroke="#ffffff" />
           <rect x="60" y="90" width="120" height="86" rx="6" stroke="#7acf48" />
         </g>
         <g fontFamily="var(--font-geist-mono), monospace" fontSize="11">
-          <rect x="365" y="52" width="104" height="17" rx="8" fill="#38bdf8" /><text x="375" y="64" fill="#0a0a0a">defect 0.97</text>
+          <rect x="365" y="52" width="104" height="17" rx="8" fill="#ffffff" /><text x="375" y="64" fill="#0a0a0a">defect 0.97</text>
           <rect x="60" y="72" width="92" height="17" rx="8" fill="#7acf48" /><text x="70" y="84" fill="#0a0a0a">tracked #14</text>
         </g>
         <path d="M20 440 C140 440 160 380 260 390 S420 450 620 400" stroke="#7acf48" strokeWidth="1.5" fill="none" strokeDasharray="6 6" className="animate-dash" />

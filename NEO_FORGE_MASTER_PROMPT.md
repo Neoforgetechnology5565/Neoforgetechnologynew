@@ -97,7 +97,7 @@ Hero copy (editable in admin): eyebrow "Software engineering · AI · Automation
 
 ## 5. DESIGN DIRECTION
 
-- **Colors: white and blue.** White page, stone/slate neutrals, **blue accent** (blue-600 on white, blue-400/500 on dark), dark navy/slate-950 bands for hero, one division, CTA and footer. No amber/orange, no neon.
+- **Colors: the logo's green and black on white.** White page, neutral greys, **green accent** (#34821d on white for text/buttons, #55b52b–#7acf48 on dark, black text on bright-green buttons), near-black (#0a0a0a) bands for hero, one division, CTA and footer. Implemented by remapping Tailwind's `blue` to the green scale and `slate` to neutral greys in `tailwind.config.ts`, plus the admin tokens (`forge`, `ink`, `paper`, `signal`) and the generated covers/share image/email button. No amber/orange, no neon.
 - **Typography: Georgia** (serif) for headings **and** body — a system font, no downloads. Small technical labels in the admin may use monospace.
 - **Shape language (like Neo Vision):** rounded-2xl cards, rounded-full pill buttons/chips, hairline borders, hover lift + soft shadow, generous spacing, sticky white header with blur, subtle animations (respect `prefers-reduced-motion`).
 - Premium, technical, engineering-oriented: technical diagrams, solution-flow steps, code/CAD wireframe motifs. Avoid generic SaaS look, cheap stock AI imagery, excessive gradients.
