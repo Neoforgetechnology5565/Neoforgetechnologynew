@@ -41,6 +41,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   const [focus, setFocus] = useState("");
   const [topic, setTopic] = useState("");
   const [aiBusy, setAiBusy] = useState("");
+  const [aiModel, setAiModel] = useState("claude-opus-5-5");
   const pdfInput = useRef<HTMLInputElement>(null);
   const ta = useRef<HTMLTextAreaElement>(null);
   const imgInput = useRef<HTMLInputElement>(null);
@@ -107,14 +108,14 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
 
   async function suggest() {
     setAiBusy("Thinking of topics…");
-    try { setIdeas((await api<{ topics: typeof ideas }>("/api/admin/posts/ai", "POST", { action: "topics", focus })).topics); } catch (e) { toast.err(e); }
+    try { setIdeas((await api<{ topics: typeof ideas }>("/api/admin/posts/ai", "POST", { action: "topics", focus, model: aiModel })).topics); } catch (e) { toast.err(e); }
     setAiBusy("");
   }
   async function writeWithAi(t: string, angle = "") {
     if (!t.trim()) return;
     setAiBusy("Writing the article… (up to a minute)");
     try {
-      const { item } = await api<{ item: Filled & { warnings: string[] } }>("/api/admin/posts/ai", "POST", { action: "write", topic: t, angle });
+      const { item } = await api<{ item: Filled & { warnings: string[] } }>("/api/admin/posts/ai", "POST", { action: "write", topic: t, angle, model: aiModel });
       fill(item);
       setNotes({ warnings: ["Written by AI, with a designed cover and diagrams. Fact-check every claim and add real examples from your own projects before publishing.", ...item.warnings], pages: 0, words: item.content.split(/\s+/).filter(Boolean).length, headings: (item.content.match(/^#{2,3} /gm) || []).length, ai: true });
       setChosen(true);
@@ -185,6 +186,12 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
               <p className="mt-3 text-sm text-amber-700">Not set up yet: add <code>ANTHROPIC_API_KEY</code> in Vercel → Settings → Environment Variables, then redeploy.</p>
             ) : (
               <>
+                <label className="mt-3 block text-xs text-paper/60">AI model
+                  <select className="field mt-1" value={aiModel} onChange={(e) => setAiModel(e.target.value)} aria-label="AI model">
+                    <option value="claude-opus-5-5">Claude Opus 5.5 — best quality (recommended)</option>
+                    <option value="claude-sonnet-5-5">Claude Sonnet 5.5 — faster and cheaper</option>
+                  </select>
+                </label>
                 <div className="mt-3 flex flex-wrap gap-2">
                   <input className="field !w-auto flex-1" placeholder="Optional focus, e.g. Revit automation" maxLength={120} value={focus} onChange={(e) => setFocus(e.target.value)} />
                   <button type="button" className="btn-primary !py-2" disabled={!!aiBusy} onClick={suggest}>Suggest topics</button>

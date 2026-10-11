@@ -4,7 +4,9 @@ import { HttpError } from "./auth";
 import { DIVISIONS } from "./divisions";
 
 export const aiConfigured = () => !!process.env.ANTHROPIC_API_KEY;
-const MODEL = () => process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+export const AI_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5"] as const;
+export type AiModel = (typeof AI_MODELS)[number];
+const MODEL = (m?: string) => (AI_MODELS as readonly string[]).includes(m ?? "") ? (m as AiModel) : process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
 
 const COMPANY = `Neo Forge Technology builds custom software for engineering and business teams. Divisions:\n${DIVISIONS.map((d) => `- ${d.slug}: ${d.name} — ${d.tagline}`).join("\n")}`;
 
@@ -17,10 +19,10 @@ function client() {
   return new Anthropic({ timeout: 55_000, maxRetries: 1 });
 }
 
-async function ask<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens: number): Promise<T> {
+async function ask<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens: number, model?: string): Promise<T> {
   try {
     const res = await client().messages.create({
-      model: MODEL(),
+      model: MODEL(model),
       max_tokens: maxTokens,
       system,
       output_config: { effort: "low", format: { type: "json_schema", schema } },
@@ -43,7 +45,7 @@ async function ask<T>(system: string, user: string, schema: Record<string, unkno
 
 export interface TopicIdea { title: string; angle: string; keyword: string; division: string }
 
-export async function suggestTopics(existingTitles: string[], focus: string): Promise<TopicIdea[]> {
+export async function suggestTopics(existingTitles: string[], focus: string, model?: string): Promise<TopicIdea[]> {
   const out = await ask<{ topics: TopicIdea[] }>(
     RULES,
     `Suggest 8 blog article topics likely to attract search traffic from people who need this kind of software.${focus ? ` Focus area: ${focus}.` : " Spread them across the divisions."}
@@ -54,6 +56,7 @@ Do not repeat or closely overlap these existing articles: ${existingTitles.slice
       properties: { topics: { type: "array", items: { type: "object", additionalProperties: false, required: ["title", "angle", "keyword", "division"], properties: { title: { type: "string" }, angle: { type: "string" }, keyword: { type: "string" }, division: { type: "string", enum: DIVISIONS.map((d) => d.slug) } } } } },
     },
     3000,
+    model,
   );
   return (out.topics ?? []).slice(0, 8);
 }
@@ -61,7 +64,7 @@ Do not repeat or closely overlap these existing articles: ${existingTitles.slice
 export interface AiFigure { kind: "flow" | "takeaways"; title: string; items: string[]; alt: string }
 export interface AiArticle { title: string; excerpt: string; content: string; tags: string[]; division: string; seoTitle: string; seoDescription: string; coverAlt: string; figures: AiFigure[] }
 
-export async function writeArticle(topic: string, angle: string): Promise<AiArticle> {
+export async function writeArticle(topic: string, angle: string, model?: string): Promise<AiArticle> {
   const a = await ask<AiArticle>(
     RULES,
     `Write a complete blog article.\nTopic: ${topic}${angle ? `\nAngle: ${angle}` : ""}\n
@@ -78,6 +81,7 @@ Also design 1–2 figures (simple graphics we render ourselves): each has kind "
       },
     },
     9000,
+    model,
   );
   return {
     title: String(a.title || topic).slice(0, 160),

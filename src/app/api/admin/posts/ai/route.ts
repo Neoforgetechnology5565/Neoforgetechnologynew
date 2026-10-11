@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { suggestTopics, writeArticle, aiConfigured } from "@/lib/ai-article";
+import { AI_MODELS, suggestTopics, writeArticle, aiConfigured } from "@/lib/ai-article";
 import { adminRoute } from "@/lib/auth";
 import { adminListPosts } from "@/lib/db";
 import { makeCover, makeFigure } from "@/lib/media-gen";
@@ -10,8 +10,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const body = z.discriminatedUnion("action", [
-  z.object({ action: z.literal("topics"), focus: z.string().trim().max(120).default("") }),
-  z.object({ action: z.literal("write"), topic: z.string().trim().min(5).max(200), angle: z.string().trim().max(400).default("") }),
+  z.object({ action: z.literal("topics"), focus: z.string().trim().max(120).default(""), model: z.enum(AI_MODELS).optional() }),
+  z.object({ action: z.literal("write"), topic: z.string().trim().min(5).max(200), angle: z.string().trim().max(400).default(""), model: z.enum(AI_MODELS).optional() }),
 ]);
 
 export const GET = adminRoute(async () => NextResponse.json({ configured: aiConfigured() }));
@@ -21,9 +21,9 @@ export const POST = adminRoute(async (req) => {
   const b = body.parse(await req.json());
   if (b.action === "topics") {
     const titles = (await adminListPosts()).map((p) => p.title);
-    return NextResponse.json({ topics: await suggestTopics(titles, b.focus) });
+    return NextResponse.json({ topics: await suggestTopics(titles, b.focus, b.model) });
   }
-  const { figures, ...a } = await writeArticle(b.topic, b.angle);
+  const { figures, ...a } = await writeArticle(b.topic, b.angle, b.model);
   const warnings: string[] = [];
   let content = a.content;
   let cover: MediaRef | null = null;
