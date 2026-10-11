@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import BlogContactCard from "@/components/BlogContactCard";
 import { CtaBand } from "@/components/Blocks";
 import JsonLd from "@/components/JsonLd";
 import { CldImg } from "@/components/Media";
@@ -47,6 +48,7 @@ export default async function Article({ params }: Params) {
             <h1 className="mt-5 font-display text-3xl font-semibold leading-tight sm:text-5xl">{p.title}</h1>
             {p.excerpt && <p className="mt-5 text-lg text-slate-300">{p.excerpt}</p>}
             <p className="mt-6 text-sm text-slate-400">By {p.author}{p.publishedAt ? ` · ${formatDate(p.publishedAt)}` : ""} · {readingMinutes(p.content)} min read</p>
+            <p className="mt-3 text-sm"><Link href="/contact" className="font-medium text-blue-400 hover:underline">Need something built? Contact us →</Link></p>
           </div>
         </header>
         {p.cover && <div className="mx-auto max-w-5xl px-4 pt-10 sm:px-6 lg:px-8"><div className="overflow-hidden rounded-2xl border border-stone-200 bg-stone-100"><CldImg media={p.cover} alt={p.coverAlt || p.title} priority sizes="(min-width:1024px) 1000px, 100vw" widths={[640, 1000, 1400]} ratio={16 / 9} /></div></div>}
@@ -62,6 +64,8 @@ export default async function Article({ params }: Params) {
           {videos.length > 0 && <div className="mt-10"><VideoLinks items={videos} /></div>}
 
           {p.tags.length > 0 && <ul className="mt-10 flex flex-wrap gap-2">{p.tags.map((t) => <li key={t} className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600">#{t}</li>)}</ul>}
+
+          <BlogContactCard />
 
           {d && (
             <aside className="mt-10 rounded-2xl border border-blue-200 bg-blue-50/50 p-6">
