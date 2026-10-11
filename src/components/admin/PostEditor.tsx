@@ -36,7 +36,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   const [notes, setNotes] = useState<{ warnings: string[]; pages: number; words: number; headings: number; ai?: boolean } | null>(null);
   const [drag, setDrag] = useState(false);
   const [genCoverBusy, setGenCoverBusy] = useState(false);
-  const [ai, setAi] = useState<{ configured: boolean } | null>(null);
+  const [ai, setAi] = useState<{ configured: boolean; error?: boolean } | null>(null);
   const [ideas, setIdeas] = useState<{ title: string; angle: string; keyword: string; division: string }[]>([]);
   const [focus, setFocus] = useState("");
   const [topic, setTopic] = useState("");
@@ -103,7 +103,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   }
 
   useEffect(() => {
-    if (!initialId) api<{ configured: boolean }>("/api/admin/posts/ai").then(setAi).catch(() => setAi({ configured: false }));
+    if (!initialId) api<{ configured: boolean }>("/api/admin/posts/ai").then(setAi).catch(() => setAi({ configured: false, error: true }));
   }, [initialId]);
 
   async function suggest() {
@@ -183,7 +183,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
             <p className="text-lg font-semibold">Write with AI</p>
             <p className="mt-1 text-sm text-paper/60">Get topic ideas that fit your services, pick one, and the AI drafts the whole article. You review and edit before publishing.</p>
             {ai && !ai.configured ? (
-              <p className="mt-3 text-sm text-amber-700">Not set up yet: add <code>ANTHROPIC_API_KEY</code> in Vercel → Settings → Environment Variables, then redeploy.</p>
+              <p className="mt-3 text-sm text-amber-700">{ai.error ? "Could not check the AI setup — refresh the page or sign in again." : <>Not set up yet: <code>ANTHROPIC_API_KEY</code> was not found by the live site. Add it in Vercel → Settings → Environment Variables (tick Production), then <b>Redeploy</b>. Open /api/health to check — it should show <code>ai: configured</code>.</>}</p>
             ) : (
               <>
                 <label className="mt-3 block text-xs text-paper/60">AI model

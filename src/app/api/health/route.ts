@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomBytes } from "node:crypto";
 import { cloudinaryConfigProblem } from "@/lib/cloudinary-config";
+import { aiConfigured } from "@/lib/ai-article";
 import { mailConfigured } from "@/lib/mail";
 import { C, getContactSettings } from "@/lib/db";
 import { adminAuth, adminDb, isFirebaseConfigured } from "@/lib/firebase-admin";
@@ -20,7 +21,7 @@ const REQUIRED = [
 /** Deployment self-check. Reports which variables are present (never their values) and whether Firebase answers. */
 export async function GET() {
   const env = Object.fromEntries(REQUIRED.map((k) => [k, Boolean(process.env[k])]));
-  const out: Record<string, unknown> = { firestore: "skipped", firestoreWrite: "skipped", chat: "skipped", auth: "skipped", cloudinary: cloudinaryConfigProblem() ?? "ok", email: mailConfigured() ? "configured" : "not configured (optional)" };
+  const out: Record<string, unknown> = { firestore: "skipped", firestoreWrite: "skipped", chat: "skipped", auth: "skipped", cloudinary: cloudinaryConfigProblem() ?? "ok", email: mailConfigured() ? "configured" : "not configured (optional)", ai: aiConfigured() ? "configured" : "not configured (ANTHROPIC_API_KEY missing or too short)" };
   if (isFirebaseConfigured()) {
     try { await within(adminDb().collection("meta").doc("schema").get()); out.firestore = "ok"; }
     catch (e) { out.firestore = `error: ${errCode(e)}`; }

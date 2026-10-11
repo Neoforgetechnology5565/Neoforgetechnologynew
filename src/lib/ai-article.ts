@@ -3,7 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { HttpError } from "./auth";
 import { DIVISIONS } from "./divisions";
 
-export const aiConfigured = () => !!process.env.ANTHROPIC_API_KEY;
+const apiKey = () => (process.env.ANTHROPIC_API_KEY || "").trim().replace(/^["']|["']$/g, "");
+export const aiConfigured = () => apiKey().length > 20;
 export const AI_MODELS = ["claude-opus-5-5", "claude-sonnet-5-5"] as const;
 export type AiModel = (typeof AI_MODELS)[number];
 const MODEL = (m?: string) => (AI_MODELS as readonly string[]).includes(m ?? "") ? (m as AiModel) : process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
@@ -16,7 +17,7 @@ ${COMPANY}`;
 
 function client() {
   if (!aiConfigured()) throw new HttpError(503, "AI writing isn't set up yet. Add ANTHROPIC_API_KEY in Vercel → Settings → Environment Variables, then redeploy.");
-  return new Anthropic({ timeout: 55_000, maxRetries: 1 });
+  return new Anthropic({ apiKey: apiKey(), timeout: 55_000, maxRetries: 1 });
 }
 
 async function ask<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens: number, model?: string): Promise<T> {
