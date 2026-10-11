@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Chips, CtaBand, FaqList, SectionHead } from "@/components/Blocks";
+import JsonLd from "@/components/JsonLd";
+import { faqLd } from "@/lib/jsonld";
 import HeroSlideshow, { type HeroSlide } from "@/components/HeroSlideshow";
 import ProjectCard from "@/components/ProjectCard";
 import { DivisionGlyph, HeroVisual } from "@/components/Visuals";
@@ -21,6 +23,7 @@ export default async function Home() {
 
   return (
     <>
+      {faqs.length > 0 && <JsonLd data={faqLd(faqs)} />}
       {/* Hero */}
       <section className="relative overflow-hidden bg-slate-950 text-white">
         <HeroSlideshow slides={slides} />

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Chips, CtaBand, FaqList, SectionHead } from "@/components/Blocks";
+import JsonLd from "@/components/JsonLd";
+import { faqLd } from "@/lib/jsonld";
 import { DIVISIONS, WHY_US } from "@/lib/divisions";
 import { getAbout, getFaqs } from "@/lib/db";
 
@@ -14,6 +16,7 @@ export default async function About() {
   const [about, faqs] = await Promise.all([getAbout(), getFaqs()]);
   return (
     <>
+      {faqs.length > 0 && <JsonLd data={faqLd(faqs)} />}
       <section className="bg-slate-950 py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">About</p>

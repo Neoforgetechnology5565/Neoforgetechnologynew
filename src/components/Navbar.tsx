@@ -8,6 +8,7 @@ import Logo from "./Logo";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
+  { href: "/blog", label: "Blog" },
   { href: "/live-chat", label: "Live Chat" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Contact" },

@@ -3,21 +3,27 @@ import type { Metadata } from "next";
 import { CapabilityGroups, Chips, CtaBand, SectionHead } from "@/components/Blocks";
 import ProjectCard from "@/components/ProjectCard";
 import { DivisionGlyph, Pipeline } from "@/components/Visuals";
-import { getCategories, getPublishedProjects } from "@/lib/db";
+import JsonLd from "@/components/JsonLd";
+import PostCard from "@/components/PostCard";
+import { getCategories, getPublishedPosts, getPublishedProjects } from "@/lib/db";
+import { breadcrumbLd, serviceLd } from "@/lib/jsonld";
 import { DIVISION_MAP, type DivisionSlug } from "@/lib/divisions";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 
 export function divisionMetadata(slug: DivisionSlug): Metadata {
   const d = DIVISION_MAP[slug];
-  return { title: d.name, description: d.metaDescription, alternates: { canonical: `/${slug}` }, openGraph: { title: `${d.name} | Neo Forge Technology`, description: d.metaDescription, url: `/${slug}` } };
+  return { title: d.name, description: d.metaDescription, alternates: { canonical: `/${slug}` }, openGraph: { title: `${d.name} | Neo Forge Technology`, description: d.metaDescription, url: `/${slug}`, images: [DEFAULT_OG_IMAGE] }, twitter: { card: "summary_large_image", images: [DEFAULT_OG_IMAGE.url] } };
 }
 
 export default async function DivisionPage({ slug }: { slug: DivisionSlug }) {
   const d = DIVISION_MAP[slug];
-  const [cats, all] = await Promise.all([getCategories(), getPublishedProjects()]);
+  const [cats, all, allPosts] = await Promise.all([getCategories(), getPublishedProjects(), getPublishedPosts()]);
+  const posts = allPosts.filter((p) => p.division === slug).slice(0, 3);
   const subs = cats.filter((c) => c.division === slug && c.enabled).sort((a, b) => a.order - b.order);
   const projects = all.filter((p) => p.division === slug).slice(0, 3);
   return (
     <>
+      <JsonLd data={[serviceLd(d), breadcrumbLd([{ name: "Home", path: "/" }, { name: d.short, path: `/${slug}` }])]} />
       <section className="bg-slate-950 py-20 text-white">
         <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 sm:px-6 lg:grid-cols-[1.4fr_.6fr] lg:px-8">
           <div>
@@ -80,6 +86,14 @@ export default async function DivisionPage({ slug }: { slug: DivisionSlug }) {
         {projects.length ? <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{projects.map((p) => <ProjectCard key={p.id} p={p} />)}</div>
           : <p className="mt-8 rounded-2xl border border-dashed border-stone-300 p-12 text-center text-stone-500">Case studies for this division are being added. Contact us to discuss a similar project.</p>}
       </section>
+      {posts.length > 0 && (
+        <section className="bg-stone-50 py-20">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-end justify-between gap-4"><SectionHead eyebrow="From the blog" title={`${d.short} insights`} /><Link href="/blog" className="text-sm font-medium text-stone-700 hover:text-blue-600">All articles →</Link></div>
+            <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{posts.map((p) => <PostCard key={p.id} p={p} />)}</div>
+          </div>
+        </section>
+      )}
       <CtaBand division={d.slug} title={`Planning a ${d.short} project?`} />
     </>
   );

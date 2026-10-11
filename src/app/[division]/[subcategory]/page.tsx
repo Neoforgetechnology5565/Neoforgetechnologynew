@@ -2,6 +2,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Chips, CtaBand } from "@/components/Blocks";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbLd } from "@/lib/jsonld";
 import ProjectCard from "@/components/ProjectCard";
 import { getCategories, getPublishedProjects } from "@/lib/db";
 import { DIVISION_MAP, isDivisionSlug } from "@/lib/divisions";
@@ -30,6 +32,7 @@ export default async function SubcategoryPage({ params }: Params) {
   const projects = (await getPublishedProjects()).filter((p) => p.categoryId === r.category.id);
   return (
     <>
+      <JsonLd data={breadcrumbLd([{ name: "Home", path: "/" }, { name: d.short, path: `/${division}` }, { name: r.category.name, path: `/${division}/${subcategory}` }])} />
       <section className="bg-slate-950 py-20 text-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">

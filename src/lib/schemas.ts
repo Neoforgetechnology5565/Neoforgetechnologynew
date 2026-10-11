@@ -78,6 +78,23 @@ export const projectSchema = z.object({
   order: z.number().int().default(0),
 });
 
+export const postSchema = z.object({
+  title: z.string().min(1).max(160).transform(stripTags),
+  slug: z.string().max(100).optional(),
+  excerpt: text(300).default(""),
+  // Body keeps markdown characters; raw HTML tags are stripped and never rendered.
+  content: z.string().max(80000).transform((s) => s.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")).default(""),
+  cover: mediaSchema.nullable().default(null),
+  coverAlt: text(200).default(""),
+  videoLinks: z.array(z.string().trim().max(500).refine(isVideoLink, "Must be a YouTube or Vimeo link")).max(6).default([]),
+  tags: z.array(text(40).refine((t) => t.length > 0)).max(8).default([]),
+  division: z.enum(["", ...DIVISIONS.map((d) => d.slug)] as [string, ...string[]]).default(""),
+  author: text(80).default("Neo Forge Team"),
+  seoTitle: text(70).default(""),
+  seoDescription: text(170).default(""),
+  status: z.enum(["draft", "published"]).default("draft"),
+});
+
 export const faqSchema = z.object({
   question: z.string().min(1).max(300).transform(stripTags),
   answer: text(3000).default(""),

@@ -11,7 +11,10 @@ import { resolveVideos } from "@/lib/video-server";
 import VideoLinks from "@/components/VideoLinks";
 import { getRelated } from "@/lib/db";
 import { DIVISION_MAP } from "@/lib/divisions";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbLd, projectLd } from "@/lib/jsonld";
 import { projectHref } from "@/lib/paths";
+import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import type { Project } from "@/lib/types";
 import { formatBytes } from "@/lib/utils";
 
@@ -21,7 +24,8 @@ export function projectMetadata(p: Project): Metadata {
     title: p.title,
     description: desc,
     alternates: { canonical: projectHref(p) },
-    openGraph: { title: p.title, description: desc, type: "article", images: p.cover ? [{ url: img(p.cover, { w: 1200, h: 630 }) }] : undefined },
+    openGraph: { title: p.title, description: desc, type: "article", images: p.cover ? [{ url: img(p.cover, { w: 1200, h: 630 }) }] : [DEFAULT_OG_IMAGE] },
+    twitter: { card: "summary_large_image", images: [p.cover ? img(p.cover, { w: 1200, h: 630 }) : DEFAULT_OG_IMAGE.url] },
   };
 }
 
@@ -33,11 +37,10 @@ export default async function ProjectView({ p }: { p: Project }) {
   const related = await getRelated(p);
   const videos = await resolveVideos(p.videoLinks);
   const steps = p.pipeline.length ? p.pipeline : d.pipeline;
-  const jsonLd = { "@context": "https://schema.org", "@type": "CreativeWork", name: p.title, description: p.summary, creator: { "@type": "Organization", name: "Neo Forge Technology" }, dateModified: new Date(p.updatedAt).toISOString() };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      <JsonLd data={[projectLd(p, projectHref(p)), breadcrumbLd([{ name: "Home", path: "/" }, { name: d.short, path: `/${p.division}` }, ...(p.categorySlug ? [{ name: p.categoryName, path: `/${p.division}/${p.categorySlug}` }] : []), { name: p.title, path: projectHref(p) }])]} />
       <section className="bg-slate-950 text-white">
         <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
           <div className="flex flex-wrap items-center gap-2 text-sm text-slate-400">

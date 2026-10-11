@@ -53,6 +53,28 @@ export interface Project {
   updatedAt: number;
 }
 
+export interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  /** Markdown-style body (rendered without raw HTML) */
+  content: string;
+  cover: MediaRef | null;
+  coverAlt: string;
+  videoLinks: string[];
+  tags: string[];
+  /** Optional division this article relates to — used for internal links */
+  division: DivisionSlug | "";
+  author: string;
+  seoTitle: string;
+  seoDescription: string;
+  status: "draft" | "published";
+  publishedAt: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface Faq {
   id: string;
   question: string;

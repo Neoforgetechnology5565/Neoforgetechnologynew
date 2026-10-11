@@ -26,6 +26,13 @@ export function logoUrl(m: MediaRef | null | undefined, opts: { h: number; trim?
   return m.url.replace("/upload/", `/upload/${pre}c_fit,h_${opts.h * 3},f_auto,q_auto/`);
 }
 
+/** PNG logo for server-side image generation (the share-preview card), trimmed and capped in height. */
+export function ogLogoUrl(m: MediaRef | null | undefined, trim: boolean): string {
+  if (!m) return "";
+  if (m.resourceType !== "image" || !m.url.includes("/upload/") || isSvg(m)) return "";
+  return m.url.replace("/upload/", `/upload/${trim ? "e_trim:25/" : ""}c_fit,h_240,f_png/`).replace(/\.(webp|jpe?g|gif)($|\?)/i, ".png$2");
+}
+
 /** Square icon as PNG at the requested size (favicon, apple-touch-icon). */
 export function iconUrl(m: MediaRef | null | undefined, size: number): string {
   if (!m) return "";

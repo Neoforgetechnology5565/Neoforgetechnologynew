@@ -134,7 +134,8 @@ Fields: title, slug (auto, unique per division), division, sub-category, short s
 7. **Inquiries** — inbox (name, email, company, project type, date, status, message, attachments), mark read/unread, delete.
 8. **Live chat** — conversation list with unread badges, thread view, reply, attach file, delete; **polling** (not realtime listeners).
 9. **Analytics** — total visits, unique visitors, page views, 30-day chart, popular pages, project views, countries.
-10. **Maintenance** — one-click, repeatable migrations.
+10. **Maintenance** — one-click, repeatable migrations, plus email-notification status and test button.
+11. **Blog** — see section 12.
 
 **Migrations:** versioned, idempotent, auto-run when an admin opens the console, also re-runnable manually; never overwrite edited content (seed categories with descriptions, seed FAQs, backfill project fields, backfill category slugs, fill blank default descriptions).
 
@@ -168,3 +169,15 @@ Per-page metadata/titles/descriptions, canonical URLs, Open Graph/Twitter, seman
 Admin login (password and Google) → create category → create project → upload image/PDF to Cloudinary → add YouTube/Vimeo link and see thumbnail → save to Firestore → publish → view at the canonical `/{division}/{sub-category}/{project}` URL and in the sub-category page, portfolio and homepage (if featured) → click the video thumbnail to play → submit the contact form → read it in the admin inbox → start a live chat → reply from admin and see it arrive → upload logos/icon in Branding and see header, footer and favicon change → edit homepage text → view analytics → sign out and confirm `/admin` and admin APIs are gated. `/api/health` must return `ok: true` on the deployed site. No manual database edits at any point.
 
 Keep the stack lean: Next.js + Firebase + Cloudinary + Vercel + GitHub only.
+
+---
+
+## 12. SEO & GROWTH ADD-ONS
+
+**Blog (`/blog`, `/blog/{slug}`, `/feed.xml`)** — admin **Blog** section: title, slug, short summary, article body with a toolbar editor (H2/H3, bold, italic, link, lists, quote, **image upload to Cloudinary**) and Write/Preview tabs, cover image + alt text, YouTube/Vimeo links (thumbnail → player), tags, author, optional related division, optional search title/description with a Google-result preview, draft/published (publishedAt stamped on first publish). Body is a **safe Markdown subset rendered without raw HTML** (links limited to http/https/mailto/relative, images only from Cloudinary). Public pages: blog list, article page (hero, cover, "On this page" contents, body, video thumbnails, tags, **related-service box** linking to the division/portfolio, related articles, CTA), RSS feed, header + footer links, "From the blog" row on the matching division page. Published articles are added to `sitemap.xml` automatically, so each post needs no manual submission in Search Console.
+
+**Default share-preview image** — `/opengraph-image` and `/twitter-image` generate a 1200×630 branded card (uses the uploaded dark-background logo when present, else a text wordmark) for every page without its own image; pages that define their own Open Graph (articles, projects, divisions) pass it explicitly because Next drops the file-based image otherwise. Project/article covers are used when present.
+
+**Structured data (JSON-LD, only what is visibly true)** — Organization + WebSite on every page (logo from Branding, email/phone and social links from Site content, no invented address/reviews/ratings); Service on division pages; BreadcrumbList on division, sub-category, project and article pages; CreativeWork on projects; BlogPosting on articles; FAQPage on home and About for the FAQs shown there.
+
+**Email notifications (optional)** — via **SMTP using the owner's own mailbox** (e.g. Zoho Mail; `smtp.zoho.com:465`; app password if 2-step is on) with `nodemailer` and Next `after()` so sending never delays or fails a visitor request. Env: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, optional `NOTIFY_TO` (default: contact email in Site content, then SMTP_USER), `MAIL_FROM`. Emails: new contact inquiry (Reply-To = visitor, user text HTML-escaped, link to admin inbox) and new live chat (follow-up messages throttled to one email per 10 minutes per conversation). Admin → Maintenance shows email status and a **Send a test email** button; `/api/health` reports `email: configured | not configured (optional)`.

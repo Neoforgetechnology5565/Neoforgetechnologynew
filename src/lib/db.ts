@@ -2,13 +2,14 @@ import "server-only";
 import { unstable_cache, revalidatePath, revalidateTag } from "next/cache";
 import { adminDb, isFirebaseConfigured } from "./firebase-admin";
 import { ABOUT_DEFAULTS, BRANDING_DEFAULTS, CONTACT_DEFAULTS, HOME_DEFAULTS } from "./defaults";
-import type { AboutContent, Branding, Category, ContactSettings, Faq, HomeContent, Project } from "./types";
+import type { AboutContent, Branding, Category, Post, ContactSettings, Faq, HomeContent, Project } from "./types";
 import type { DivisionSlug } from "./divisions";
 
 export const C = {
   categories: "categories",
   projects: "projects",
   faqs: "faqs",
+  posts: "posts",
   content: "content",
   inquiries: "inquiries",
   chats: "chats",
@@ -81,6 +82,14 @@ export function toCategory(id: string, d: FirebaseFirestore.DocumentData): Categ
     order: d.order ?? 0,
   };
 }
+export function toPost(id: string, d: FirebaseFirestore.DocumentData): Post {
+  return {
+    id, title: d.title ?? "", slug: d.slug ?? id, excerpt: d.excerpt ?? "", content: d.content ?? "",
+    cover: d.cover ?? null, coverAlt: d.coverAlt ?? "", videoLinks: d.videoLinks ?? [], tags: d.tags ?? [],
+    division: d.division ?? "", author: d.author ?? "Neo Forge Team", seoTitle: d.seoTitle ?? "", seoDescription: d.seoDescription ?? "",
+    status: d.status === "published" ? "published" : "draft", publishedAt: d.publishedAt ?? 0, createdAt: d.createdAt ?? 0, updatedAt: d.updatedAt ?? 0,
+  };
+}
 const toFaq = (id: string, d: FirebaseFirestore.DocumentData): Faq => ({
   id,
   question: d.question ?? "",
@@ -106,6 +115,11 @@ export async function adminListFaqs(): Promise<Faq[]> {
   return snap.docs.map((d) => toFaq(d.id, d.data())).sort(byOrder);
 }
 
+export async function adminListPosts(): Promise<Post[]> {
+  const snap = await adminDb().collection(C.posts).get();
+  return snap.docs.map((d) => toPost(d.id, d.data())).sort((a, b) => (b.publishedAt || b.createdAt) - (a.publishedAt || a.createdAt));
+}
+
 /* ---------- public cached reads ---------- */
 export const getCategories = cached("categories", () =>
   safe(async () => (await adminListCategories()).filter((c) => c.enabled), [] as Category[]),
@@ -114,6 +128,17 @@ export const getCategories = cached("categories", () =>
 export const getPublishedProjects = cached("published-projects", () =>
   safe(async () => (await adminListProjects()).filter((p) => p.status === "published"), [] as Project[]),
 );
+
+export const getPublishedPosts = cached("published-posts", () =>
+  safe(async () => (await adminListPosts()).filter((p) => p.status === "published"), [] as Post[]),
+);
+export async function getPost(slug: string): Promise<Post | null> {
+  return (await getPublishedPosts()).find((p) => p.slug === slug) ?? null;
+}
+export async function getRelatedPosts(p: Post, n = 3): Promise<Post[]> {
+  const score = (x: Post) => x.tags.filter((t) => p.tags.includes(t)).length * 2 + Number(!!p.division && x.division === p.division);
+  return (await getPublishedPosts()).filter((x) => x.id !== p.id).sort((a, b) => score(b) - score(a) || b.publishedAt - a.publishedAt).slice(0, n);
+}
 
 export async function getProject(division: string, slug: string): Promise<Project | null> {
   const all = await getPublishedProjects();

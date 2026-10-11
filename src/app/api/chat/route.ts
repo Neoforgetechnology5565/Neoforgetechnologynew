@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { errorResponse } from "@/lib/auth";
 import { C, getContactSettings } from "@/lib/db";
 import { adminDb } from "@/lib/firebase-admin";
+import { notifyChat } from "@/lib/mail";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
 import { chatStartSchema } from "@/lib/schemas";
 
@@ -21,8 +22,9 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
     const token = randomBytes(24).toString("hex");
     const ref = adminDb().collection(C.chats).doc();
-    await ref.set({ name: data.name, email: data.email, token, createdAt: now, updatedAt: now, lastMessage: data.message.slice(0, 120), unreadAdmin: 1 });
+    await ref.set({ name: data.name, email: data.email, token, createdAt: now, updatedAt: now, lastMessage: data.message.slice(0, 120), unreadAdmin: 1, lastNotifiedAt: now });
     await ref.collection("messages").add({ from: "visitor", text: data.message, file: null, createdAt: now });
+    after(() => notifyChat({ name: data.name, email: data.email, text: data.message, isNew: true }));
     return NextResponse.json({ id: ref.id, token });
   } catch (e) {
     return errorResponse(e);

@@ -37,6 +37,7 @@ export default function Footer({ contact, categories, branding }: { contact: Con
           <p>© {new Date().getFullYear()} Neo Forge Technology. All rights reserved.</p>
           <nav className="flex flex-wrap justify-center gap-x-5 gap-y-1" aria-label="Footer">
             <Link href="/portfolio" className="hover:text-blue-400">Portfolio</Link>
+            <Link href="/blog" className="hover:text-blue-400">Blog</Link>
             <Link href="/technology" className="hover:text-blue-400">Technology</Link>
             <Link href="/live-chat" className="hover:text-blue-400">Live Chat</Link>
             <Link href="/about" className="hover:text-blue-400">About</Link>

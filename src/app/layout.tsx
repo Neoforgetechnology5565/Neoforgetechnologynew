@@ -4,14 +4,16 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactWidget from "@/components/ContactWidget";
+import JsonLd from "@/components/JsonLd";
 import Tracker from "@/components/Tracker";
+import { organizationLd, websiteLd } from "@/lib/jsonld";
 import { iconUrl } from "@/lib/cloudinary";
 import { getBranding, getCategories, getContactSettings } from "@/lib/db";
 import { siteUrl } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { icon } = await getBranding();
-  return { ...baseMetadata, ...(icon ? { icons: { icon: [{ url: iconUrl(icon, 32), sizes: "32x32", type: "image/png" }, { url: iconUrl(icon, 192), sizes: "192x192", type: "image/png" }], apple: [{ url: iconUrl(icon, 180), sizes: "180x180" }] } } : {}) };
+  return { ...baseMetadata, alternates: { types: { "application/rss+xml": "/feed.xml" } }, ...(icon ? { icons: { icon: [{ url: iconUrl(icon, 32), sizes: "32x32", type: "image/png" }, { url: iconUrl(icon, 192), sizes: "192x192", type: "image/png" }], apple: [{ url: iconUrl(icon, 180), sizes: "180x180" }] } } : {}) };
 }
 
 const baseMetadata: Metadata = {
@@ -30,6 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={GeistMono.variable} data-scroll-behavior="smooth">
       <body className="min-h-screen font-sans">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-full focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
+        <JsonLd data={[organizationLd(contact, branding), websiteLd()]} />
         <Navbar categories={categories} branding={branding} />
         <main id="main">{children}</main>
         <Footer contact={contact} categories={categories} branding={branding} />
