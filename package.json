@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.133.0",
     "cloudinary": "^2.11.0",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",

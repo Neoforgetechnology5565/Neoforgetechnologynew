@@ -27,9 +27,9 @@ const TAG_VOCAB = [
 ];
 
 const DIVISION_KEYWORDS: Record<string, string[]> = {
-  "ai-computer-vision": ["computer vision", "machine learning", "neural", "detection", "ocr", "model", "ai "],
-  "software-business-systems": ["erp", "crm", "hrm", "payroll", "inventory", "dashboard", "invoice"],
-  "engineering-design-tech": ["revit", "autocad", "bim", "cad", "plugin", "dynamo", "drawing", "model"],
+  "computer-vision": ["computer vision", "machine learning", "neural", "detection", "ocr", "model", "ai "],
+  "crm-hrm-erp": ["erp", "crm", "hrm", "payroll", "inventory", "dashboard", "invoice"],
+  "cad-bim": ["revit", "autocad", "bim", "cad", "plugin", "dynamo", "drawing", "model"],
 };
 
 const clean = (s: string) => s.replace(/\u0000/g, "").replace(/[   ]/g, " ").replace(/\s+/g, " ").trim();

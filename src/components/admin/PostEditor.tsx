@@ -28,8 +28,13 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   const [uploading, setUploading] = useState(false);
   const [chosen, setChosen] = useState(!!initialId); // new articles start on the "manual or PDF" chooser
   const [importing, setImporting] = useState("");
-  const [notes, setNotes] = useState<{ warnings: string[]; pages: number; words: number; headings: number } | null>(null);
+  const [notes, setNotes] = useState<{ warnings: string[]; pages: number; words: number; headings: number; ai?: boolean } | null>(null);
   const [drag, setDrag] = useState(false);
+  const [ai, setAi] = useState<{ configured: boolean } | null>(null);
+  const [ideas, setIdeas] = useState<{ title: string; angle: string; keyword: string; division: string }[]>([]);
+  const [focus, setFocus] = useState("");
+  const [topic, setTopic] = useState("");
+  const [aiBusy, setAiBusy] = useState("");
   const pdfInput = useRef<HTMLInputElement>(null);
   const ta = useRef<HTMLTextAreaElement>(null);
   const imgInput = useRef<HTMLInputElement>(null);
@@ -70,6 +75,27 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
       set("content", f.content.slice(0, pos) + `\n\n![${alt.replace(/[\]\n]/g, " ")}](${m.url})\n\n` + f.content.slice(pos));
     } catch (e) { toast.err(e); }
     setUploading(false);
+  }
+
+  useEffect(() => {
+    if (!initialId) api<{ configured: boolean }>("/api/admin/posts/ai").then(setAi).catch(() => setAi({ configured: false }));
+  }, [initialId]);
+
+  async function suggest() {
+    setAiBusy("Thinking of topics…");
+    try { setIdeas((await api<{ topics: typeof ideas }>("/api/admin/posts/ai", "POST", { action: "topics", focus })).topics); } catch (e) { toast.err(e); }
+    setAiBusy("");
+  }
+  async function writeWithAi(t: string, angle = "") {
+    if (!t.trim()) return;
+    setAiBusy("Writing the article… (up to a minute)");
+    try {
+      const { item } = await api<{ item: { title: string; excerpt: string; content: string; tags: string[]; division: string; seoTitle: string; seoDescription: string } }>("/api/admin/posts/ai", "POST", { action: "write", topic: t, angle });
+      setF((x) => ({ ...x, title: item.title, excerpt: item.excerpt, content: item.content, tags: item.tags.join(", "), division: item.division, seoTitle: item.seoTitle, seoDescription: item.seoDescription, status: "draft" }));
+      setNotes({ warnings: ["Written by AI. Fact-check every claim, add real examples from your own projects, and add a cover image before publishing."], pages: 0, words: item.content.split(/\s+/).filter(Boolean).length, headings: (item.content.match(/^#{2,3} /gm) || []).length, ai: true });
+      setChosen(true);
+    } catch (e) { toast.err(e); }
+    setAiBusy("");
   }
 
   /** Upload the PDF, let the server read it, then pre-fill the form (nothing is saved until the admin saves). */
@@ -128,6 +154,37 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
             <p className="mt-2 text-sm text-paper/60">{importing ? "This takes a few seconds — the article opens filled in automatically." : "It uploads and fills the title, summary, headings, text, tags and division by itself. You review before publishing."}</p>
           </div>
           <p className="text-center text-sm text-paper/60">or <button type="button" className="text-forge underline" onClick={() => setChosen(true)}>write it myself</button></p>
+          <div className="border border-paper/15 bg-ink-900 p-5" data-testid="ai-panel">
+            <p className="text-lg font-semibold">Write with AI</p>
+            <p className="mt-1 text-sm text-paper/60">Get topic ideas that fit your services, pick one, and the AI drafts the whole article. You review and edit before publishing.</p>
+            {ai && !ai.configured ? (
+              <p className="mt-3 text-sm text-amber-700">Not set up yet: add <code>ANTHROPIC_API_KEY</code> in Vercel → Settings → Environment Variables, then redeploy.</p>
+            ) : (
+              <>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <input className="field !w-auto flex-1" placeholder="Optional focus, e.g. Revit automation" maxLength={120} value={focus} onChange={(e) => setFocus(e.target.value)} />
+                  <button type="button" className="btn-primary !py-2" disabled={!!aiBusy} onClick={suggest}>Suggest topics</button>
+                </div>
+                {ideas.length > 0 && (
+                  <ul className="mt-3 space-y-2">
+                    {ideas.map((i) => (
+                      <li key={i.title}>
+                        <button type="button" disabled={!!aiBusy} onClick={() => writeWithAi(i.title, i.angle)} className="w-full border border-paper/15 p-3 text-left hover:border-forge">
+                          <span className="block font-medium">{i.title}</span>
+                          <span className="block text-xs text-paper/60">{i.angle} · keyword: {i.keyword}</span>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <input className="field !w-auto flex-1" placeholder="Or type your own topic" maxLength={200} value={topic} onChange={(e) => setTopic(e.target.value)} />
+                  <button type="button" className="btn-ghost !py-2" disabled={!!aiBusy || topic.trim().length < 5} onClick={() => writeWithAi(topic)}>Write this article</button>
+                </div>
+                {aiBusy && <p className="mt-3 text-sm text-forge" role="status">{aiBusy}</p>}
+              </>
+            )}
+          </div>
         </div>
         <p className="mt-4 max-w-3xl text-xs text-paper/50">Works with PDFs that contain real text (Word, Google Docs, exports). Scanned/photographed pages can&apos;t be read. Images and tables are not converted.</p>
         {pdfPicker}
@@ -149,7 +206,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
       <div {...dropProps} className={drag ? "outline outline-2 outline-forge" : ""}>
       {notes && (
         <div className="mb-5 border border-forge/40 bg-blue-50 p-4 text-sm" data-testid="import-banner">
-          <p className="font-semibold">Filled from your PDF — {notes.pages} page{notes.pages === 1 ? "" : "s"}, {notes.words} words, {notes.headings} heading{notes.headings === 1 ? "" : "s"} found.</p>
+          <p className="font-semibold">{notes.ai ? "Drafted by AI" : `Filled from your PDF — ${notes.pages} page${notes.pages === 1 ? "" : "s"}`}, {notes.words} words, {notes.headings} heading{notes.headings === 1 ? "" : "s"}.</p>
           <p className="mt-1 text-paper/70">Please read it through, fix anything odd, add a cover image, then save. It is saved as a draft.</p>
           {notes.warnings.length > 0 && <ul className="mt-2 list-disc pl-5 text-paper/70">{notes.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
         </div>
