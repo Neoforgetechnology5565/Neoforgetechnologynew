@@ -1,5 +1,6 @@
 import "server-only";
 import { DIVISIONS } from "./divisions";
+import { parseVideo } from "./video";
 
 export interface PdfImport {
   title: string;
@@ -11,6 +12,18 @@ export interface PdfImport {
   words: number;
   headings: number;
   warnings: string[];
+  seoTitle: string;
+  seoDescription: string;
+  coverAlt: string;
+  videoLinks: string[];
+  /** URL of an image taken from the PDF to use as the cover, if it had a big enough one */
+  coverUrl: string;
+  images: number;
+}
+
+export interface ImportOptions {
+  /** Stores an image extracted from the PDF and returns its public URL. When omitted, images are not extracted. */
+  upload?: (png: Buffer, name: string) => Promise<string>;
 }
 
 interface Line {
@@ -34,7 +47,7 @@ const DIVISION_KEYWORDS: Record<string, string[]> = {
 
 const clean = (s: string) => s.replace(/\u0000/g, "").replace(/[   ]/g, " ").replace(/\s+/g, " ").trim();
 
-export async function parsePdf(bytes: Uint8Array, filename = ""): Promise<PdfImport> {
+export async function parsePdf(bytes: Uint8Array, filename = "", opts: ImportOptions = {}): Promise<PdfImport> {
   const { getDocumentProxy } = await import("unpdf");
   const pdf = await getDocumentProxy(bytes);
   const warnings: string[] = [];
@@ -69,7 +82,7 @@ export async function parsePdf(bytes: Uint8Array, filename = ""): Promise<PdfImp
   const totalChars = lines.reduce((n, l) => n + l.text.length, 0);
   if (totalChars < 80) {
     warnings.push("No readable text was found. This looks like a scanned PDF (images only) — scanned text can't be read yet, please fill the article manually.");
-    return { title: filename.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").trim(), excerpt: "", content: "", tags: [], division: "", pages: pageCount, words: 0, headings: 0, warnings };
+    return { title: filename.replace(/\.pdf$/i, "").replace(/[-_]+/g, " ").trim(), excerpt: "", content: "", tags: [], division: "", pages: pageCount, words: 0, headings: 0, warnings, seoTitle: "", seoDescription: "", coverAlt: "", videoLinks: [], coverUrl: "", images: 0 };
   }
 
   // Drop repeated headers/footers and page numbers.
@@ -112,8 +125,10 @@ export async function parsePdf(bytes: Uint8Array, filename = ""): Promise<PdfImp
   const out: string[] = [];
   let para = "";
   let headings = 0;
+  const outPage: number[] = [];
+  let lastPage = 1;
   const flush = () => {
-    if (para.trim()) out.push(para.trim());
+    if (para.trim()) { out.push(para.trim()); outPage.push(lastPage); }
     para = "";
   };
   // Typical gap between consecutive body lines — a clearly bigger gap starts a new paragraph.
@@ -131,10 +146,12 @@ export async function parsePdf(bytes: Uint8Array, filename = ""): Promise<PdfImp
     if (level >= 0 && l.text.length <= 120) {
       flush();
       out.push(`${level === 0 ? "##" : "###"} ${l.text.replace(/[.:]$/, "")}`);
+      outPage.push(l.page);
       headings++;
       prev = l;
       continue;
     }
+    lastPage = l.page;
     const bullet = l.text.match(/^[•●▪◦‣\-–*]\s+(.*)$/);
     const num = l.text.match(/^(\d{1,2})[.)]\s+(.*)$/);
     if (bullet || num) {
@@ -151,6 +168,39 @@ export async function parsePdf(bytes: Uint8Array, filename = ""): Promise<PdfImp
     prev = l;
   }
   flush();
+
+  // Pictures inside the PDF: the first big one becomes the cover, the rest go after the text of the page they sit on.
+  let coverUrl = "";
+  let imageCount = 0;
+  if (opts.upload) {
+    try {
+      const { extractImages } = await import("unpdf");
+      const sharp = (await import("sharp")).default;
+      const seen = new Set<string>();
+      const inserts: { page: number; md: string }[] = [];
+      for (let p = 1; p <= maxPages && imageCount < 8; p++) {
+        for (const im of await extractImages(pdf, p).catch(() => [])) {
+          if (imageCount >= 8 || seen.has(im.key) || im.width < 200 || im.height < 120) continue;
+          seen.add(im.key);
+          const png = await sharp(Buffer.from(im.data), { raw: { width: im.width, height: im.height, channels: im.channels } }).resize({ width: 1400, withoutEnlargement: true }).png().toBuffer();
+          const url = await opts.upload(png, `pdf-p${p}-${imageCount + 1}.png`);
+          imageCount++;
+          if (!coverUrl && im.width >= 600) { coverUrl = url; continue; }
+          let h = "";
+          for (let i = outPage.length - 1; i >= 0; i--) if (outPage[i] <= p && out[i].startsWith("#")) { h = out[i].replace(/^#+\s*/, ""); break; }
+          inserts.push({ page: p, md: `![${(h || title).replace(/[\]\n]/g, " ")} — figure](${url})` });
+        }
+      }
+      for (const ins of inserts.reverse()) {
+        let at = -1;
+        for (let i = 0; i < outPage.length; i++) if (outPage[i] <= ins.page) at = i;
+        out.splice(at + 1, 0, ins.md);
+        outPage.splice(at + 1, 0, ins.page);
+      }
+    } catch {
+      warnings.push("Some pictures in the PDF couldn't be extracted — add them with the Image button.");
+    }
+  }
 
   // Merge consecutive list items into one block.
   const content = out
@@ -182,7 +232,10 @@ export async function parsePdf(bytes: Uint8Array, filename = ""): Promise<PdfImp
     .sort((a, b) => b.n - a.n);
   const division = scores[0] && scores[0].n >= 3 ? scores[0].slug : "";
 
+  const videoLinks = [...new Set(lines.flatMap((l) => l.text.match(/https?:\/\/[^\s)]+/g) ?? []).filter((u) => parseVideo(u)))].slice(0, 6);
+  const seoTitle = title.length <= 65 ? title : title.slice(0, 62).trimEnd() + "…";
+  const seoDescription = (excerpt.length <= 160 ? excerpt : excerpt.slice(0, 157).trimEnd() + "…");
   if (headings === 0) warnings.push("No headings were detected, so the text came in as plain paragraphs — add headings in the editor.");
   warnings.push("Images, tables and diagrams in the PDF are not converted — add images with the toolbar if needed.");
-  return { title, excerpt, content, tags, division, pages: pageCount, words, headings, warnings };
+  return { title, excerpt, content, tags, division, pages: pageCount, words, headings, warnings, seoTitle, seoDescription, coverAlt: `Cover graphic for “${title}”`.slice(0, 200), videoLinks, coverUrl, images: imageCount };
 }

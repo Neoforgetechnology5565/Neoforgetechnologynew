@@ -19,6 +19,11 @@ interface Form {
 }
 const blank: Form = { title: "", slug: "", excerpt: "", content: "", cover: [], coverAlt: "", videoLinks: [], tags: "", division: "", author: "Neo Forge Team", seoTitle: "", seoDescription: "", status: "draft" };
 
+interface Filled {
+  title: string; excerpt: string; content: string; tags: string[]; division: string; seoTitle?: string; seoDescription?: string;
+  coverAlt?: string; cover?: MediaRef | null; videoLinks?: string[];
+}
+
 export default function PostEditor({ id: initialId }: { id?: string }) {
   const [id, setId] = useState(initialId);
   const [f, setF] = useState<Form>(blank);
@@ -30,6 +35,7 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
   const [importing, setImporting] = useState("");
   const [notes, setNotes] = useState<{ warnings: string[]; pages: number; words: number; headings: number; ai?: boolean } | null>(null);
   const [drag, setDrag] = useState(false);
+  const [genCoverBusy, setGenCoverBusy] = useState(false);
   const [ai, setAi] = useState<{ configured: boolean } | null>(null);
   const [ideas, setIdeas] = useState<{ title: string; angle: string; keyword: string; division: string }[]>([]);
   const [focus, setFocus] = useState("");
@@ -77,6 +83,24 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
     setUploading(false);
   }
 
+  /** Applies everything an import / AI draft returned: text, tags, division, cover, alt text, search fields, video links. */
+  function fill(item: Filled) {
+    setF((x) => ({
+      ...x, title: item.title || x.title, excerpt: item.excerpt, content: item.content, tags: item.tags.join(", "), division: item.division,
+      seoTitle: item.seoTitle || "", seoDescription: item.seoDescription || "", coverAlt: item.coverAlt || "",
+      cover: item.cover ? [item.cover] : x.cover, videoLinks: item.videoLinks?.length ? item.videoLinks : x.videoLinks, status: "draft",
+    }));
+  }
+  async function genCover() {
+    if (f.title.trim().length < 3) { toast.err(new Error("Add a title first")); return; }
+    setGenCoverBusy(true);
+    try {
+      const { item } = await api<{ item: MediaRef }>("/api/admin/posts/cover", "POST", { title: f.title, division: f.division });
+      setF((x) => ({ ...x, cover: [item], coverAlt: x.coverAlt || `Cover graphic for “${x.title}”`.slice(0, 200) }));
+    } catch (e) { toast.err(e); }
+    setGenCoverBusy(false);
+  }
+
   useEffect(() => {
     if (!initialId) api<{ configured: boolean }>("/api/admin/posts/ai").then(setAi).catch(() => setAi({ configured: false }));
   }, [initialId]);
@@ -90,9 +114,9 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
     if (!t.trim()) return;
     setAiBusy("Writing the article… (up to a minute)");
     try {
-      const { item } = await api<{ item: { title: string; excerpt: string; content: string; tags: string[]; division: string; seoTitle: string; seoDescription: string } }>("/api/admin/posts/ai", "POST", { action: "write", topic: t, angle });
-      setF((x) => ({ ...x, title: item.title, excerpt: item.excerpt, content: item.content, tags: item.tags.join(", "), division: item.division, seoTitle: item.seoTitle, seoDescription: item.seoDescription, status: "draft" }));
-      setNotes({ warnings: ["Written by AI. Fact-check every claim, add real examples from your own projects, and add a cover image before publishing."], pages: 0, words: item.content.split(/\s+/).filter(Boolean).length, headings: (item.content.match(/^#{2,3} /gm) || []).length, ai: true });
+      const { item } = await api<{ item: Filled & { warnings: string[] } }>("/api/admin/posts/ai", "POST", { action: "write", topic: t, angle });
+      fill(item);
+      setNotes({ warnings: ["Written by AI, with a designed cover and diagrams. Fact-check every claim and add real examples from your own projects before publishing.", ...item.warnings], pages: 0, words: item.content.split(/\s+/).filter(Boolean).length, headings: (item.content.match(/^#{2,3} /gm) || []).length, ai: true });
       setChosen(true);
     } catch (e) { toast.err(e); }
     setAiBusy("");
@@ -105,9 +129,9 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
       setImporting("Uploading PDF…");
       const m = await uploadToCloudinary(file, { kind: "image", folder: "blog/imports" });
       setImporting("Reading the PDF…");
-      const { item } = await api<{ item: { title: string; excerpt: string; content: string; tags: string[]; division: string; pages: number; words: number; headings: number; warnings: string[] } }>(
+      const { item } = await api<{ item: Filled & { pages: number; words: number; headings: number; warnings: string[]; images: number } }>(
         "/api/admin/posts/import-pdf", "POST", { file: { ...m, name: file.name } });
-      setF((x) => ({ ...x, title: item.title || x.title, excerpt: item.excerpt, content: item.content, tags: item.tags.join(", "), division: item.division, status: "draft" }));
+      fill(item);
       setNotes({ warnings: item.warnings, pages: item.pages, words: item.words, headings: item.headings });
       setChosen(true);
     } catch (e) { toast.err(e); }
@@ -248,6 +272,10 @@ export default function PostEditor({ id: initialId }: { id?: string }) {
           <Card className="space-y-5">
             <h2 className="font-semibold">Media</h2>
             <FileDrop label="Cover image" accept=".jpg,.jpeg,.png,.webp" kind="image" folder="blog" value={f.cover} onChange={(v) => set("cover", v)} hint="Wide image, at least 1200 × 630 px. Also used as the share preview." />
+            <div className="flex flex-wrap items-center gap-3 text-xs text-paper/60">
+              <button type="button" className="btn-ghost !py-1.5 !text-xs" disabled={genCoverBusy} onClick={genCover}>{genCoverBusy ? "Designing…" : f.cover[0] ? "Redesign cover from title" : "Design a cover for me"}</button>
+              <span>Creates a branded 1200 × 630 cover from the title and division.</span>
+            </div>
             {f.cover[0] && <img src={img(f.cover[0], { w: 480 })} alt="Cover preview" className="max-h-40 border border-paper/15" />}
             <Field label="Cover image description" hint="Describe the picture (accessibility + search)"><input className="field" maxLength={200} value={f.coverAlt} onChange={(e) => set("coverAlt", e.target.value)} /></Field>
             <VideoLinksField value={f.videoLinks} onChange={(v) => set("videoLinks", v)} />

@@ -58,23 +58,26 @@ Do not repeat or closely overlap these existing articles: ${existingTitles.slice
   return (out.topics ?? []).slice(0, 8);
 }
 
-export interface AiArticle { title: string; excerpt: string; content: string; tags: string[]; division: string; seoTitle: string; seoDescription: string }
+export interface AiFigure { kind: "flow" | "takeaways"; title: string; items: string[]; alt: string }
+export interface AiArticle { title: string; excerpt: string; content: string; tags: string[]; division: string; seoTitle: string; seoDescription: string; coverAlt: string; figures: AiFigure[] }
 
 export async function writeArticle(topic: string, angle: string): Promise<AiArticle> {
   const a = await ask<AiArticle>(
     RULES,
     `Write a complete blog article.\nTopic: ${topic}${angle ? `\nAngle: ${angle}` : ""}\n
 Length 800–1100 words. Structure: a short opening that states the problem, 4–6 sections with ## headings (some ### sub-headings, at least one list), a short honest "limits" or "when it doesn't fit" section, and a closing section that points to Neo Forge Technology's relevant service without hard selling.
-Also give: title (50–65 chars), excerpt (max 180 chars, plain sentence), 3–6 tags, best-matching division slug, seoTitle (max 65 chars), seoDescription (max 160 chars). "content" must not repeat the title as a heading.`,
+Also give: title (50–65 chars), excerpt (max 180 chars, plain sentence), 3–6 tags, best-matching division slug, seoTitle (max 65 chars), seoDescription (max 160 chars). "content" must not repeat the title as a heading.
+Also design 1–2 figures (simple graphics we render ourselves): each has kind "flow" (3–5 short step labels, max 6 words each, e.g. a workflow) or "takeaways" (3–5 short statements), a short title, and alt text. Put the marker [[figure:1]] (then [[figure:2]]) alone on its own line in "content" exactly where each figure belongs. Figures may only restate points made in the article — no new facts or numbers. Also give coverAlt: a one-sentence description of a cover graphic for this article.`,
     {
-      type: "object", additionalProperties: false, required: ["title", "excerpt", "content", "tags", "division", "seoTitle", "seoDescription"],
+      type: "object", additionalProperties: false, required: ["title", "excerpt", "content", "tags", "division", "seoTitle", "seoDescription", "coverAlt", "figures"],
       properties: {
         title: { type: "string" }, excerpt: { type: "string" }, content: { type: "string" },
         tags: { type: "array", items: { type: "string" } }, division: { type: "string", enum: DIVISIONS.map((d) => d.slug) },
-        seoTitle: { type: "string" }, seoDescription: { type: "string" },
+        seoTitle: { type: "string" }, seoDescription: { type: "string" }, coverAlt: { type: "string" },
+        figures: { type: "array", items: { type: "object", additionalProperties: false, required: ["kind", "title", "items", "alt"], properties: { kind: { type: "string", enum: ["flow", "takeaways"] }, title: { type: "string" }, items: { type: "array", items: { type: "string" } }, alt: { type: "string" } } } },
       },
     },
-    8000,
+    9000,
   );
   return {
     title: String(a.title || topic).slice(0, 160),
@@ -84,5 +87,7 @@ Also give: title (50–65 chars), excerpt (max 180 chars, plain sentence), 3–6
     division: DIVISIONS.some((d) => d.slug === a.division) ? a.division : "",
     seoTitle: String(a.seoTitle || "").slice(0, 70),
     seoDescription: String(a.seoDescription || "").slice(0, 170),
+    coverAlt: String(a.coverAlt || "").slice(0, 200),
+    figures: (a.figures || []).filter((f) => f && Array.isArray(f.items) && f.items.length >= 2).slice(0, 2).map((f) => ({ kind: f.kind === "flow" ? "flow" : "takeaways", title: String(f.title || "").slice(0, 80), items: f.items.map((i) => String(i)), alt: String(f.alt || f.title || "").slice(0, 200) })),
   };
 }
