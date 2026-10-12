@@ -221,3 +221,15 @@ export const SERVICES: ServicePage[] = [
 ];
 
 export const SERVICE_MAP = Object.fromEntries(SERVICES.map((s) => [s.slug, s])) as Record<string, ServicePage>;
+
+/** Which service landing page best explains each sub-category (by sub-category slug), so category pages can point to it. */
+export const SERVICE_FOR_CATEGORY: Record<string, string> = {
+  revit: "revit-plugin-development", autocad: "autocad-plugin-development", sketchup: "sketchup-extension-development",
+  "sketchup-dynamic-components": "sketchup-extension-development", bricscad: "bricscad-plugin-development", bim: "ifc-data-validation-tool",
+  "cad-automation": "cad-automation-software", "engineering-software": "cad-automation-software",
+  crm: "custom-crm-development", hrm: "erp-software-development", erp: "erp-software-development",
+  "ai-automation": "business-process-automation", "workflow-automation": "business-process-automation", "ai-agents": "business-process-automation",
+  "computer-vision": "computer-vision-development", "object-detection": "computer-vision-development", tracking: "computer-vision-development",
+  "video-analytics": "computer-vision-development", "machine-learning": "computer-vision-development", "deep-learning": "computer-vision-development",
+  ocr: "ocr-document-processing", "ai-inspection": "ai-quality-inspection", "edge-ai": "edge-ai-development",
+};
