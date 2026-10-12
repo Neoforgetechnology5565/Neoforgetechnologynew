@@ -26,7 +26,6 @@ export default function Reviews() {
     try { await Promise.all([items[i], items[j]].map((x, k) => api(`/api/admin/reviews/${x.id}`, "PUT", body({ ...x, order: k === 0 ? j : i }, 0)))); load(); } catch (er) { toast.err(er); }
   }
   async function remove(r: Review) { if (confirm("Delete this review?")) { await api(`/api/admin/reviews/${r.id}`, "DELETE").catch(toast.err); load(); } }
-  const rated = items.filter((r) => r.enabled && r.rating > 0).length;
 
   return (
     <>

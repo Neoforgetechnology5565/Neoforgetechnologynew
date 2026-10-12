@@ -192,10 +192,8 @@ Keep the stack lean: Next.js + Firebase + Cloudinary + Vercel + GitHub only.
 
 **Privacy notice** — a small banner (Accept / Decline) stored in `localStorage` (`nf_consent`). No cookies are set for visitors. The first-party page-view tracker runs only after Accept (`ANALYTICS_REQUIRES_CONSENT` in `src/lib/consent.ts`; set false to track unless declined). The contact form and chat start form show a “you agree to our Privacy Policy” line.
 
-## 14. Service landing pages, reviews and speed
+## 14. Reviews and speed
 
-**Service landing pages** — `/services` (index grouped by division) and `/services/[slug]` for 13 search-focused services (Revit plugins, IFC validation, AutoCAD, SketchUp, BricsCAD, CAD automation, custom CRM, ERP/HRM, business automation, computer vision, AI quality inspection, OCR, edge AI). Content lives in `src/lib/services.ts` (headline, intro, what we build, good-fit list, technologies, FAQs; shared 4-step process). Each page has a keyword title and description, canonical URL, Service + FAQPage + BreadcrumbList JSON-LD, related services, related articles, reviews and a contact CTA; all are in the sitemap, linked from the footer and from each division page. The text makes no claims about clients or results.
-
-**Reviews** — Admin → Reviews (name, role, text, 0–5 stars, source and link, visible, order). Shown as a quote section on the home page and every service page; nothing is shown until real reviews are added. Star-rating markup (AggregateRating + Review on the Service JSON-LD) is added automatically only when 3 or more visible reviews have a rating. The admin page warns to add only genuine, permitted reviews.
+**Reviews** — Admin → Reviews (name, role, text, 0–5 stars, source and link, visible, order). Shown as a quote section on the home page; nothing is shown until real reviews are added. The admin page warns to add only genuine, permitted reviews. (Star-rating markup is not output.)
 
 **Speed** — images are lazy-loaded with responsive `srcset` and `f_auto,q_auto`; the hero slide is 1280 px with high fetch priority for the first image; photo uploads are shrunk on upload by Cloudinary (`c_limit,w_2400,h_2400,q_auto:good`, signed, not applied to PDFs/SVG/GIF).

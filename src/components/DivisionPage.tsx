@@ -9,7 +9,6 @@ import { getCategories, getPublishedPosts, getPublishedProjects } from "@/lib/db
 import { breadcrumbLd, serviceLd } from "@/lib/jsonld";
 import { DIVISION_MAP, type DivisionSlug } from "@/lib/divisions";
 import { DEFAULT_OG_IMAGE } from "@/lib/seo";
-import { SERVICES } from "@/lib/services";
 
 export function divisionMetadata(slug: DivisionSlug): Metadata {
   const d = DIVISION_MAP[slug];
@@ -95,10 +94,6 @@ export default async function DivisionPage({ slug }: { slug: DivisionSlug }) {
           </div>
         </section>
       )}
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <h2 className="font-display text-2xl font-semibold text-stone-900">Services we offer</h2>
-        <ul className="mt-5 flex flex-wrap gap-3">{SERVICES.filter((s) => s.division === d.slug).map((s) => <li key={s.slug}><Link href={`/services/${s.slug}`} className="rounded-full border border-stone-300 px-4 py-2 text-sm text-stone-700 hover:border-blue-500 hover:text-blue-700">{s.name}</Link></li>)}</ul>
-      </section>
       <CtaBand division={d.slug} title={`Planning a ${d.short} project?`} />
     </>
   );
