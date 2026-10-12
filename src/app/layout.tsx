@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactWidget from "@/components/ContactWidget";
 import JsonLd from "@/components/JsonLd";
+import CookieNotice from "@/components/CookieNotice";
 import Tracker from "@/components/Tracker";
 import { organizationLd, websiteLd } from "@/lib/jsonld";
 import { iconUrl } from "@/lib/cloudinary";
@@ -38,6 +39,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Footer contact={contact} categories={categories} branding={branding} />
         <ContactWidget enabled={contact.chatEnabled} greeting={contact.chatGreeting} whatsapp={contact.whatsapp} email={contact.email} />
         <Tracker />
+        <CookieNotice />
       </body>
     </html>
   );

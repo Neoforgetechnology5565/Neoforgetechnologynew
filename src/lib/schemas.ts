@@ -139,7 +139,10 @@ export const brandingSchema = z.object({
   autoTrim: z.boolean(),
 });
 
-export const contentSchemas = { home: homeSchema, about: aboutSchema, contact: contactSettingsSchema, branding: brandingSchema } as const;
+const legalText = z.string().max(40000).transform((s) => s.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""));
+export const legalSchema = z.object({ privacy: legalText, terms: legalText, updated: z.string().trim().max(60).transform(stripTags) });
+
+export const contentSchemas = { home: homeSchema, about: aboutSchema, contact: contactSettingsSchema, branding: brandingSchema, legal: legalSchema } as const;
 export type ContentKey = keyof typeof contentSchemas;
 
 export const inquirySchema = z.object({

@@ -93,6 +93,13 @@ export interface HomeContent {
   capabilities: { title: string; body: string }[];
 }
 
+export interface LegalContent {
+  privacy: string;
+  terms: string;
+  /** Shown as "Last updated" (free text, e.g. 12 October 2026) */
+  updated: string;
+}
+
 export interface AboutContent {
   headline: string;
   description: string;

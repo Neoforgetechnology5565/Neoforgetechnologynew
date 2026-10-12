@@ -1,6 +1,7 @@
 "use client";
 import { usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { analyticsAllowed } from "@/lib/consent";
 
 function visitorId(): string {
   try {
@@ -18,12 +19,19 @@ function visitorId(): string {
 /** Lightweight first-party page-view beacon. Respects Do-Not-Track. */
 export default function Tracker() {
   const path = usePathname();
+  const [ok, setOk] = useState(false);
   useEffect(() => {
-    if (path.startsWith("/admin") || navigator.doNotTrack === "1") return;
+    setOk(analyticsAllowed());
+    const on = () => setOk(analyticsAllowed());
+    window.addEventListener("nf-consent", on);
+    return () => window.removeEventListener("nf-consent", on);
+  }, []);
+  useEffect(() => {
+    if (!ok || path.startsWith("/admin") || navigator.doNotTrack === "1") return;
     const m = path.match(/^\/portfolio\/([^/]+)\/([^/]+)$/) || path.match(/^\/(computer-vision|crm-hrm-erp|cad-bim)\/[^/]+\/([^/]+)$/);
     const body = JSON.stringify({ path, vid: visitorId(), project: m ? `${m[1]}/${m[2]}` : undefined });
     if (navigator.sendBeacon) navigator.sendBeacon("/api/track", new Blob([body], { type: "application/json" }));
     else fetch("/api/track", { method: "POST", body, headers: { "Content-Type": "application/json" }, keepalive: true }).catch(() => {});
-  }, [path]);
+  }, [path, ok]);
   return null;
 }

@@ -2,15 +2,17 @@
 import { useEffect, useState } from "react";
 import { api } from "@/components/admin/api";
 import { Card, Field, PageTitle, lines, useToast } from "@/components/admin/ui";
-import type { AboutContent, ContactSettings, HomeContent, Project } from "@/lib/types";
+import { PRIVACY_TEMPLATE, TERMS_TEMPLATE } from "@/lib/legal-defaults";
+import type { AboutContent, ContactSettings, HomeContent, LegalContent, Project } from "@/lib/types";
 
-type Tab = "home" | "about" | "contact";
+type Tab = "home" | "about" | "contact" | "legal";
 
 export default function Content() {
   const [tab, setTab] = useState<Tab>("home");
   const [home, setHome] = useState<HomeContent | null>(null);
   const [about, setAbout] = useState<(Omit<AboutContent, "capabilities"> & { capabilities: string }) | null>(null);
   const [contact, setContact] = useState<ContactSettings | null>(null);
+  const [legal, setLegal] = useState<LegalContent | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const toast = useToast();
 
@@ -18,11 +20,12 @@ export default function Content() {
     api<{ item: HomeContent }>("/api/admin/content/home").then((r) => setHome(r.item)).catch(toast.err);
     api<{ item: AboutContent }>("/api/admin/content/about").then((r) => setAbout({ ...r.item, capabilities: r.item.capabilities.join("\n") })).catch(toast.err);
     api<{ item: ContactSettings }>("/api/admin/content/contact").then((r) => setContact(r.item)).catch(toast.err);
+    api<{ item: LegalContent }>("/api/admin/content/legal").then((r) => setLegal(r.item)).catch(toast.err);
     api<{ items: Project[] }>("/api/admin/projects").then((r) => setProjects(r.items.filter((p) => p.status === "published"))).catch(toast.err);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const put = (key: Tab, body: object) => api(`/api/admin/content/${key}`, "PUT", body).then(() => toast.ok("Saved — live on the site")).catch(toast.err);
-  const tabs: [Tab, string][] = [["home", "Homepage"], ["about", "About"], ["contact", "Contact & chat"]];
+  const tabs: [Tab, string][] = [["home", "Homepage"], ["about", "About"], ["contact", "Contact & chat"], ["legal", "Legal pages"]];
 
   return (
     <>
@@ -68,6 +71,18 @@ export default function Content() {
           <Field label="Capabilities" hint="One per line"><textarea rows={8} className="field" value={about.capabilities} onChange={(e) => setAbout({ ...about, capabilities: e.target.value })} /></Field>
           <p className="text-xs text-paper/45">FAQs are managed under “FAQs”.</p>
           <div><button className="btn-primary !py-2" onClick={() => put("about", { ...about, capabilities: lines(about.capabilities) })}>Save About</button></div>
+        </Card>
+      )}
+
+      {tab === "legal" && legal && (
+        <Card className="space-y-5">
+          <p className="text-sm text-paper/70">These are the pages at <code>/privacy</code> and <code>/terms</code>, linked in the footer. The starting text is a general template, not legal advice. Read it, change anything that doesn&apos;t match how you work (for example the governing law, how long you keep enquiries, or the services you provide), and ideally have a lawyer review it. Use <code>{"{{company}}"}</code>, <code>{"{{email}}"}</code> and <code>{"{{phone}}"}</code> to insert your details automatically. Formatting: <code>## Heading</code>, <code>- list item</code>, <code>**bold**</code>.</p>
+          <Field label="“Last updated” text shown on both pages"><input className="field" value={legal.updated} onChange={(e) => setLegal({ ...legal, updated: e.target.value })} placeholder="12 October 2026" /></Field>
+          <Field label="Privacy Policy"><textarea className="field font-mono !text-[13px]" rows={18} value={legal.privacy} onChange={(e) => setLegal({ ...legal, privacy: e.target.value })} /></Field>
+          <button type="button" className="text-xs text-forge underline" onClick={() => confirm("Replace the Privacy Policy text with the original template?") && setLegal({ ...legal, privacy: PRIVACY_TEMPLATE })}>Reset Privacy Policy to the template</button>
+          <Field label="Terms of Use"><textarea className="field font-mono !text-[13px]" rows={18} value={legal.terms} onChange={(e) => setLegal({ ...legal, terms: e.target.value })} /></Field>
+          <button type="button" className="text-xs text-forge underline" onClick={() => confirm("Replace the Terms text with the original template?") && setLegal({ ...legal, terms: TERMS_TEMPLATE })}>Reset Terms to the template</button>
+          <div className="flex flex-wrap items-center gap-3"><button className="btn-primary !py-2" onClick={() => put("legal", legal)}>Save legal pages</button><a href="/privacy" target="_blank" className="text-sm text-forge hover:underline">View privacy ↗</a><a href="/terms" target="_blank" className="text-sm text-forge hover:underline">View terms ↗</a></div>
         </Card>
       )}
 

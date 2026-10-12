@@ -1,4 +1,7 @@
-import type { AboutContent, Branding, ContactSettings, HomeContent } from "./types";
+import { PRIVACY_TEMPLATE, TERMS_TEMPLATE } from "./legal-defaults";
+import type { AboutContent, Branding, ContactSettings, HomeContent, LegalContent } from "./types";
+
+export const LEGAL_DEFAULTS: LegalContent = { privacy: PRIVACY_TEMPLATE, terms: TERMS_TEMPLATE, updated: "12 October 2026" };
 
 export const BRANDING_DEFAULTS: Branding = { logoLight: null, logoDark: null, icon: null, autoTrim: true };
 

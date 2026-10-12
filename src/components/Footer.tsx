@@ -42,6 +42,8 @@ export default function Footer({ contact, categories, branding }: { contact: Con
             <Link href="/live-chat" className="hover:text-blue-400">Live Chat</Link>
             <Link href="/about" className="hover:text-blue-400">About</Link>
             <Link href="/contact" className="hover:text-blue-400">Contact</Link>
+            <Link href="/privacy" className="hover:text-blue-400">Privacy</Link>
+            <Link href="/terms" className="hover:text-blue-400">Terms</Link>
             {socials.map(([n, u]) => <a key={n} href={u} target="_blank" rel="noopener noreferrer" className="hover:text-blue-400">{n}</a>)}
           </nav>
         </div>

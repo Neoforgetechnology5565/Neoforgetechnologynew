@@ -85,6 +85,7 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
         <input name="email" type="email" placeholder="Email (so we can follow up)" aria-label="Email" className={input} />
         <textarea name="message" required maxLength={2000} rows={4} placeholder="How can we help?" aria-label="Message" className={`${input} flex-1`} />
         {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
+        <p className="text-[11px] text-stone-500">By starting a chat you agree to our <a href="/privacy" className="underline">Privacy Policy</a>.</p>
         <button className="rounded-full bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50" disabled={busy}>{busy ? "Starting…" : "Start conversation"}</button>
       </form>
     );
