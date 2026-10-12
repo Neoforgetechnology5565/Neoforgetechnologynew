@@ -1,6 +1,6 @@
 import { iconUrl, img, logoUrl } from "./cloudinary";
 import type { Division } from "./divisions";
-import type { Branding, ContactSettings, Faq, Post, Project } from "./types";
+import type { Branding, ContactSettings, Faq, Post, Project, Review } from "./types";
 import { siteUrl } from "./utils";
 
 /**
@@ -92,3 +92,19 @@ export const articleLd = (p: Post) =>
     mainEntityOfPage: abs(`/blog/${p.slug}`),
     keywords: p.tags.join(", "),
   });
+
+/** Service landing page. Rating markup is added only with 3+ real, visible, rated reviews (all shown on the page). */
+export function serviceLandingLd(s: { name: string; slug: string; metaDescription: string }, reviews: Review[]) {
+  const rated = reviews.filter((r) => r.rating > 0);
+  return clean({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: s.name,
+    serviceType: s.name,
+    description: s.metaDescription,
+    url: abs(`/services/${s.slug}`),
+    provider: { "@id": abs("/#organization") },
+    aggregateRating: rated.length >= 3 ? { "@type": "AggregateRating", ratingValue: Number((rated.reduce((n, r) => n + r.rating, 0) / rated.length).toFixed(1)), reviewCount: rated.length, bestRating: 5, worstRating: 1 } : undefined,
+    review: rated.length >= 3 ? rated.slice(0, 10).map((r) => ({ "@type": "Review", author: { "@type": "Person", name: r.name }, reviewBody: r.quote, reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 } })) : undefined,
+  });
+}
