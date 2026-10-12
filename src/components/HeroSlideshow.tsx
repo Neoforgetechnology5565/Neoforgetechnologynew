@@ -16,7 +16,7 @@ export default function HeroSlideshow({ slides }: { slides: HeroSlide[] }) {
     <div className="absolute inset-0">
       {slides.map((s, i) => (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={s.url} src={s.url} alt="" aria-hidden loading={i === 0 ? "eager" : "lazy"} decoding="async"
+        <img key={s.url} src={s.url} alt="" aria-hidden loading={i === 0 ? "eager" : "lazy"} fetchPriority={i === 0 ? "high" : "low"} decoding="async"
           className="absolute inset-0 h-full w-full scale-105 object-cover opacity-0 transition-opacity duration-1000" style={{ opacity: i === active ? 0.4 : 0 }} />
       ))}
       {slides.length > 1 && (

@@ -2,13 +2,19 @@ import "server-only";
 import { unstable_cache, revalidatePath, revalidateTag } from "next/cache";
 import { adminDb, isFirebaseConfigured } from "./firebase-admin";
 import { ABOUT_DEFAULTS, BRANDING_DEFAULTS, CONTACT_DEFAULTS, HOME_DEFAULTS, LEGAL_DEFAULTS } from "./defaults";
-import type { AboutContent, Branding, Category, Post, ContactSettings, Faq, HomeContent, LegalContent, Project } from "./types";
+import type { AboutContent, Branding, Category, Post, ContactSettings, Faq, HomeContent, LegalContent, Project, Review } from "./types";
 import type { DivisionSlug } from "./divisions";
+
+const toReview = (id: string, d: FirebaseFirestore.DocumentData): Review => ({
+  id, name: d.name ?? "", role: d.role ?? "", quote: d.quote ?? "", rating: Number(d.rating) || 0,
+  source: d.source ?? "", sourceUrl: d.sourceUrl ?? "", order: d.order ?? 0, enabled: d.enabled !== false,
+});
 
 export const C = {
   categories: "categories",
   projects: "projects",
   faqs: "faqs",
+  reviews: "reviews",
   posts: "posts",
   content: "content",
   inquiries: "inquiries",
@@ -158,6 +164,14 @@ export async function getFeaturedProjects(ids: string[], n = 6): Promise<Project
   if (picked.length) return picked.slice(0, n);
   return all.filter((p) => p.featured).slice(0, n);
 }
+
+export async function adminListReviews(): Promise<Review[]> {
+  const snap = await adminDb().collection(C.reviews).get();
+  return snap.docs.map((d) => toReview(d.id, d.data())).sort(byOrder);
+}
+export const getReviews = cached("reviews", () =>
+  safe(async () => (await adminListReviews()).filter((r) => r.enabled), [] as Review[]),
+);
 
 export const getFaqs = cached("faqs", () =>
   safe(async () => (await adminListFaqs()).filter((f) => f.enabled), [] as Faq[]),

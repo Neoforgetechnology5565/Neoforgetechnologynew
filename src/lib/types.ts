@@ -83,6 +83,21 @@ export interface Faq {
   enabled: boolean;
 }
 
+export interface Review {
+  id: string;
+  name: string;
+  /** Job title and/or company */
+  role: string;
+  quote: string;
+  /** 1–5, or 0 when the review has no star rating */
+  rating: number;
+  /** Where the review is published, e.g. Clutch or LinkedIn (optional) */
+  source: string;
+  sourceUrl: string;
+  order: number;
+  enabled: boolean;
+}
+
 export interface HomeContent {
   heroEyebrow: string;
   heroHeading: string;

@@ -13,7 +13,7 @@ const ALLOWED = {
 
 /** Returns a signed Cloudinary upload payload; the browser then uploads straight to Cloudinary. */
 export const POST = adminRoute(async (req) => {
-  const { kind, folder } = (await req.json().catch(() => ({}))) as { kind?: "image" | "video" | "raw"; folder?: string };
+  const { kind, folder, optimize } = (await req.json().catch(() => ({}))) as { kind?: "image" | "video" | "raw"; folder?: string; optimize?: boolean };
   if (!kind || !(kind in ALLOWED)) return NextResponse.json({ error: "Invalid kind" }, { status: 400 });
   const problem = cloudinaryConfigProblem();
   if (problem) return NextResponse.json({ error: problem }, { status: 503 });
@@ -25,7 +25,9 @@ export const POST = adminRoute(async (req) => {
   const safeFolder = `neoforge/${(folder || "projects").replace(/[^a-z0-9/_-]/gi, "").slice(0, 60)}`;
   const timestamp = Math.round(Date.now() / 1000);
   const allowed_formats = ALLOWED[kind].join(",");
-  const params = { timestamp, folder: safeFolder, allowed_formats };
+  // Photos are shrunk on upload (max 2400 px, good quality) so pages load faster and storage stays small.
+  const transformation = kind === "image" && optimize ? "c_limit,w_2400,h_2400,q_auto:good" : undefined;
+  const params = { timestamp, folder: safeFolder, allowed_formats, ...(transformation ? { transformation } : {}) };
   const signature = cloudinary.utils.api_sign_request(params, secret);
-  return NextResponse.json({ cloudName, apiKey, timestamp, folder: safeFolder, allowed_formats, signature, resourceType: kind });
+  return NextResponse.json({ cloudName, apiKey, timestamp, folder: safeFolder, allowed_formats, signature, resourceType: kind, transformation });
 });

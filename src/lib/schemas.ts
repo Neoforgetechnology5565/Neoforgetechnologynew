@@ -102,6 +102,17 @@ export const faqSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+export const reviewSchema = z.object({
+  name: z.string().min(1).max(120).transform(stripTags),
+  role: text(160).default(""),
+  quote: z.string().min(10).max(1500).transform(stripTags),
+  rating: z.number().int().min(0).max(5).default(0),
+  source: text(60).default(""),
+  sourceUrl: httpUrl.default(""),
+  order: z.number().int().default(0),
+  enabled: z.boolean().default(true),
+});
+
 export const homeSchema = z.object({
   heroEyebrow: shortText,
   heroHeading: text(160),

@@ -27,7 +27,7 @@ export async function uploadToCloudinary(
   const sigRes = await fetch(opts.endpoint ?? "/api/admin/upload-sign", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ kind, folder: opts.folder }),
+    body: JSON.stringify({ kind, folder: opts.folder, optimize: /\.(jpe?g|png|webp)$/i.test(file.name) }),
   });
   if (!sigRes.ok) throw new Error((await sigRes.json().catch(() => ({}))).error || "Could not authorise upload");
   const s = await sigRes.json();
@@ -39,6 +39,7 @@ export async function uploadToCloudinary(
   form.append("signature", s.signature);
   form.append("folder", s.folder);
   form.append("allowed_formats", s.allowed_formats);
+  if (s.transformation) form.append("transformation", s.transformation);
 
   const data = await new Promise<Record<string, unknown>>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
