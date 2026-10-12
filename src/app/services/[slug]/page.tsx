@@ -9,7 +9,8 @@ import { getPublishedPosts, getReviews } from "@/lib/db";
 import { DIVISION_MAP } from "@/lib/divisions";
 import { breadcrumbLd, faqLd, serviceLandingLd } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGE } from "@/lib/seo";
-import { PROCESS, SERVICE_MAP, SERVICES } from "@/lib/services";
+import { SERVICE_MAP, SERVICES } from "@/lib/services";
+import { EXTRAS, PROCESS_TITLES } from "@/lib/services-extra";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -32,6 +33,7 @@ export default async function ServicePage({ params }: Params) {
   const [reviews, posts] = await Promise.all([getReviews(), getPublishedPosts()]);
   const articles = posts.filter((p) => p.division === s.division).slice(0, 3);
   const others = SERVICES.filter((x) => x.slug !== s.slug && x.division === s.division);
+  const x = EXTRAS[s.slug];
   const faqs = s.faqs.map((f, i) => ({ id: `${s.slug}-${i}`, question: f.q, answer: f.a, order: i, enabled: true }));
 
   return (
@@ -57,12 +59,16 @@ export default async function ServicePage({ params }: Params) {
           <h2 className="font-display text-xl font-semibold text-stone-900">This is a good fit if…</h2>
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-stone-700">{s.fit.map((f) => <li key={f}>{f}</li>)}</ul>
         </div>
+        <div className="mt-6 rounded-2xl border border-stone-200 p-6">
+          <h2 className="font-display text-xl font-semibold text-stone-900">Typical uses</h2>
+          <ul className="mt-3 list-disc space-y-1.5 pl-5 text-stone-700">{x.useCases.map((u) => <li key={u}>{u}</li>)}</ul>
+        </div>
       </section>
 
       <section className="border-y border-stone-200 bg-stone-50 py-20">
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <SectionHead eyebrow="How it works" title="A simple process, no surprises" />
-          <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{PROCESS.map((p, i) => <li key={p.title}><span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">{i + 1}</span><h3 className="mt-3 font-display text-lg font-semibold text-stone-900">{p.title}</h3><p className="mt-1 text-sm leading-relaxed text-stone-600">{p.text}</p></li>)}</ol>
+          <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">{x.process.map((text, i) => <li key={i}><span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">{i + 1}</span><h3 className="mt-3 font-display text-lg font-semibold text-stone-900">{PROCESS_TITLES[i]}</h3><p className="mt-1 text-sm leading-relaxed text-stone-600">{text}</p></li>)}</ol>
         </div>
       </section>
 
@@ -89,7 +95,7 @@ export default async function ServicePage({ params }: Params) {
         </section>
       )}
 
-      <CtaBand division={s.division} title={`Need ${s.name.toLowerCase()}?`} sub="Send a short brief. We'll reply within one working day with questions and an honest view of scope." />
+      <CtaBand division={s.division} title={`Need ${s.name.toLowerCase()}?`} sub={x.cta} />
     </>
   );
 }
