@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { useState } from "react";
 import { DIVISIONS, PROJECT_TYPES } from "@/lib/divisions";
 import type { MediaRef } from "@/lib/types";
@@ -64,7 +65,7 @@ export default function ContactForm({ initialDivision = "" }: { initialDivision?
       <div className="hidden" aria-hidden><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
       <div className="sm:col-span-2">
         {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
-        <p className="w-full text-xs text-stone-500">By sending this you agree to our <a href="/privacy" className="underline">Privacy Policy</a>.</p>
+        <p className="w-full text-xs text-stone-500">By sending this you agree to our <Link href="/privacy" className="underline">Privacy Policy</Link>.</p>
         <button className="rounded-full bg-blue-600 px-7 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50" disabled={state === "sending"}>{state === "sending" ? "Sending…" : "Send inquiry"}</button>
       </div>
     </form>
