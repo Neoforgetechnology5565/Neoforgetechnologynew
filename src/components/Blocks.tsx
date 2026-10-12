@@ -5,11 +5,12 @@ import type { Faq } from "@/lib/types";
 
 export const anchor = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-export function SectionHead({ eyebrow, title, children, dark, center }: { eyebrow: string; title: string; children?: ReactNode; dark?: boolean; center?: boolean }) {
+export function SectionHead({ eyebrow, title, children, dark, center, h1 }: { eyebrow: string; title: string; children?: ReactNode; dark?: boolean; center?: boolean; h1?: boolean }) {
+  const H = h1 ? "h1" : "h2";
   return (
     <div className={`max-w-3xl ${center ? "mx-auto text-center" : ""}`}>
       <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${dark ? "text-blue-400" : "text-blue-600"}`}>{eyebrow}</p>
-      <h2 className={`mt-3 font-display text-3xl font-semibold sm:text-4xl ${dark ? "text-white" : "text-stone-900"}`}>{title}</h2>
+      <H className={`mt-3 font-display text-3xl font-semibold sm:text-4xl ${dark ? "text-white" : "text-stone-900"}`}>{title}</H>
       {children && <p className={`mt-4 text-base leading-relaxed ${dark ? "text-slate-300" : "text-stone-500"}`}>{children}</p>}
     </div>
   );

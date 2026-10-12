@@ -21,13 +21,17 @@ type Params = { params: Promise<{ slug: string }> };
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const p = await getPost((await params).slug);
   if (!p) return {};
-  const description = p.seoDescription || p.excerpt || p.content.replace(/[#*_`>\[\]()!-]/g, "").slice(0, 155);
-  const title = p.seoTitle || p.title;
+  const body = p.content.replace(/!\[[^\]]*\]\([^)]*\)/g, "").replace(/\[([^\]]*)\]\([^)]*\)/g, "$1").replace(/[#*_`>\-]/g, "").replace(/\s+/g, " ").trim();
+  let description = p.seoDescription || p.excerpt;
+  if (description.length < 70) description = body.slice(0, 155);
+  const raw = p.seoTitle || p.title;
+  // The site name is appended by the title template; skip it when that would run past ~65 characters (Google truncates).
+  const title = raw.length + 23 > 65 ? { absolute: raw.slice(0, 65) } : raw;
   return {
     title, description,
     alternates: { canonical: `/blog/${p.slug}` },
-    openGraph: { type: "article", title, description, url: `/blog/${p.slug}`, publishedTime: p.publishedAt ? new Date(p.publishedAt).toISOString() : undefined, modifiedTime: new Date(p.updatedAt).toISOString(), authors: [p.author], tags: p.tags, images: p.cover ? [{ url: img(p.cover, { w: 1200, h: 630 }), width: 1200, height: 630, alt: p.coverAlt || p.title }] : [DEFAULT_OG_IMAGE] },
-    twitter: { card: "summary_large_image", title, description, images: [p.cover ? img(p.cover, { w: 1200, h: 630 }) : DEFAULT_OG_IMAGE.url] },
+    openGraph: { type: "article", title: raw, description, url: `/blog/${p.slug}`, publishedTime: p.publishedAt ? new Date(p.publishedAt).toISOString() : undefined, modifiedTime: new Date(p.updatedAt).toISOString(), authors: [p.author], tags: p.tags, images: p.cover ? [{ url: img(p.cover, { w: 1200, h: 630 }), width: 1200, height: 630, alt: p.coverAlt || p.title }] : [DEFAULT_OG_IMAGE] },
+    twitter: { card: "summary_large_image", title: raw, description, images: [p.cover ? img(p.cover, { w: 1200, h: 630 }) : DEFAULT_OG_IMAGE.url] },
   };
 }
 

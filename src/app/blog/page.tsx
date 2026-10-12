@@ -7,7 +7,7 @@ import { getPublishedPosts } from "@/lib/db";
 import { breadcrumbLd } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: "Blog — AI, Automation & CAD/BIM Engineering Insights",
+  title: "Blog: AI, Automation & BIM Insights",
   description: "Practical articles from Neo Forge Technology on computer vision, machine learning, CRM/HRM/ERP automation, and Revit, AutoCAD and SketchUp plugin development.",
   alternates: { canonical: "/blog", types: { "application/rss+xml": "/feed.xml" } },
 };

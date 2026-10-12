@@ -18,9 +18,9 @@ export async function generateMetadata(): Promise<Metadata> {
 
 const baseMetadata: Metadata = {
   metadataBase: new URL(siteUrl()),
-  title: { default: "Neo Forge Technology — Software, AI, Automation & CAD/BIM Engineering", template: "%s | Neo Forge Technology" },
+  title: { default: "Neo Forge Technology | Software, AI & CAD/BIM Engineering", template: "%s | Neo Forge Technology" },
   description:
-    "Neo Forge Technology builds intelligent software, computer vision and AI systems, CRM/HRM/ERP automation platforms and specialized CAD/BIM plugins for complex real-world workflows.",
+    "Custom software, computer vision and AI, CRM/HRM/ERP automation and CAD/BIM plugins for engineering and business teams. Tell us what you need.",
   openGraph: { type: "website", siteName: "Neo Forge Technology", locale: "en_US" },
   twitter: { card: "summary_large_image" },
 };
