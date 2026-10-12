@@ -32,7 +32,7 @@ export default function Reviews() {
       <PageTitle title="Reviews"><button className="btn-primary !py-2" onClick={() => setEdit({ enabled: true, rating: 5 })}>Add review</button></PageTitle>
       <Card className="mb-5 text-sm text-paper/75">
         <p><b>Only add real reviews</b> from real clients, with their permission, and keep proof (an email, or a link to the review on another site). Invented or edited reviews break Google&apos;s rules and the law in many countries.</p>
-        <p className="mt-2">Reviews appear as a quote section on the home page and on every service page. Once you have <b>3 or more visible reviews with a star rating</b>, star-rating markup is added to your service pages automatically ({rated} so far). Google decides whether to show stars; reviews about your own business often don&apos;t get them, but they still help visitors trust you.</p>
+        <p className="mt-2">Reviews appear as a quote section on the home page, which helps visitors trust you.</p>
       </Card>
       {edit && (
         <Card className="mb-5"><form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
