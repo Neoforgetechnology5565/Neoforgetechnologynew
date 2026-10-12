@@ -11,7 +11,7 @@ import { getCategories, getFaqs, getFeaturedProjects, getHome } from "@/lib/db";
 import { DIVISIONS, TECH_GROUPS, WHY_US } from "@/lib/divisions";
 
 export const metadata: Metadata = {
-  title: { absolute: "Neo Forge Technology — Software, AI, Automation & CAD/BIM Engineering" },
+  title: { absolute: "Neo Forge Technology | Software, AI & CAD/BIM Engineering" },
   alternates: { canonical: "/" },
 };
 
