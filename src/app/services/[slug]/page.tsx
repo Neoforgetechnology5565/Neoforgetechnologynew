@@ -13,11 +13,6 @@ import { PROCESS, SERVICE_MAP, SERVICES } from "@/lib/services";
 
 type Params = { params: Promise<{ slug: string }> };
 
-export const dynamicParams = false;
-export function generateStaticParams() {
-  return SERVICES.map((s) => ({ slug: s.slug }));
-}
-
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const s = SERVICE_MAP[(await params).slug];
   if (!s) return {};

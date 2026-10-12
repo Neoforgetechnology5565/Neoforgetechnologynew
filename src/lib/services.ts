@@ -90,7 +90,7 @@ export const SERVICES: ServicePage[] = [
     slug: "bricscad-plugin-development", division: "cad-bim", name: "BricsCAD Plugin Development",
     h1: "BricsCAD plugin and custom command development",
     metaTitle: "BricsCAD Plugin Developer | Custom CAD Tools",
-    metaDescription: "BricsCAD plugins, custom commands and CAD workflow automation built to your standards.",
+    metaDescription: "BricsCAD plugins, custom commands and CAD workflow automation built to your standards. Port your AutoCAD tools or start new. Tell us what you need.",
     intro: "We build BricsCAD plugins and custom commands that automate drawing and modelling work, using the platform's APIs.",
     build: ["Custom commands and toolbars", "Batch processing of drawings", "Data extraction and reporting", "Standards and quality checks", "Porting existing AutoCAD tools to BricsCAD", "Integration with your other systems"],
     fit: ["You use BricsCAD and need tools that match your workflow", "You are moving from AutoCAD and need your tools ported"],
