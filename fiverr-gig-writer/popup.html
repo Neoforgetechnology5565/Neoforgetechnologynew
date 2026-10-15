@@ -1,0 +1,36 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="popup.css"></head>
+<body>
+  <h1>Fiverr Gig Writer</h1>
+  <details id="keybox"><summary>Anthropic API key</summary>
+    <input id="apiKey" type="password" placeholder="sk-ant-...">
+    <button id="saveKey" class="secondary">Save key</button>
+    <p class="hint">Stored only in this browser. Get one at console.anthropic.com.</p>
+  </details>
+
+  <label>What service do you sell? *</label>
+  <input id="service" placeholder="e.g. Shopify store setup">
+  <label>Your skills / experience</label>
+  <textarea id="skills" rows="2" placeholder="e.g. 5 years building e-commerce sites"></textarea>
+  <label>Target buyers</label>
+  <input id="audience" placeholder="e.g. small business owners">
+  <div class="row">
+    <div><label>Tone</label>
+      <select id="tone"><option>Professional</option><option>Friendly</option><option>Confident</option><option>Casual</option></select></div>
+    <div><label>Price range</label><input id="budget" placeholder="$30 - $200"></div>
+  </div>
+  <button id="generate">Write my gig</button>
+  <div id="status"></div>
+
+  <div id="result" hidden>
+    <label>Title <span id="tlen"></span></label><input id="rTitle">
+    <label>Description <span id="dlen"></span></label><textarea id="rDesc" rows="8"></textarea>
+    <label>Tags (comma separated)</label><input id="rTags">
+    <details><summary>Packages, FAQ &amp; requirements</summary><pre id="rExtra"></pre></details>
+    <div class="row">
+      <button id="fill">Fill into Fiverr page</button>
+      <button id="copy" class="secondary">Copy all</button>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body></html>

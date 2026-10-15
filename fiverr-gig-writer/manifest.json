@@ -1,0 +1,13 @@
+{
+  "manifest_version": 3,
+  "name": "Fiverr Gig Writer",
+  "version": "1.0.0",
+  "description": "Writes Fiverr gig titles, descriptions, tags, packages and FAQs for you with Claude, and fills them into the gig editor.",
+  "permissions": ["storage", "activeTab", "clipboardWrite"],
+  "host_permissions": ["https://api.anthropic.com/*", "https://*.fiverr.com/*"],
+  "action": { "default_popup": "popup.html", "default_title": "Fiverr Gig Writer" },
+  "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    { "matches": ["https://*.fiverr.com/*"], "js": ["content.js"], "run_at": "document_idle" }
+  ]
+}
