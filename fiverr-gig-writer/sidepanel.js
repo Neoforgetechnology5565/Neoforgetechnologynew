@@ -39,8 +39,17 @@ KEYS.forEach(k => $(k).addEventListener("input", () => {
 const counts = () => $("dlen").textContent = `${$("desc").value.length}/1200`;
 $("gear").onclick = () => $("settings").hidden = !$("settings").hidden;
 $("saveSettings").onclick = async () => {
-  await chrome.storage.local.set({ textModel: $("textModel").value.trim(), geminiKey: $("geminiKey").value.trim(), imageModel: $("imageModel").value.trim() });
-  status("Settings saved.", true);
+  const msg = (t, ok) => { $("saveMsg").textContent = t; $("saveMsg").style.color = ok ? "#117a45" : "#b00"; };
+  const key = $("geminiKey").value.trim();
+  if (!key) return msg("Paste your key first.");
+  try {
+    await chrome.storage.local.set({ textModel: $("textModel").value.trim(), geminiKey: key, imageModel: $("imageModel").value.trim() });
+    const back = await chrome.storage.local.get("geminiKey");
+    if (back.geminiKey !== key) return msg("Could not save to Chrome storage. Reload the extension and try again.");
+    msg("Saved. Testing key…", true);
+    const r = await chrome.runtime.sendMessage({ action: "ping", payload: {} });
+    msg(r.ok ? "Saved ✓ Key works." : "Saved, but the key test failed: " + r.error, r.ok);
+  } catch (e) { msg("Error: " + e.message); }
 };
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
   document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));

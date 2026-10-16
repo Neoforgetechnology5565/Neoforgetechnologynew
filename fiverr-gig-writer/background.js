@@ -25,6 +25,7 @@ async function claudeJSON(system, user, maxTokens = 2000) {
 const COPY_RULES = `You write Fiverr gigs that rank in search and convert. Be honest: no fake reviews, numbers, guarantees or claims the seller didn't state. Plain, natural English.`;
 
 const handlers = {
+  async ping() { return claudeJSON("Reply with the JSON {\"ok\":true}", "ping", 50); },
   // 5 keywords -> 5 title options
   async titles({ keywords, notes }) {
     return claudeJSON(COPY_RULES + `\nWrite 5 different gig titles. Each starts with "I will", max 80 characters, uses the main keywords naturally, no emojis, no hype. Different angles.
