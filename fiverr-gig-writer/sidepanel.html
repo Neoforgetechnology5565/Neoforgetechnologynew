@@ -4,11 +4,11 @@
 <header><h1>Fiverr Gig Writer</h1><button id="gear" class="ghost" title="Settings">⚙</button></header>
 
 <section id="settings" hidden>
-  <label>Anthropic API key (writing)</label><input id="apiKey" type="password" placeholder="sk-ant-...">
-  <label>Google AI API key (gig image)</label><input id="geminiKey" type="password" placeholder="AIza...">
-  <label>Image model</label><input id="imageModel" placeholder="imagen-4.0-generate-001">
+  <label>Google AI (Gemini) API key — free at aistudio.google.com</label><input id="geminiKey" type="password" placeholder="AIza...">
+  <label>Writing model</label><input id="textModel" placeholder="gemini-2.5-flash">
+  <label>Image model (optional, may be paid)</label><input id="imageModel" placeholder="imagen-4.0-generate-001">
   <button id="saveSettings">Save</button>
-  <p class="hint">Keys stay in this browser and go only to Anthropic / Google.</p>
+  <p class="hint">Key stays in this browser and goes only to Google.</p>
 </section>
 
 <nav id="tabs">
@@ -54,7 +54,10 @@
 <div id="s5" class="step" hidden>
   <label>Image style (optional)</label>
   <input id="imgStyle" placeholder="e.g. dark neon, flat illustration, photo-real">
-  <button id="genImg">Generate gig image</button>
+  <button id="genPrompt">Write image prompt (free)</button>
+  <textarea id="imgPrompt" rows="5" placeholder="Prompt appears here. Paste it into Google Flow / Gemini, then drag the image into Fiverr."></textarea>
+  <button id="copyPrompt" class="secondary">Copy prompt</button>
+  <button id="genImg" class="secondary">Or generate it here with Google API (may cost)</button>
   <img id="preview" hidden>
   <div class="row"><button id="uploadImg" disabled>Upload to Fiverr</button><button id="dlImg" class="secondary" disabled>Download</button></div>
 </div>

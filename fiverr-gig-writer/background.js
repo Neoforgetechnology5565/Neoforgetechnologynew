@@ -1,30 +1,25 @@
-const CLAUDE_MODEL = "claude-sonnet-5-5";
-
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
+const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
+
+// Gemini text generation (free tier available). Returns parsed JSON.
 async function claudeJSON(system, user, maxTokens = 2000) {
-  const { apiKey } = await chrome.storage.local.get("apiKey");
-  if (!apiKey) throw new Error("Add your Anthropic API key in Settings first.");
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const { geminiKey, textModel } = await chrome.storage.local.get(["geminiKey", "textModel"]);
+  if (!geminiKey) throw new Error("Add your free Google AI (Gemini) API key in Settings first.");
+  const res = await fetch(`${GEMINI}/${textModel || "gemini-2.5-flash"}:generateContent`, {
     method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "anthropic-dangerous-direct-browser-access": "true"
-    },
+    headers: { "content-type": "application/json", "x-goog-api-key": geminiKey },
     body: JSON.stringify({
-      model: CLAUDE_MODEL, max_tokens: maxTokens,
-      system: system + "\nRespond with ONLY valid JSON. No markdown fences.",
-      messages: [{ role: "user", content: user }]
+      systemInstruction: { parts: [{ text: system + "\nRespond with ONLY valid JSON." }] },
+      contents: [{ role: "user", parts: [{ text: user }] }],
+      generationConfig: { responseMimeType: "application/json", maxOutputTokens: Math.max(maxTokens, 4096), temperature: 0.8 }
     })
   });
-  if (!res.ok) throw new Error(`Claude API ${res.status}: ${(await res.text()).slice(0, 250)}`);
+  if (!res.ok) throw new Error(`Gemini API ${res.status}: ${(await res.text()).slice(0, 250)}`);
   const data = await res.json();
-  const text = (data.content || []).map(b => b.text || "").join("");
-  const s = Math.min(...["{", "["].map(c => text.indexOf(c)).filter(i => i >= 0));
-  const e = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]"));
-  return JSON.parse(text.slice(s, e + 1));
+  const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+  try { return JSON.parse(text); }
+  catch { const s = text.search(/[{[]/), e = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]")); return JSON.parse(text.slice(s, e + 1)); }
 }
 
 const COPY_RULES = `You write Fiverr gigs that rank in search and convert. Be honest: no fake reviews, numbers, guarantees or claims the seller didn't state. Plain, natural English.`;
@@ -58,14 +53,17 @@ Shape: {"description":""}`,
     return claudeJSON(COPY_RULES + `\nWrite 3-5 short questions to ask the buyer after they order so work can start without back-and-forth. Each under 300 characters.
 Shape: {"requirements":[""]}`, `Gig: ${title}\nScope: ${scope || "n/a"}`, 800);
   },
-  // Google image generation (Imagen / Gemini image) -> data URL
-  async image({ title, keywords, style }) {
+  // Image prompt only (free): paste it into Google Flow / Gemini yourself
+  async imagePrompt({ title, keywords, style }) {
+    return claudeJSON(`Write one detailed text-to-image prompt for a Fiverr gig cover image: clean, professional, eye-catching, 16:9, subject clearly tied to the service. Do NOT include any text, letters, logos or watermarks in the image.
+Shape: {"prompt":""}`, `Gig: ${title}\nKeywords: ${keywords.join(", ")}\nVisual style: ${style || "modern, clean, vibrant"}`, 500);
+  },
+  // Optional: generate the image with Google's API (image models may be paid)
+  async image({ prompt }) {
     const { geminiKey, imageModel } = await chrome.storage.local.get(["geminiKey", "imageModel"]);
     if (!geminiKey) throw new Error("Add your Google AI (Gemini) API key in Settings first.");
     const model = imageModel || "imagen-4.0-generate-001";
-    const { prompt } = await claudeJSON(`Write one detailed text-to-image prompt for a Fiverr gig cover image: clean, professional, eye-catching, 16:9, subject clearly tied to the service. Do NOT include any text, letters, logos or watermarks in the image.
-Shape: {"prompt":""}`, `Gig: ${title}\nKeywords: ${keywords.join(", ")}\nVisual style: ${style || "modern, clean, vibrant"}`, 500);
-    const base = `https://generativelanguage.googleapis.com/v1beta/models/${model}`;
+    const base = `${GEMINI}/${model}`;
     const headers = { "content-type": "application/json", "x-goog-api-key": geminiKey };
     let b64, mime = "image/png";
     if (/^imagen/.test(model)) {
@@ -82,7 +80,7 @@ Shape: {"prompt":""}`, `Gig: ${title}\nKeywords: ${keywords.join(", ")}\nVisual 
       b64 = part?.inlineData?.data; mime = part?.inlineData?.mimeType || mime;
     }
     if (!b64) throw new Error("Google returned no image. Try another image model in Settings.");
-    return { prompt, dataUrl: `data:${mime};base64,${b64}` };
+    return { dataUrl: `data:${mime};base64,${b64}` };
   }
 };
 

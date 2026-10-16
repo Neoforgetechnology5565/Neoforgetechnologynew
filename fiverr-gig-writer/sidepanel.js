@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const S = { titles: [], pricing: [], image: null };
-const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "imgStyle", "desc", "req"];
+const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "imgStyle", "desc", "req", "imgPrompt"];
 
 const status = (m, ok) => { $("status").textContent = m; $("status").className = ok ? "ok" : ""; };
 const kw = () => $("keywords").value.split(",").map(s => s.trim()).filter(Boolean).slice(0, 5);
@@ -24,10 +24,10 @@ async function page(type, data) {
 const title = () => chosen("title");
 
 // ---- persistence / tabs / settings
-chrome.storage.local.get(["apiKey", "geminiKey", "imageModel", "form"]).then(s => {
-  $("apiKey").value = s.apiKey || ""; $("geminiKey").value = s.geminiKey || ""; $("imageModel").value = s.imageModel || "";
+chrome.storage.local.get(["geminiKey", "textModel", "imageModel", "form"]).then(s => {
+  $("textModel").value = s.textModel || ""; $("geminiKey").value = s.geminiKey || ""; $("imageModel").value = s.imageModel || "";
   KEYS.forEach(k => s.form?.[k] && ($(k).value = s.form[k]));
-  if (!s.apiKey) $("settings").hidden = false; counts();
+  if (!s.geminiKey) $("settings").hidden = false; counts();
 });
 KEYS.forEach(k => $(k).addEventListener("input", () => {
   chrome.storage.local.set({ form: Object.fromEntries(KEYS.map(x => [x, $(x).value])) }); counts();
@@ -35,7 +35,7 @@ KEYS.forEach(k => $(k).addEventListener("input", () => {
 const counts = () => $("dlen").textContent = `${$("desc").value.length}/1200`;
 $("gear").onclick = () => $("settings").hidden = !$("settings").hidden;
 $("saveSettings").onclick = async () => {
-  await chrome.storage.local.set({ apiKey: $("apiKey").value.trim(), geminiKey: $("geminiKey").value.trim(), imageModel: $("imageModel").value.trim() });
+  await chrome.storage.local.set({ textModel: $("textModel").value.trim(), geminiKey: $("geminiKey").value.trim(), imageModel: $("imageModel").value.trim() });
   status("Settings saved.", true);
 };
 document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
@@ -115,9 +115,15 @@ $("fillReq").onclick = async () => {
 };
 
 // ---- 5 gallery
-$("genImg").onclick = async function () {
+$("genPrompt").onclick = async function () {
   if (!title()) return status("Pick a title in step 1 first.");
-  const r = await ai("image", { title: title(), keywords: kw(), style: $("imgStyle").value }, this);
+  const r = await ai("imagePrompt", { title: title(), keywords: kw(), style: $("imgStyle").value }, this);
+  $("imgPrompt").value = r.prompt;
+};
+$("copyPrompt").onclick = async () => { await navigator.clipboard.writeText($("imgPrompt").value); status("Prompt copied. Paste it into Google Flow / Gemini.", true); };
+$("genImg").onclick = async function () {
+  if (!$("imgPrompt").value.trim()) return status("Write the image prompt first.");
+  const r = await ai("image", { prompt: $("imgPrompt").value }, this);
   S.image = r.dataUrl; $("preview").src = r.dataUrl; $("preview").hidden = false;
   $("uploadImg").disabled = $("dlImg").disabled = false;
 };
