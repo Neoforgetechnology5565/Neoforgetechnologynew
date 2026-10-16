@@ -1,0 +1,65 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="sidepanel.css"></head>
+<body>
+<header><h1>Fiverr Gig Writer</h1><button id="gear" class="ghost" title="Settings">⚙</button></header>
+
+<section id="settings" hidden>
+  <label>Anthropic API key (writing)</label><input id="apiKey" type="password" placeholder="sk-ant-...">
+  <label>Google AI API key (gig image)</label><input id="geminiKey" type="password" placeholder="AIza...">
+  <label>Image model</label><input id="imageModel" placeholder="imagen-4.0-generate-001">
+  <button id="saveSettings">Save</button>
+  <p class="hint">Keys stay in this browser and go only to Anthropic / Google.</p>
+</section>
+
+<nav id="tabs">
+  <button data-step="1" class="on">1 Overview</button><button data-step="2">2 Pricing</button><button data-step="3">3 Description</button><button data-step="4">4 Requirements</button><button data-step="5">5 Gallery</button>
+</nav>
+
+<div id="s1" class="step">
+  <label>Your 5 keywords (comma separated). They become the gig tags.</label>
+  <input id="keywords" placeholder="logo design, brand identity, minimalist logo, ...">
+  <label>Anything else I should know (optional)</label>
+  <input id="notes" placeholder="e.g. I focus on startups">
+  <button id="genTitles">Suggest 5 titles</button>
+  <div id="titles" class="choices"></div>
+  <button id="fillOverview" disabled>Fill title, tags &amp; categories on page</button>
+</div>
+
+<div id="s2" class="step" hidden>
+  <label>Scope: what you'll deliver</label>
+  <textarea id="scope" rows="3" placeholder="e.g. logo + 3 concepts, source files, social media kit"></textarea>
+  <div class="row"><div><label>Delivery idea</label><input id="days" placeholder="e.g. 2 / 4 / 7 days"></div>
+  <div><label>Budget range</label><input id="budget" placeholder="e.g. $20 - $150"></div></div>
+  <button id="genPricing">Suggest pricing</button>
+  <div id="pricing" class="choices"></div>
+  <button id="fillPricing" disabled>Fill pricing on page</button>
+</div>
+
+<div id="s3" class="step" hidden>
+  <label>How should the description sound? (optional)</label>
+  <input id="style" placeholder="e.g. short, friendly, no jargon, mention fast replies">
+  <button id="genDesc">Write description</button>
+  <label>Description <span id="dlen"></span></label>
+  <textarea id="desc" rows="12"></textarea>
+  <button id="fillDesc" disabled>Fill description on page</button>
+</div>
+
+<div id="s4" class="step" hidden>
+  <button id="genReq">Write requirements</button>
+  <label>Questions for the buyer (one per line)</label>
+  <textarea id="req" rows="8"></textarea>
+  <button id="fillReq" disabled>Fill requirements on page</button>
+</div>
+
+<div id="s5" class="step" hidden>
+  <label>Image style (optional)</label>
+  <input id="imgStyle" placeholder="e.g. dark neon, flat illustration, photo-real">
+  <button id="genImg">Generate gig image</button>
+  <img id="preview" hidden>
+  <div class="row"><button id="uploadImg" disabled>Upload to Fiverr</button><button id="dlImg" class="secondary" disabled>Download</button></div>
+</div>
+
+<div id="status"></div>
+<p class="hint">You click Fiverr's Next/Save yourself on every page. Always check what was filled before publishing.</p>
+<script src="sidepanel.js"></script>
+</body></html>

@@ -1,19 +1,22 @@
 # Fiverr Gig Writer (Chrome extension)
 
-Generates a complete Fiverr gig (title, description, 5 tags, 3 packages, FAQ, buyer requirements) with Claude, and fills the text fields in your Fiverr gig editor.
+A side-panel wizard that follows Fiverr's gig-creation pages. On each page you generate, choose, click **Fill on page**, check it, and press Fiverr's **Next** yourself.
+
+| Step | You give | Extension does |
+|---|---|---|
+| 1 Overview | 5 keywords | Suggests 5 titles; you pick one. Fills title, uses your keywords as the 5 tags, and picks Category / Subcategory / Service type etc. by reading the dropdown options Fiverr shows and choosing the best fit |
+| 2 Pricing | Scope, delivery idea, budget | Suggests 3 pricing schemes (names, descriptions, prices, days); you pick one and it fills all 3 packages |
+| 3 Description | Optional style note | Writes the description (max 1200 chars) in that style; editable before filling |
+| 4 Requirements | – | Writes buyer questions and adds them |
+| 5 Gallery | Optional style | Generates a 16:9 gig image with Google's image API and uploads it to the upload box |
 
 ## Install
-1. Open `chrome://extensions`, enable **Developer mode**.
-2. **Load unpacked** → select this `fiverr-gig-writer` folder.
-3. Click the extension, paste your Anthropic API key (console.anthropic.com), Save.
-
-## Use
-1. Describe your service in the popup → **Write my gig**.
-2. Edit the result.
-3. Open Fiverr → Selling → Gigs → Create/Edit, then click **Fill into Fiverr page** (or **Copy all** and paste manually).
+1. `chrome://extensions` → Developer mode → **Load unpacked** → this folder.
+2. Click the extension icon (opens the side panel) → ⚙ → paste your **Anthropic API key** and **Google AI (Gemini) API key** → Save.
+3. Open Fiverr → Selling → Gigs → Create, keep that tab active, work through steps 1–5.
 
 ## Notes
-- You stay in control: it fills text only; you review and click Publish yourself. It does not auto-post or auto-message buyers (against Fiverr's terms).
-- Fiverr changes its page markup often; if auto-fill misses a field, use **Copy all**. Packages/FAQ are copy-only.
-- Your API key is stored in `chrome.storage.local` and sent only to api.anthropic.com. Use a key with a spend limit.
-- Don't claim fake reviews/results in your gig; Fiverr may remove misleading gigs.
+- **Image**: Google Flow has no public API. This uses the Gemini API image models (default `imagen-4.0-generate-001`; change the model in Settings, e.g. a Gemini image model).
+- Fiverr's page markup changes and isn't documented, so field detection is best-effort. If something is missed the panel says so; fill that field by hand. Report what failed and the selectors can be tuned.
+- It never clicks Next/Save/Publish. Keep it that way: automated submitting can get a seller account flagged.
+- Don't claim fake reviews/results in your gig.
