@@ -3,15 +3,34 @@
   "name": "Fiverr Gig Writer",
   "version": "2.0.0",
   "description": "Step-by-step Fiverr gig builder: suggests titles, picks categories, writes pricing, description, requirements and a gig image, and fills each page for you.",
-  "permissions": ["storage", "activeTab", "sidePanel"],
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel",
+    "storage"
+  ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
     "https://*.fiverr.com/*"
   ],
-  "action": { "default_title": "Fiverr Gig Writer" },
-  "side_panel": { "default_path": "sidepanel.html" },
-  "background": { "service_worker": "background.js" },
+  "action": {
+    "default_title": "Fiverr Gig Writer"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
-    { "matches": ["https://*.fiverr.com/*"], "js": ["content.js"], "run_at": "document_idle" }
+    {
+      "matches": [
+        "https://*.fiverr.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
   ]
 }

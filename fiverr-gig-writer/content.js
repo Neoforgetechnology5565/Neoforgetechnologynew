@@ -1,8 +1,24 @@
+(() => {
+if (window.__fgwLoaded) return;
+window.__fgwLoaded = true;
 // Runs on fiverr.com. Fiverr's markup changes often, so everything is located
 // by labels/placeholders/roles rather than fixed selectors. Best-effort.
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const visible = el => !!(el.offsetParent || el.getClientRects().length);
-const hint = el => [el.name, el.id, el.placeholder, el.getAttribute("aria-label"), el.getAttribute("data-testid")].join(" ").toLowerCase();
+function labelText(el) {
+  const out = [];
+  if (el.labels) for (const l of el.labels) out.push(l.innerText);
+  const lb = el.getAttribute && el.getAttribute("aria-labelledby");
+  if (lb) lb.split(" ").forEach(id => out.push(document.getElementById(id)?.innerText || ""));
+  let n = el;
+  for (let i = 0; i < 4 && n.parentElement; i++) {          // nearest container with a short caption
+    n = n.parentElement;
+    const t = (n.innerText || "").trim();
+    if (t && t.length < 150 && t !== (el.value || "")) { out.push(t.split("\n")[0]); break; }
+  }
+  return out.join(" ");
+}
+const hint = el => [el.name, el.id, el.placeholder, el.getAttribute("aria-label"), el.getAttribute("data-testid"), labelText(el)].join(" ").toLowerCase();
 const all = (sel, re) => [...document.querySelectorAll(sel)].filter(el => visible(el) && (!re || re.test(hint(el))));
 const rowText = el => { let n = el; for (let i = 0; i < 5 && n; i++, n = n.parentElement) if ((n.innerText || "").length > 3 && i >= 1) return (n.innerText || "").slice(0, 200).toLowerCase(); return ""; };
 
@@ -35,11 +51,19 @@ async function choose(el, matcher) {           // matcher: string or RegExp
 }
 
 const handlers = {
+  async SCAN() {   // debugging aid: describe the form controls on this page
+    const fields = all('input,textarea,select,[contenteditable=true],[role=textbox],[role=combobox],[aria-haspopup=listbox]').slice(0, 80).map(el => ({
+      tag: el.tagName.toLowerCase(), type: el.type || "", role: el.getAttribute("role") || "", name: el.name || "", id: el.id || "",
+      placeholder: el.placeholder || "", aria: el.getAttribute("aria-label") || "", testid: el.getAttribute("data-testid") || "",
+      label: labelText(el).slice(0, 80), text: (el.innerText || "").slice(0, 40)
+    }));
+    return { url: location.href, fields };
+  },
   async FILL_OVERVIEW({ title, tags }) {
     const filled = [];
     const t = all("input,textarea", /title|i will/)[0];
     if (t) { setValue(t, title.replace(/^I will\s*/i, "")); filled.push("title"); }
-    const tg = all("input", /tag/)[0];
+    const tg = all("input", /tag|keyword|search term/)[0];
     if (tg) {
       tg.focus();
       for (const x of tags) { setValue(tg, x); key(tg, "Enter", 13); await sleep(250); }
@@ -124,3 +148,5 @@ chrome.runtime.onMessage.addListener((msg, _s, send) => {
   h(msg).then(send).catch(e => send({ ok: false, found: false, filled: [], count: 0, error: e.message }));
   return true;
 });
+
+})();

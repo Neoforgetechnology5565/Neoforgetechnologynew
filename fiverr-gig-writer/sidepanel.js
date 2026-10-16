@@ -17,9 +17,13 @@ async function ai(action, payload, btn) {
 }
 async function page(type, data) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab || !/fiverr\.com/.test(tab.url || "")) throw new Error("Open your Fiverr gig editor in the active tab first.");
-  try { return await chrome.tabs.sendMessage(tab.id, { type, ...data }); }
-  catch { throw new Error("Reload the Fiverr tab once, then try again."); }
+  if (!tab || !/fiverr\.com/.test(tab.url || "")) throw new Error("This tab isn't Fiverr. Click your Fiverr gig editor tab, then try again.");
+  const send = () => chrome.tabs.sendMessage(tab.id, { type, ...data });
+  try { return await send(); }
+  catch {
+    try { await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["content.js"] }); return await send(); }
+    catch { throw new Error("Couldn't reach the Fiverr page. Reload the Fiverr tab and try again."); }
+  }
 }
 const title = () => chosen("title");
 
@@ -57,7 +61,8 @@ $("fillOverview").onclick = async function () {
     const t = title(), tags = kw();
     const long = tags.filter(x => x.length > 20);
     const r = await page("FILL_OVERVIEW", { title: t, tags });
-    status(`Filled ${r.filled.join(", ") || "nothing"}. Picking categories…`, true);
+    if (!r.filled.length) status("Couldn't find the title/tag boxes. Click \"Scan page\" at the bottom and send me the result.");
+    else status(`Filled ${r.filled.join(", ")}. Picking categories…`, true);
     for (let i = 0; i < 8; i++) {                       // category -> subcategory -> service type -> ...
       const d = await page("NEXT_DROPDOWN", {});
       if (!d.found) break;
@@ -133,3 +138,10 @@ $("uploadImg").onclick = async () => {
   } catch (e) { status(e.message); }
 };
 $("dlImg").onclick = () => { const a = document.createElement("a"); a.href = S.image; a.download = "gig-image.png"; a.click(); };
+
+$("scan").onclick = async () => {
+  try { const r = await page("SCAN", {});
+    await navigator.clipboard.writeText(JSON.stringify(r, null, 1));
+    status(`Scanned ${r.fields.length} fields. Copied to clipboard. Paste it to me in the chat.`, true);
+  } catch (e) { status(e.message); }
+};
