@@ -3,10 +3,9 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => 
 const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
 
 // Gemini text generation (free tier available). Returns parsed JSON.
-async function claudeJSON(system, user, maxTokens = 2000) {
-  const { geminiKey, textModel } = await chrome.storage.local.get(["geminiKey", "textModel"]);
-  if (!geminiKey) throw new Error("Add your free Google AI (Gemini) API key in Settings first.");
-  const res = await fetch(`${GEMINI}/${textModel || "gemini-3.8-flash"}:generateContent`, {
+// Retries temporary errors (429/500/503) with backoff, then falls back to other Flash models.
+async function callGemini(model, geminiKey, system, user, maxTokens) {
+  return fetch(`${GEMINI}/${model}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": geminiKey },
     body: JSON.stringify({
@@ -15,7 +14,36 @@ async function claudeJSON(system, user, maxTokens = 2000) {
       generationConfig: { responseMimeType: "application/json", maxOutputTokens: Math.max(maxTokens, 4096), temperature: 0.8 }
     })
   });
-  if (!res.ok) throw new Error(`Gemini API ${res.status}: ${(await res.text()).slice(0, 250)}`);
+}
+const sleepMs = ms => new Promise(r => setTimeout(r, ms));
+const TEMP = new Set([429, 500, 502, 503, 504]);
+
+async function fallbackModels(geminiKey, current) {
+  try {
+    const r = await fetch(`${GEMINI}?pageSize=100`, { headers: { "x-goog-api-key": geminiKey } });
+    const list = (await r.json()).models || [];
+    return list.filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+      .map(m => m.name.replace(/^models\//, ""))
+      .filter(n => /flash/.test(n) && !/image|tts|live|audio|thinking-exp|preview-\d{2}-\d{2}/.test(n) && n !== current)
+      .slice(0, 2);
+  } catch { return []; }
+}
+
+async function claudeJSON(system, user, maxTokens = 2000) {
+  const { geminiKey, textModel } = await chrome.storage.local.get(["geminiKey", "textModel"]);
+  if (!geminiKey) throw new Error("Add your free Google AI (Gemini) API key in Settings first.");
+  const primary = textModel || "gemini-3.8-flash";
+  let res, tried = [primary], models = [primary];
+  for (let m = 0; m < models.length; m++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      res = await callGemini(models[m], geminiKey, system, user, maxTokens);
+      if (res.ok || !TEMP.has(res.status)) break;
+      await sleepMs(2000 * 2 ** attempt);               // 2s, 4s, 8s
+    }
+    if (res.ok || !TEMP.has(res.status)) break;
+    if (m === 0) { models.push(...await fallbackModels(geminiKey, primary)); tried = models; }
+  }
+  if (!res.ok) throw new Error(`Gemini is busy or unavailable (${res.status}) after trying ${tried.join(", ")}. Wait a minute and try again. ${(await res.text()).slice(0, 150)}`);
   const data = await res.json();
   const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
   try { return JSON.parse(text); }
