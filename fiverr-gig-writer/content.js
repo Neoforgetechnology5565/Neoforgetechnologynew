@@ -50,6 +50,18 @@ async function choose(el, matcher) {           // matcher: string or RegExp
   if (!o) return false; click(o); await sleep(250); return true;
 }
 
+const visitedTabs = new Set();
+const rnd = () => String(Math.random()).slice(2);
+const isChecked = b => b.checked || b.getAttribute("aria-checked") === "true";
+const optText = b => (b.labels?.[0]?.innerText || b.closest("label")?.innerText || b.parentElement?.innerText || "").trim();
+function sectionLabel(el) {
+  for (let n = el.parentElement, i = 0; n && i < 6; n = n.parentElement, i++) {
+    const h = n.querySelector("h1,h2,h3,h4,h5,h6,legend,[class*=title i]");
+    if (h && h.innerText.trim() && h.innerText.length < 100) return h.innerText.trim();
+  }
+  return "";
+}
+
 const handlers = {
   async SCAN() {   // debugging aid: describe the form controls on this page
     const fields = all('input,textarea,select,[contenteditable=true],[role=textbox],[role=combobox],[aria-haspopup=listbox]').slice(0, 80).map(el => ({
@@ -60,7 +72,7 @@ const handlers = {
     return { url: location.href, fields };
   },
   async FILL_OVERVIEW({ title, tags }) {
-    const filled = [];
+    const filled = []; visitedTabs.clear();
     const t = all("input,textarea", /title|i will/)[0];
     if (t) { setValue(t, title.replace(/^I will\s*/i, "")); filled.push("title"); }
     const tg = all("input", /tag|keyword|search term/)[0];
@@ -88,6 +100,39 @@ const handlers = {
   async CHOOSE_OPTION({ id, text }) {
     const el = document.querySelector(`[data-fgw-id="${id}"]`);
     return { ok: !!el && await choose(el, text) };
+  },
+
+  // ---- Gig metadata: tabs with checkbox lists
+  async NEXT_CHECKS() {
+    const cur = all("input[type=checkbox],[role=checkbox]").filter(b => !b.dataset.fgwDone && !isChecked(b));
+    const options = cur.map(b => ({ b, text: optText(b) }))
+      .filter(o => o.text && o.text.length < 80 && !/agree|terms|cookie|newsletter|remember/i.test(o.text))
+      .map(o => { o.b.dataset.fgwId = o.b.dataset.fgwId || rnd(); o.b.dataset.fgwDone = "1"; return { id: o.b.dataset.fgwId, text: o.text }; });
+    if (!options.length) return { found: false };
+    return { found: true, label: sectionLabel(cur[0]), options };
+  },
+  async CHOOSE_CHECKS({ ids }) {
+    let n = 0;
+    for (const id of ids) {
+      const el = document.querySelector(`[data-fgw-id="${id}"]`);
+      if (!el) continue;
+      (el.labels?.[0] || el).click(); n++; await sleep(200);
+    }
+    return { count: n };
+  },
+  async NEXT_TAB() {
+    const head = [...document.querySelectorAll("*")].find(e => visible(e) && /^\s*gig metadata\s*$/i.test(e.innerText || ""));
+    if (!head) return { clicked: "" };
+    let box = head.parentElement, tabs = [];
+    for (let i = 0; i < 4 && box; i++, box = box.parentElement) {
+      tabs = [...box.querySelectorAll('[role=tab],li,button,a,[class*=tab i]')]
+        .filter(e => visible(e) && !e.querySelector("input") && (e.innerText || "").trim().length > 1 && e.innerText.trim().length < 40 && !visitedTabs.has(e.innerText.trim()));
+      if (tabs.length) break;
+    }
+    const t = tabs[0];
+    if (!t) return { clicked: "" };
+    visitedTabs.add(t.innerText.trim()); click(t); t.click();
+    return { clicked: t.innerText.trim() };
   },
 
   async FILL_PRICING({ packages }) {

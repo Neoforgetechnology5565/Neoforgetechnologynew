@@ -33,6 +33,11 @@ Shape: {"titles":["","","","",""]}`,
       `Keywords: ${keywords.join(", ")}\n${notes ? "Notes: " + notes : ""}`);
   },
   // choose the best option from a dropdown the page actually offers
+  async pickMany({ label, options, title, keywords, max }) {
+    return claudeJSON(`You choose which checkbox options best describe a seller's Fiverr gig. Pick between 1 and ${max || 4} options, only from the list, exactly as written.
+Shape: {"choices":["<option text>"]}`,
+      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nSection: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 400);
+  },
   async pick({ label, options, title, keywords }) {
     return claudeJSON(`You choose the single best option in a Fiverr gig form dropdown for a seller's gig. Pick only from the given options, exactly as written.
 Shape: {"choice":"<option text>"}`,

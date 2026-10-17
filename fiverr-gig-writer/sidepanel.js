@@ -81,7 +81,23 @@ $("fillOverview").onclick = async function () {
       status(`${d.label || "Dropdown"}: ${p.result.choice}`, true);
       await sleep(900);
     }
-    status("Overview filled. Check it, then click Next on Fiverr." + (long.length ? ` Note: Fiverr tags max 20 chars: ${long.join(", ")}` : ""), true);
+    status("Selecting gig metadata…", true);
+    for (let i = 0; i < 10; i++) {                      // metadata tabs -> checkbox lists
+      const c = await page("NEXT_CHECKS", {});
+      if (c.found) {
+        const p = await chrome.runtime.sendMessage({ action: "pickMany", payload: { label: c.label, options: c.options.map(o => o.text), title: t, keywords: tags, max: 4 } });
+        if (!p.ok) throw new Error(p.error);
+        const want = p.result.choices.map(x => x.trim().toLowerCase());
+        const ids = c.options.filter(o => want.includes(o.text.trim().toLowerCase())).map(o => o.id);
+        await page("CHOOSE_CHECKS", { ids });
+        status(`${c.label || "Metadata"}: ${p.result.choices.join(", ")}`, true);
+        await sleep(600);
+      }
+      const tab = await page("NEXT_TAB", {});
+      if (!tab.clicked && !c.found) break;
+      await sleep(800);
+    }
+    status("Overview filled. Check it (especially Gig metadata), then click Next on Fiverr." + (long.length ? ` Note: Fiverr tags max 20 chars: ${long.join(", ")}` : ""), true);
   } catch (e) { status(e.message); } finally { this.disabled = false; }
 };
 
