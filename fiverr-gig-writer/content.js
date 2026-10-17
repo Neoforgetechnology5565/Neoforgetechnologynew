@@ -135,6 +135,46 @@ const handlers = {
     return { clicked: t.innerText.trim() };
   },
 
+  // ---- Pricing feature grid: rows of 3 checkboxes / dropdowns (one per package)
+  async PRICING_ROWS() {
+    const SEL = "input[type=checkbox],[role=checkbox],[role=switch],[role=combobox],[aria-haspopup=listbox],select";
+    const extras = [...document.querySelectorAll("*")].find(e => visible(e) && /^\s*add extra services\s*$/i.test(e.innerText || ""));
+    const ctrls = all(SEL).filter(el => !extras || !(extras.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING));
+    const rows = new Map();
+    for (const el of ctrls) {
+      let n = el.parentElement;
+      while (n && all(SEL).filter(x => n.contains(x) && ctrls.includes(x)).length < 3) n = n.parentElement;
+      if (!n) continue;
+      const inRow = ctrls.filter(x => n.contains(x));
+      if (inRow.length === 3) rows.set(n, inRow);
+    }
+    const out = [];
+    for (const [row, els] of rows) {
+      const label = (row.innerText || "").split("\n").map(s => s.trim()).filter(Boolean)[0] || "";
+      if (!label || /^\$?\d/.test(label) || /^price|deliver/i.test(label)) continue;
+      const isCheck = els.every(e => /checkbox|switch/.test(e.type || e.getAttribute("role") || ""));
+      els.forEach(e => e.dataset.fgwId = e.dataset.fgwId || rnd());
+      const r = { label, kind: isCheck ? "check" : "select", ids: els.map(e => e.dataset.fgwId) };
+      if (!isCheck) {
+        if (els[0].tagName !== "SELECT") { click(els[0]); await sleep(350); }
+        r.options = dropdownOptions(els[0]);
+        if (els[0].tagName !== "SELECT") { key(els[0], "Escape", 27); document.body.click(); await sleep(150); }
+      }
+      out.push(r);
+    }
+    return { rows: out };
+  },
+  async PRICING_APPLY({ rows }) {
+    let n = 0;
+    for (const r of rows) for (let i = 0; i < r.ids.length; i++) {
+      const el = document.querySelector(`[data-fgw-id="${r.ids[i]}"]`);
+      if (!el) continue;
+      if (r.kind === "check") { if (isChecked(el) !== !!r.values[i]) { (el.labels?.[0] || el).click(); n++; await sleep(120); } }
+      else if (r.values[i] && await choose(el, r.values[i])) { n++; await sleep(200); }
+    }
+    return { count: n };
+  },
+
   async FILL_PRICING({ packages }) {
     const filled = [];
     const names = all("input,textarea", /package.?name|name your package|title/);

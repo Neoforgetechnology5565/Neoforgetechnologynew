@@ -38,6 +38,13 @@ Shape: {"titles":["","","","",""]}`,
 Shape: {"choices":["<option text>"]}`,
       `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nSection: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 400);
   },
+  // Decide which feature rows each package includes (checkbox rows -> true/false, dropdown rows -> option text)
+  async matrix({ title, scope, packages, rows }) {
+    return claudeJSON(`You fill the feature grid of a Fiverr gig's 3 packages (basic, standard, premium). For every row give 3 values, one per package, in that order.
+Rules: only tick a feature that the seller's scope and the package description actually support; when unsure use false. Higher packages include everything lower packages include. For "check" rows values are booleans. For "select" rows values are one option copied exactly from that row's options (for revisions, give more in higher packages; pick sensible values).
+Shape: {"rows":[{"index":0,"values":[false,true,true]}]}`,
+      `Gig: ${title}\nScope: ${scope}\nPackages:\n${packages.map((p, i) => `${i + 1}. ${p.name} ($${p.price}, ${p.days} days): ${p.description}`).join("\n")}\nRows:\n${rows.map((r, i) => `${i}. [${r.kind}] ${r.label}${r.options ? " options: " + r.options.join(" | ") : ""}`).join("\n")}`, 2500);
+  },
   async pick({ label, options, title, keywords }) {
     return claudeJSON(`You choose the single best option in a Fiverr gig form dropdown for a seller's gig. Pick only from the given options, exactly as written.
 Shape: {"choice":"<option text>"}`,

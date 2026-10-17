@@ -114,8 +114,17 @@ $("genPricing").onclick = async function () {
 $("fillPricing").onclick = async function () {
   try {
     const o = S.pricing[chosen("price")];
-    const r = await page("FILL_PRICING", { packages: [o.basic, o.standard, o.premium] });
-    status(`Filled: ${r.filled.join(", ") || "nothing found"}. Check it, then click Next on Fiverr.`, !!r.filled.length);
+    const pk = [o.basic, o.standard, o.premium];
+    const r = await page("FILL_PRICING", { packages: pk });
+    status(`Filled: ${r.filled.join(", ") || "nothing found"}. Now ticking features…`, !!r.filled.length);
+    const g = await page("PRICING_ROWS", {});
+    if (g.rows.length) {
+      const m = await chrome.runtime.sendMessage({ action: "matrix", payload: { title: title(), scope: $("scope").value, packages: pk, rows: g.rows } });
+      if (!m.ok) throw new Error(m.error);
+      const apply = m.result.rows.map(x => ({ ...g.rows[x.index], values: x.values })).filter(x => x.ids);
+      const a = await page("PRICING_APPLY", { rows: apply });
+      status(`Filled pricing and ${g.rows.length} feature rows (${a.count} changes). Check everything, then click Next on Fiverr.`, true);
+    } else status("Pricing filled, but I couldn't find the feature tick boxes. Tick them by hand, or click Scan page and send me the result.", true);
   } catch (e) { status(e.message); }
 };
 
