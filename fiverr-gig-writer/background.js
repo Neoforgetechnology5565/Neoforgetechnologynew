@@ -61,10 +61,10 @@ Shape: {"titles":["","","","",""]}`,
       `Keywords: ${keywords.join(", ")}\n${notes ? "Notes: " + notes : ""}`);
   },
   // choose the best option from a dropdown the page actually offers
-  async pickMany({ label, options, title, keywords, max }) {
+  async pickMany({ label, options, title, keywords, max, context }) {
     return claudeJSON(`You choose which checkbox options best describe a seller's Fiverr gig. Pick between 1 and ${max || 4} options, only from the list, exactly as written.
 Shape: {"choices":["<option text>"]}`,
-      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nSection: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 400);
+      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nSection: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 400);
   },
   // Decide which feature rows each package includes (checkbox rows -> true/false, dropdown rows -> option text)
   async matrix({ title, scope, packages, rows }) {
@@ -73,10 +73,22 @@ Rules: only tick a feature that the seller's scope and the package description a
 Shape: {"rows":[{"index":0,"values":[false,true,true]}]}`,
       `Gig: ${title}\nScope: ${scope}\nPackages:\n${packages.map((p, i) => `${i + 1}. ${p.name} ($${p.price}, ${p.days} days): ${p.description}`).join("\n")}\nRows:\n${rows.map((r, i) => `${i}. [${r.kind}] ${r.label}${r.options ? " options: " + r.options.join(" | ") : ""}`).join("\n")}`, 2500);
   },
-  async pick({ label, options, title, keywords }) {
+  // Turn pasted ChatGPT text into structured gig data (copy faithfully, never invent)
+  async parsePaste({ text }) {
+    return claudeJSON(`You extract a Fiverr gig from text the seller pasted (usually written by ChatGPT). Copy the seller's own wording faithfully; do NOT invent or embellish. Leave a field empty ("" or []) if the text doesn't contain it.
+- title: starts with "I will" if the text gives one; max 80 chars (shorten minimally only if longer).
+- tags: up to 5, lowercase letters/numbers/spaces only, max 20 chars each.
+- scope: 1-3 sentences summarising what the seller delivers (from the text).
+- packages: exactly 3 (basic, standard, premium) if present, each {name (max 25 chars), description (max 100 chars), days (integer), price (integer USD)}; otherwise [].
+- description: the gig description, max 1200 chars, plain text.
+- faq: [{question, answer}]. requirements: buyer questions. imagePrompt: an image prompt if the text contains one.
+Shape: {"title":"","tags":[],"scope":"","packages":[{"name":"","description":"","days":0,"price":0}],"description":"","faq":[],"requirements":[],"imagePrompt":""}`,
+      text.slice(0, 20000), 4000);
+  },
+  async pick({ label, options, title, keywords, context }) {
     return claudeJSON(`You choose the single best option in a Fiverr gig form dropdown for a seller's gig. Pick only from the given options, exactly as written.
 Shape: {"choice":"<option text>"}`,
-      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nDropdown: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 300);
+      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nDropdown: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 300);
   },
   // scope + days idea + budget -> 3 complete pricing schemes to choose from
   async pricing({ title, scope, days, budget }) {

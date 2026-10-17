@@ -63,6 +63,15 @@ function sectionLabel(el) {
 }
 
 const handlers = {
+  async DETECT() {   // which Fiverr gig-editor page is open?
+    const t = document.body.innerText;
+    const page = /set your packages|add extra services/i.test(t) ? "pricing"
+      : /gig title/i.test(t) && /search tags|positive keywords/i.test(t) ? "overview"
+      : /get all the information you need from buyers/i.test(t) ? "requirements"
+      : /briefly describe your gig|frequently asked questions/i.test(t) ? "description"
+      : /gig gallery|gig images|gig video/i.test(t) ? "gallery" : "unknown";
+    return { page };
+  },
   async SCAN() {   // debugging aid: describe the form controls on this page
     const fields = all('input,textarea,select,[contenteditable=true],[role=textbox],[role=combobox],[aria-haspopup=listbox]').slice(0, 80).map(el => ({
       tag: el.tagName.toLowerCase(), type: el.type || "", role: el.getAttribute("role") || "", name: el.name || "", id: el.id || "",

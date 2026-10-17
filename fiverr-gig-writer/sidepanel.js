@@ -26,6 +26,8 @@ async function page(type, data) {
   }
 }
 const title = () => chosen("title");
+const ctx = () => `${$("scope").value}\n${$("desc").value}`.trim().slice(0, 800);
+const esc = x => String(x ?? "").replace(/"/g, "&quot;");
 
 // ---- persistence / tabs / settings
 chrome.storage.local.get(["geminiKey", "textModel", "imageModel", "form"]).then(s => {
@@ -75,7 +77,7 @@ $("fillOverview").onclick = async function () {
     for (let i = 0; i < 8; i++) {                       // category -> subcategory -> service type -> ...
       const d = await page("NEXT_DROPDOWN", {});
       if (!d.found) break;
-      const p = await chrome.runtime.sendMessage({ action: "pick", payload: { label: d.label, options: d.options, title: t, keywords: tags } });
+      const p = await chrome.runtime.sendMessage({ action: "pick", payload: { label: d.label, options: d.options, title: t, keywords: tags, context: ctx() } });
       if (!p.ok) throw new Error(p.error);
       await page("CHOOSE_OPTION", { id: d.id, text: p.result.choice });
       status(`${d.label || "Dropdown"}: ${p.result.choice}`, true);
@@ -85,7 +87,7 @@ $("fillOverview").onclick = async function () {
     for (let i = 0; i < 10; i++) {                      // metadata tabs -> checkbox lists
       const c = await page("NEXT_CHECKS", {});
       if (c.found) {
-        const p = await chrome.runtime.sendMessage({ action: "pickMany", payload: { label: c.label, options: c.options.map(o => o.text), title: t, keywords: tags, max: 4 } });
+        const p = await chrome.runtime.sendMessage({ action: "pickMany", payload: { label: c.label, options: c.options.map(o => o.text), title: t, keywords: tags, max: 4, context: ctx() } });
         if (!p.ok) throw new Error(p.error);
         const want = p.result.choices.map(x => x.trim().toLowerCase());
         const ids = c.options.filter(o => want.includes(o.text.trim().toLowerCase())).map(o => o.id);
@@ -177,5 +179,49 @@ $("scan").onclick = async () => {
   try { const r = await page("SCAN", {});
     await navigator.clipboard.writeText(JSON.stringify(r, null, 1));
     status(`Scanned ${r.fields.length} fields. Copied to clipboard. Paste it to me in the chat.`, true);
+  } catch (e) { status(e.message); }
+};
+
+// ---- 0 paste from ChatGPT
+$("parsePaste").onclick = async function () {
+  const text = $("paste").value.trim();
+  if (!text) return status("Paste your ChatGPT text first.");
+  const g = await ai("parsePaste", { text }, this);
+  const set = (id, v) => { $(id).value = v; $(id).dispatchEvent(new Event("input")); };
+  const warn = [];
+  if (g.title) {
+    $("titles").innerHTML = `<label><input type="radio" name="title" value="${esc(g.title)}" checked>${g.title}</label>`;
+    $("fillOverview").disabled = false;
+    if (g.title.length > 80) warn.push("title is over 80 characters");
+  }
+  set("keywords", (g.tags || []).join(", "));
+  set("scope", g.scope || g.description || "");
+  if ((g.packages || []).length === 3) {
+    const [a, b, c] = g.packages; S.pricing = [{ label: "From your paste", basic: a, standard: b, premium: c }];
+    $("pricing").innerHTML = `<label><input type="radio" name="price" value="0" checked><b>From your paste</b><small>${g.packages.map(p => `${p.name}: $${p.price}, ${p.days} days\n  ${p.description}`).join("\n")}</small></label>`;
+    $("fillPricing").disabled = false;
+  }
+  set("desc", g.description || ""); if (g.description) { $("fillDesc").disabled = false; if (g.description.length > 1200) warn.push("description is over 1200 characters"); }
+  set("req", (g.requirements || []).join("\n")); if ((g.requirements || []).length) $("fillReq").disabled = false;
+  if (g.imagePrompt) set("imgPrompt", g.imagePrompt);
+  $("pasteSummary").textContent = [
+    `Title: ${g.title || "(none found)"}`, `Tags: ${(g.tags || []).join(", ") || "(none)"}`,
+    `Packages: ${(g.packages || []).length === 3 ? g.packages.map(p => `${p.name} $${p.price}`).join(" / ") : "(not found)"}`,
+    `Description: ${(g.description || "").length} chars`, `Requirements: ${(g.requirements || []).length}`,
+    warn.length ? "⚠ " + warn.join("; ") : ""].filter(Boolean).join("\n");
+  $("fillThis").disabled = false;
+  status("Read your paste. Open a Fiverr gig page and click Fill this Fiverr page.", true);
+};
+
+$("fillThis").onclick = async () => {
+  try {
+    const { page: p } = await page("DETECT", {});
+    const map = { overview: "fillOverview", pricing: "fillPricing", description: "fillDesc", requirements: "fillReq" };
+    if (p === "gallery") return status("This is the Gallery page. Use the Gallery tab to add an image, then click Next on Fiverr.");
+    if (!map[p]) return status("I can't tell which Fiverr page this is. Open Overview, Pricing, Description or Requirements, or use the numbered tabs.");
+    const btn = $(map[p]);
+    if (btn.disabled) return status(`Your paste has nothing for the ${p} page.`);
+    status(`Detected the ${p} page. Filling…`, true);
+    btn.click();
   } catch (e) { status(e.message); }
 };
