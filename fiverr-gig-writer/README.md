@@ -16,7 +16,7 @@ A side-panel wizard that follows Fiverr's gig-creation pages. On each page you g
 3. Open Fiverr → Selling → Gigs → Create, keep that tab active, work through steps 1–5.
 
 ## Notes
-- **Writing** uses Gemini (default `gemini-2.5-flash`, free tier). **Image**: Google Flow has no public API, so the free route is copying the prompt into Flow/Gemini yourself; the optional in-panel generator uses a Google image model (may be paid).
+- **Writing** uses Gemini (default `gemini-3.8-flash`, free tier). **Image**: Google Flow has no public API, so the free route is copying the prompt into Flow/Gemini yourself; the optional in-panel generator uses a Google image model (may be paid).
 - Fiverr's page markup changes and isn't documented, so field detection is best-effort. If something is missed the panel says so; fill that field by hand. Report what failed and the selectors can be tuned.
 - It never clicks Next/Save/Publish. Keep it that way: automated submitting can get a seller account flagged.
 - Don't claim fake reviews/results in your gig.

@@ -6,7 +6,7 @@ const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
 async function claudeJSON(system, user, maxTokens = 2000) {
   const { geminiKey, textModel } = await chrome.storage.local.get(["geminiKey", "textModel"]);
   if (!geminiKey) throw new Error("Add your free Google AI (Gemini) API key in Settings first.");
-  const res = await fetch(`${GEMINI}/${textModel || "gemini-2.5-flash"}:generateContent`, {
+  const res = await fetch(`${GEMINI}/${textModel || "gemini-3.8-flash"}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": geminiKey },
     body: JSON.stringify({
