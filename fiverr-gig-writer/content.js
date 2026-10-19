@@ -59,7 +59,7 @@ async function openOptions(el) {
     fresh.forEach(e => e.dataset.fgwOpt = "1");
     texts = fresh.map(e => e.innerText.trim());
   }
-  return [...new Set(texts.filter(t => t && !/^\s*(select|choose)\b/i.test(t)))];
+  return [...new Set(texts.filter(t => t && !t.includes("\n") && !/^\s*(select|choose)\b/i.test(t)))];
 }
 async function choose(el, matcher) {           // matcher: string or RegExp
   const ok = t => matcher instanceof RegExp ? matcher.test(t) : t.trim().toLowerCase() === String(matcher).trim().toLowerCase();
