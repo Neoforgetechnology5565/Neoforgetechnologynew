@@ -69,21 +69,34 @@ Shape: {"choices":["<option text>"]}`,
   // Decide which feature rows each package includes (checkbox rows -> true/false, dropdown rows -> option text)
   async matrix({ title, scope, packages, rows }) {
     return claudeJSON(`You fill the feature grid of a Fiverr gig's 3 packages (basic, standard, premium). For every row give 3 values, one per package, in that order.
-Rules: only tick a feature that the seller's scope and the package description actually support; when unsure use false. Higher packages include everything lower packages include. For "check" rows values are booleans. For "select" rows values are one option copied exactly from that row's options (for revisions, give more in higher packages; pick sensible values).
+Rules: only tick a feature that the seller's scope, the package description and its "Includes" list actually support; use the stated number of revisions when given; when unsure use false. Higher packages include everything lower packages include. For "check" rows values are booleans. For "select" rows values are one option copied exactly from that row's options (for revisions, give more in higher packages; pick sensible values).
 Shape: {"rows":[{"index":0,"values":[false,true,true]}]}`,
-      `Gig: ${title}\nScope: ${scope}\nPackages:\n${packages.map((p, i) => `${i + 1}. ${p.name} ($${p.price}, ${p.days} days): ${p.description}`).join("\n")}\nRows:\n${rows.map((r, i) => `${i}. [${r.kind}] ${r.label}${r.options ? " options: " + r.options.join(" | ") : ""}`).join("\n")}`, 2500);
+      `Gig: ${title}\nScope: ${scope}\nPackages:\n${packages.map((p, i) => `${i + 1}. ${p.name} ($${p.price}, ${p.days} days, ${p.revisions ?? "?"} revisions): ${p.description}. Includes: ${(p.includes || []).join("; ") || "n/a"}`).join("\n")}\nRows:\n${rows.map((r, i) => `${i}. [${r.kind}] ${r.label}${r.options ? " options: " + r.options.join(" | ") : ""}`).join("\n")}`, 2500);
   },
   // Turn pasted ChatGPT text into structured gig data (copy faithfully, never invent)
   async parsePaste({ text }) {
-    return claudeJSON(`You extract a Fiverr gig from text the seller pasted (usually written by ChatGPT). Copy the seller's own wording faithfully; do NOT invent or embellish. Leave a field empty ("" or []) if the text doesn't contain it.
-- title: starts with "I will" if the text gives one; max 80 chars (shorten minimally only if longer).
-- tags: up to 5, lowercase letters/numbers/spaces only, max 20 chars each.
-- scope: 1-3 sentences summarising what the seller delivers (from the text).
-- packages: exactly 3 (basic, standard, premium) if present, each {name (max 25 chars), description (max 100 chars), days (integer), price (integer USD)}; otherwise [].
-- description: the gig description, max 1200 chars, plain text.
-- faq: [{question, answer}]. requirements: buyer questions. imagePrompt: an image prompt if the text contains one.
-Shape: {"title":"","tags":[],"scope":"","packages":[{"name":"","description":"","days":0,"price":0}],"description":"","faq":[],"requirements":[],"imagePrompt":""}`,
-      text.slice(0, 20000), 4000);
+    const clean = text.replace(/\\\r?\n/g, "\n").replace(/\\$/gm, "").slice(0, 30000);   // markdown line-break backslashes
+    const g = await claudeJSON(`You extract a Fiverr gig from text the seller pasted (usually a ChatGPT document with numbered sections). Copy the seller's own wording faithfully; do NOT invent or embellish. Leave a field empty ("" or []) if the text doesn't contain it. Ignore portfolio ideas, long keyword lists, checklists, recommendations and notes.
+- title: the gig title (starts with "I will"), max 80 chars.
+- categoryHints: the category / subcategory / service type / expertise / language / technologies / project type lines, as one short string.
+- tags: the 5 search tags; lowercase letters, numbers and spaces only, max 20 chars each.
+- scope: 1-3 sentences summarising what the seller delivers.
+- packages: exactly 3 (basic, standard, premium) if present: {name (the part after the dash in the heading, max 25 chars), description (the "Package description", max 100 chars), days (integer delivery days), price (integer USD), revisions (integer), includes (the bullet list items)}; otherwise [].
+- description: only the "copy-ready" gig description text. Plain text, keep paragraph breaks and bullets ("•" or "-"), remove markdown backslashes and any label like "Copy-ready description".
+- faq: [{question, answer}] without the "Q1." prefixes.
+- requirements: one string per buyer question. If a question lists answer options, fold them into the same string like "What should the AI detect? Options: A / B / C". Include a final "additional project details" question only if the text lists one. Each under 380 characters, no line breaks.
+- imagePrompt: the thumbnail / image prompt text if present.
+Shape: {"title":"","categoryHints":"","tags":[],"scope":"","packages":[{"name":"","description":"","days":0,"price":0,"revisions":0,"includes":[]}],"description":"","faq":[{"question":"","answer":""}],"requirements":[],"imagePrompt":""}`,
+      clean, 6000);
+    g.description = String(g.description || "").replace(/\\$/gm, "").trim();
+    if (g.description.length > 1200) {                       // Fiverr rejects > 1200 characters
+      g.descriptionOriginalLength = g.description.length;
+      const s = await claudeJSON(`Shorten this Fiverr gig description to at most 1100 characters. Keep the opening hook, the bullet list (merge or trim bullets if needed), the contact-me-before-ordering line and the closing line. Keep the seller's wording and tone; do not add claims.
+Shape: {"description":""}`, g.description, 2500);
+      g.description = String(s.description || g.description).trim();
+      if (g.description.length > 1200) g.description = g.description.slice(0, 1200).replace(/\s+\S*$/, "");
+    }
+    return g;
   },
   async pick({ label, options, title, keywords, context }) {
     return claudeJSON(`You choose the single best option in a Fiverr gig form dropdown for a seller's gig. Pick only from the given options, exactly as written.

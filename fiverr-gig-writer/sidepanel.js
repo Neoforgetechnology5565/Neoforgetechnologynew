@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const S = { titles: [], pricing: [], image: null };
+const S = { titles: [], pricing: [], image: null, faq: [], hints: "" };
 const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "imgStyle", "desc", "req", "imgPrompt"];
 
 const status = (m, ok) => { $("status").textContent = m; $("status").className = ok ? "ok" : ""; };
@@ -26,7 +26,7 @@ async function page(type, data) {
   }
 }
 const title = () => chosen("title");
-const ctx = () => `${$("scope").value}\n${$("desc").value}`.trim().slice(0, 800);
+const ctx = () => `${S.hints || ""}\n${$("scope").value}\n${$("desc").value}`.trim().slice(0, 1000);
 const esc = x => String(x ?? "").replace(/"/g, "&quot;");
 
 // ---- persistence / tabs / settings
@@ -126,6 +126,8 @@ $("fillPricing").onclick = async function () {
       const apply = m.result.rows.map(x => ({ ...g.rows[x.index], values: x.values })).filter(x => x.ids);
       const a = await page("PRICING_APPLY", { rows: apply });
       status(`Filled pricing and ${g.rows.length} feature rows (${a.count} changes). Check everything, then click Next on Fiverr.`, true);
+      const mp = (await page("MIN_PRICE", {})).min;
+      if (mp && pk.some(p => Number(p.price) < mp)) status(`Fiverr requires package prices of at least $${mp}, but one of yours is lower (${pk.map(p => "$" + p.price).join(" / ")}). Raise it on the page or in your paste, then fill again.`);
     } else status("Pricing filled, but I couldn't find the feature tick boxes. Tick them by hand, or click Scan page and send me the result.", true);
   } catch (e) { status(e.message); }
 };
@@ -137,8 +139,12 @@ $("genDesc").onclick = async function () {
   $("desc").value = r.description; counts(); $("fillDesc").disabled = false;
 };
 $("fillDesc").onclick = async () => {
-  try { const r = await page("FILL_DESCRIPTION", { text: $("desc").value });
-    status(r.ok ? "Description filled. Check it, then click Next on Fiverr." : "Couldn't find the description box.", r.ok);
+  try {
+    const r = await page("FILL_DESCRIPTION", { text: $("desc").value });
+    if (!r.ok) return status("Couldn't find the description box.");
+    let msg = "Description filled.";
+    if (S.faq?.length) { const f = await page("FILL_FAQ", { items: S.faq }); msg += ` Added ${f.count} of ${S.faq.length} FAQs.`; }
+    status(msg + " Check it, then click Next on Fiverr.", true);
   } catch (e) { status(e.message); }
 };
 
@@ -187,6 +193,7 @@ $("parsePaste").onclick = async function () {
   const text = $("paste").value.trim();
   if (!text) return status("Paste your ChatGPT text first.");
   const g = await ai("parsePaste", { text }, this);
+  S.faq = g.faq || []; S.hints = g.categoryHints || "";
   const set = (id, v) => { $(id).value = v; $(id).dispatchEvent(new Event("input")); };
   const warn = [];
   if (g.title) {
@@ -201,13 +208,13 @@ $("parsePaste").onclick = async function () {
     $("pricing").innerHTML = `<label><input type="radio" name="price" value="0" checked><b>From your paste</b><small>${g.packages.map(p => `${p.name}: $${p.price}, ${p.days} days\n  ${p.description}`).join("\n")}</small></label>`;
     $("fillPricing").disabled = false;
   }
-  set("desc", g.description || ""); if (g.description) { $("fillDesc").disabled = false; if (g.description.length > 1200) warn.push("description is over 1200 characters"); }
+  set("desc", g.description || ""); if (g.description) { $("fillDesc").disabled = false; if (g.descriptionOriginalLength) warn.push(`description was ${g.descriptionOriginalLength} characters, shortened to ${g.description.length} (Fiverr max 1200)`); }
   set("req", (g.requirements || []).join("\n")); if ((g.requirements || []).length) $("fillReq").disabled = false;
   if (g.imagePrompt) set("imgPrompt", g.imagePrompt);
   $("pasteSummary").textContent = [
     `Title: ${g.title || "(none found)"}`, `Tags: ${(g.tags || []).join(", ") || "(none)"}`,
-    `Packages: ${(g.packages || []).length === 3 ? g.packages.map(p => `${p.name} $${p.price}`).join(" / ") : "(not found)"}`,
-    `Description: ${(g.description || "").length} chars`, `Requirements: ${(g.requirements || []).length}`,
+    `Packages: ${(g.packages || []).length === 3 ? g.packages.map(p => `${p.name} $${p.price}/${p.days}d`).join(" / ") : "(not found)"}`,
+    `Description: ${(g.description || "").length} chars`, `FAQs: ${S.faq.length}`, `Requirements: ${(g.requirements || []).length}`,
     warn.length ? "⚠ " + warn.join("; ") : ""].filter(Boolean).join("\n");
   $("fillThis").disabled = false;
   status("Read your paste. Open a Fiverr gig page and click Fill this Fiverr page.", true);

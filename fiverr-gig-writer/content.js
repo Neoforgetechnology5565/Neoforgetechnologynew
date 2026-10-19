@@ -267,6 +267,33 @@ const handlers = {
     setValue(el, text); return { ok: true };
   },
 
+  async MIN_PRICE() {   // Fiverr shows "Package prices should include predefined options at a minimum of $90"
+    const m = document.body.innerText.match(/minimum of \$\s*(\d+)/i);
+    return { min: m ? Number(m[1]) : 0 };
+  },
+
+  async FILL_FAQ({ items }) {
+    let count = 0;
+    const boxes = () => all("textarea,input[type=text]").filter(e => !e.value && !/search/i.test(hint(e)));
+    for (const f of items) {
+      let b = boxes().filter(e => /question|answer|faq/.test(hint(e)));
+      if (b.length < 2) {
+        const add = [...document.querySelectorAll("button,a,[role=button]")].find(x => visible(x) && /add\s*(a\s*)?(new\s*)?(faq|question)/i.test(x.innerText));
+        if (add) { add.scrollIntoView({ block: "center" }); click(add); await sleep(700); }
+        b = boxes().filter(e => /question|answer|faq/.test(hint(e)));
+        if (b.length < 2) b = boxes();
+      }
+      if (b.length < 2) break;
+      const q = b.find(e => /question/.test(hint(e))) || b[0];
+      const a = b.find(e => e !== q && /answer/.test(hint(e))) || b.find(e => e !== q);
+      setValue(q, f.question); setValue(a, f.answer); await sleep(250);
+      const confirm = [...document.querySelectorAll("button")].find(x => visible(x) && /^\s*add\s*$/i.test(x.innerText));
+      if (confirm) { click(confirm); await sleep(700); }
+      count++;
+    }
+    return { count };
+  },
+
   async FILL_REQUIREMENTS({ items }) {
     let count = 0;
     const emptyBox = () => all("textarea,input[type=text]").find(e => !e.value && !/search/i.test(hint(e)));
