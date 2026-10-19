@@ -15,7 +15,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .choices label:has(input:checked){border-color:var(--g);background:#effaf4}
 .choices input{width:auto;margin-right:6px}
 .choices small{display:block;color:#555;margin-top:4px;white-space:pre-line}
-#preview{width:100%;margin-top:10px;border-radius:6px}
+#thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#thumbs div{position:relative}#thumbs img{width:100px;border-radius:5px;display:block}#thumbs b{position:absolute;top:2px;right:4px;background:#000a;color:#fff;border-radius:9px;padding:0 6px;cursor:pointer}
 #status{margin-top:10px;color:#b00;min-height:16px}#status.ok{color:#117a45}
 .summary{font-size:12px;margin-top:8px;white-space:pre-line}
 .hint{color:#777;font-size:11px}span{font-weight:400;color:#777}
@@ -27,7 +27,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <section id="settings" hidden>
   <label>Google AI (Gemini) API key — free at aistudio.google.com</label><input id="geminiKey" type="password" placeholder="AIza...">
   <label>Writing model</label><input id="textModel" placeholder="gemini-3.8-flash">
-  <label>Image model (optional, may be paid)</label><input id="imageModel" placeholder="imagen-4.0-generate-001">
   <button id="saveSettings">Save &amp; test key</button>
   <div id="saveMsg" style="margin-top:8px;font-weight:600"></div>
   <p class="hint">Key stays in this browser and goes only to Google.</p>
@@ -85,14 +84,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </div>
 
 <div id="s5" class="step" hidden>
-  <label>Image style (optional)</label>
-  <input id="imgStyle" placeholder="e.g. dark neon, flat illustration, photo-real">
-  <button id="genPrompt">Write image prompt (free)</button>
-  <textarea id="imgPrompt" rows="5" placeholder="Prompt appears here. Paste it into Google Flow / Gemini, then drag the image into Fiverr."></textarea>
-  <button id="copyPrompt" class="secondary">Copy prompt</button>
-  <button id="genImg" class="secondary">Or generate it here with Google API (may cost)</button>
-  <img id="preview" hidden>
-  <div class="row"><button id="uploadImg" disabled>Upload to Fiverr</button><button id="dlImg" class="secondary" disabled>Download</button></div>
+  <label>Your gig images (up to 3). Choose files, or press Ctrl+V to paste an image. They're saved for next time.</label>
+  <input type="file" id="imgFiles" accept="image/*" multiple>
+  <div id="thumbs"></div>
+  <button id="uploadImg" disabled>Upload to Fiverr gallery</button>
 </div>
 
 <div id="status"></div>

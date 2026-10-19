@@ -313,14 +313,23 @@ const handlers = {
     return { count };
   },
 
-  async UPLOAD_IMAGE({ dataUrl }) {
-    const files = [...document.querySelectorAll("input[type=file]")].filter(i => !/video|pdf/i.test(i.accept || ""));
-    const input = files.find(i => /image/.test(i.accept || "")) || files[0];
-    if (!input) return { ok: false };
-    const blob = await (await fetch(dataUrl)).blob();
-    const dt = new DataTransfer(); dt.items.add(new File([blob], "gig-image.png", { type: blob.type || "image/png" }));
-    input.files = dt.files; input.dispatchEvent(new Event("change", { bubbles: true }));
-    return { ok: true };
+  // Adds the user's own saved images to the gallery's image upload box(es)
+  async UPLOAD_IMAGES({ images }) {
+    let n = 0; const used = new Set();
+    for (const im of images) {
+      const all_ = [...document.querySelectorAll("input[type=file]")].filter(i => !/video|pdf/i.test(i.accept || ""));
+      const fresh = all_.filter(i => !used.has(i));
+      const pool = fresh.length ? fresh : all_;
+      const input = pool.find(i => /image/.test(i.accept || "")) || pool[0];
+      if (!input) break;
+      used.add(input);
+      const blob = await (await fetch(im.dataUrl)).blob();
+      const dt = new DataTransfer(); dt.items.add(new File([blob], im.name || `gig-${n + 1}.png`, { type: blob.type || im.type || "image/png" }));
+      input.files = dt.files;
+      input.dispatchEvent(new Event("input", { bubbles: true })); input.dispatchEvent(new Event("change", { bubbles: true }));
+      n++; await sleep(2500);                       // let Fiverr finish each upload
+    }
+    return { count: n };
   }
 };
 

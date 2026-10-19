@@ -89,8 +89,7 @@ Rules:
 - packages: exactly 3 (basic, standard, premium), each {name max 25 chars, description max 100 chars, days integer, price integer USD, revisions integer, includes [short bullets]}. Use the seller's packages/prices if given, otherwise propose realistic ones. Scope and price must rise from basic to premium.
 - faq: 4-5 items {question max 100 chars, answer max 300 chars}.
 - requirements: 4-5 buyer questions, each under 380 chars, no line breaks; if a question has answer options, fold them in: "Question? Options: A / B / C".
-- imagePrompt: a detailed text-to-image prompt for a 16:9 gig cover image (no text, logos or watermarks), unless the seller gave one, then use theirs.
-Shape: {"title":"","categoryHints":"","tags":[],"scope":"","packages":[{"name":"","description":"","days":0,"price":0,"revisions":0,"includes":[]}],"description":"","faq":[{"question":"","answer":""}],"requirements":[],"imagePrompt":""}`,
+Shape: {"title":"","categoryHints":"","tags":[],"scope":"","packages":[{"name":"","description":"","days":0,"price":0,"revisions":0,"includes":[]}],"description":"","faq":[{"question":"","answer":""}],"requirements":[]}`,
       clean, 7000);
     const notes = [];
     const cut = (s, n, what) => { s = String(s || "").trim(); if (s.length <= n) return s; notes.push(`${what} shortened to ${n} characters`); return s.slice(0, n).replace(/\s+\S*$/, ""); };
@@ -136,35 +135,6 @@ Shape: {"description":""}`,
   async requirements({ title, scope }) {
     return claudeJSON(COPY_RULES + `\nWrite 3-5 short questions to ask the buyer after they order so work can start without back-and-forth. Each under 300 characters.
 Shape: {"requirements":[""]}`, `Gig: ${title}\nScope: ${scope || "n/a"}`, 800);
-  },
-  // Image prompt only (free): paste it into Google Flow / Gemini yourself
-  async imagePrompt({ title, keywords, style }) {
-    return claudeJSON(`Write one detailed text-to-image prompt for a Fiverr gig cover image: clean, professional, eye-catching, 16:9, subject clearly tied to the service. Do NOT include any text, letters, logos or watermarks in the image.
-Shape: {"prompt":""}`, `Gig: ${title}\nKeywords: ${keywords.join(", ")}\nVisual style: ${style || "modern, clean, vibrant"}`, 500);
-  },
-  // Optional: generate the image with Google's API (image models may be paid)
-  async image({ prompt }) {
-    const { geminiKey, imageModel } = await chrome.storage.local.get(["geminiKey", "imageModel"]);
-    if (!geminiKey) throw new Error("Add your Google AI (Gemini) API key in Settings first.");
-    const model = imageModel || "imagen-4.0-generate-001";
-    const base = `${GEMINI}/${model}`;
-    const headers = { "content-type": "application/json", "x-goog-api-key": geminiKey };
-    let b64, mime = "image/png";
-    if (/^imagen/.test(model)) {
-      const r = await fetch(`${base}:predict`, { method: "POST", headers,
-        body: JSON.stringify({ instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio: "16:9" } }) });
-      if (!r.ok) throw new Error(`Google image API ${r.status}: ${(await r.text()).slice(0, 250)}`);
-      const p = (await r.json()).predictions?.[0];
-      b64 = p?.bytesBase64Encoded; mime = p?.mimeType || mime;
-    } else {
-      const r = await fetch(`${base}:generateContent`, { method: "POST", headers,
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt + " Aspect ratio 16:9." }] }], generationConfig: { responseModalities: ["IMAGE"] } }) });
-      if (!r.ok) throw new Error(`Google image API ${r.status}: ${(await r.text()).slice(0, 250)}`);
-      const part = ((await r.json()).candidates?.[0]?.content?.parts || []).find(x => x.inlineData);
-      b64 = part?.inlineData?.data; mime = part?.inlineData?.mimeType || mime;
-    }
-    if (!b64) throw new Error("Google returned no image. Try another image model in Settings.");
-    return { dataUrl: `data:${mime};base64,${b64}` };
   }
 };
 

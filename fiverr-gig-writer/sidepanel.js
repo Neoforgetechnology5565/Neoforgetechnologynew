@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const S = { titles: [], pricing: [], image: null, faq: [], hints: "" };
-const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "imgStyle", "desc", "req", "imgPrompt"];
+const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "desc", "req"];
 
 const status = (m, ok) => { $("status").textContent = m; $("status").className = ok ? "ok" : ""; };
 const kw = () => $("keywords").value.split(",").map(s => s.trim()).filter(Boolean).slice(0, 5);
@@ -30,8 +30,8 @@ const ctx = () => `${S.hints || ""}\n${$("scope").value}\n${$("desc").value}`.tr
 const esc = x => String(x ?? "").replace(/"/g, "&quot;");
 
 // ---- persistence / tabs / settings
-chrome.storage.local.get(["geminiKey", "textModel", "imageModel", "form"]).then(s => {
-  $("textModel").value = s.textModel || ""; $("geminiKey").value = s.geminiKey || ""; $("imageModel").value = s.imageModel || "";
+chrome.storage.local.get(["geminiKey", "textModel", "form"]).then(s => {
+  $("textModel").value = s.textModel || ""; $("geminiKey").value = s.geminiKey || "";
   KEYS.forEach(k => s.form?.[k] && ($(k).value = s.form[k]));
   if (!s.geminiKey) $("settings").hidden = false; counts();
 });
@@ -45,7 +45,7 @@ $("saveSettings").onclick = async () => {
   const key = $("geminiKey").value.trim();
   if (!key) return msg("Paste your key first.");
   try {
-    await chrome.storage.local.set({ textModel: $("textModel").value.trim(), geminiKey: key, imageModel: $("imageModel").value.trim() });
+    await chrome.storage.local.set({ textModel: $("textModel").value.trim(), geminiKey: key });
     const back = await chrome.storage.local.get("geminiKey");
     if (back.geminiKey !== key) return msg("Could not save to Chrome storage. Reload the extension and try again.");
     msg("Saved. Testing key…", true);
@@ -167,24 +167,49 @@ $("fillReq").onclick = async () => {
 };
 
 // ---- 5 gallery
-$("genPrompt").onclick = async function () {
-  if (!title()) return status("Pick a title in step 1 first.");
-  const r = await ai("imagePrompt", { title: title(), keywords: kw(), style: $("imgStyle").value }, this);
-  $("imgPrompt").value = r.prompt;
-};
-$("copyPrompt").onclick = async () => { await navigator.clipboard.writeText($("imgPrompt").value); status("Prompt copied. Paste it into Google Flow / Gemini.", true); };
-$("genImg").onclick = async function () {
-  if (!$("imgPrompt").value.trim()) return status("Write the image prompt first.");
-  const r = await ai("image", { prompt: $("imgPrompt").value }, this);
-  S.image = r.dataUrl; $("preview").src = r.dataUrl; $("preview").hidden = false;
-  $("uploadImg").disabled = $("dlImg").disabled = false;
-};
+// ---- 5 gallery: the user's own images, saved in this browser (IndexedDB)
+const idb = () => new Promise((res, rej) => { const r = indexedDB.open("fgw", 1); r.onupgradeneeded = () => r.result.createObjectStore("imgs", { autoIncrement: true }); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const idbAll = async () => { const db = await idb(); return new Promise(res => { const out = []; const c = db.transaction("imgs").objectStore("imgs").openCursor(); c.onsuccess = e => { const cur = e.target.result; if (cur) { out.push({ key: cur.key, blob: cur.value }); cur.continue(); } else res(out); }; }); };
+const idbAdd = async blob => { const db = await idb(); return new Promise(res => { const t = db.transaction("imgs", "readwrite"); t.objectStore("imgs").add(blob); t.oncomplete = res; }); };
+const idbDel = async key => { const db = await idb(); return new Promise(res => { const t = db.transaction("imgs", "readwrite"); t.objectStore("imgs").delete(key); t.oncomplete = res; }); };
+const toDataUrl = blob => new Promise(res => { const r = new FileReader(); r.onload = () => res(r.result); r.readAsDataURL(blob); });
+
+async function renderImgs() {
+  const list = await idbAll();
+  $("thumbs").innerHTML = "";
+  list.forEach(({ key, blob }) => {
+    const d = document.createElement("div"), img = document.createElement("img"), x = document.createElement("b");
+    img.src = URL.createObjectURL(blob); x.textContent = "×"; x.title = "Remove";
+    x.onclick = async () => { await idbDel(key); renderImgs(); };
+    d.append(img, x); $("thumbs").append(d);
+  });
+  $("uploadImg").disabled = !list.length;
+  return list;
+}
+async function addImages(files) {
+  let have = (await idbAll()).length;
+  for (const f of files) {
+    if (!/^image\//.test(f.type)) continue;
+    if (have >= 3) { status("Fiverr allows 3 gig images. Remove one first."); break; }
+    await idbAdd(f); have++;
+  }
+  renderImgs();
+}
+$("imgFiles").onchange = async e => { await addImages([...e.target.files]); e.target.value = ""; };
+document.addEventListener("paste", e => { const f = [...(e.clipboardData?.files || [])]; if (f.length) { e.preventDefault(); addImages(f); } });
+renderImgs();
+
+async function uploadSaved() {
+  const list = await idbAll();
+  if (!list.length) return { count: 0 };
+  const images = await Promise.all(list.map(async ({ blob }, i) => ({ dataUrl: await toDataUrl(blob), name: blob.name || `gig-${i + 1}.png`, type: blob.type })));
+  return page("UPLOAD_IMAGES", { images });
+}
 $("uploadImg").onclick = async () => {
-  try { const r = await page("UPLOAD_IMAGE", { dataUrl: S.image });
-    status(r.ok ? "Image added to the upload box. Wait for it to finish, then click Next." : "No upload box found. Use Download and upload it manually.", r.ok);
+  try { status("Uploading…", true); const r = await uploadSaved();
+    status(r.count ? `Added ${r.count} image(s). Wait for Fiverr to finish uploading, check them, then click Save & Continue.` : "I couldn't find the image upload box on this page.", !!r.count);
   } catch (e) { status(e.message); }
 };
-$("dlImg").onclick = () => { const a = document.createElement("a"); a.href = S.image; a.download = "gig-image.png"; a.click(); };
 
 $("scan").onclick = async () => {
   try { const r = await page("SCAN", {});
@@ -215,7 +240,6 @@ $("parsePaste").onclick = async function () {
   }
   set("desc", g.description || ""); if (g.description) { $("fillDesc").disabled = false; if (g.descriptionOriginalLength) warn.push(`description was ${g.descriptionOriginalLength} characters, shortened to ${g.description.length} (Fiverr max 1200)`); }
   set("req", (g.requirements || []).join("\n")); if ((g.requirements || []).length) $("fillReq").disabled = false;
-  if (g.imagePrompt) set("imgPrompt", g.imagePrompt);
   $("pasteSummary").textContent = [
     `Title: ${g.title || "(none found)"}`, `Tags: ${(g.tags || []).join(", ") || "(none)"}`,
     `Packages: ${(g.packages || []).length === 3 ? g.packages.map(p => `${p.name} $${p.price}/${p.days}d`).join(" / ") : "(not found)"}`,
@@ -231,7 +255,10 @@ $("parsePaste").onclick = async function () {
 const FILL = { overview: "fillOverview", pricing: "fillPricing", description: "fillDesc", requirements: "fillReq" };
 async function fillCurrent() {
   const { page: p } = await page("DETECT", {});
-  if (p === "gallery") return { p, stop: "Reached the Gallery page. Add your image (Gallery tab), then click Next yourself." };
+  if (p === "gallery") {
+    const r = await uploadSaved();
+    return { p, stop: r.count ? `Gallery: added ${r.count} of your saved image(s). Wait for the uploads to finish, check everything, then click Save & Continue and Publish yourself.` : "Reached the Gallery page. Add your images in the Gallery tab (or drag them in), then click Save & Continue yourself." };
+  }
   if (!FILL[p]) return { p, stop: "I can't tell which Fiverr page this is. Open Overview, Pricing, Description or Requirements." };
   const btn = $(FILL[p]);
   if (btn.disabled) return { p, stop: `Your paste has nothing for the ${p} page.` };

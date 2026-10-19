@@ -8,7 +8,7 @@ A side-panel wizard that follows Fiverr's gig-creation pages. On each page you g
 | 2 Pricing | Scope, delivery idea, budget | Suggests 3 pricing schemes (names, descriptions, prices, days); you pick one and it fills all 3 packages |
 | 3 Description | Optional style note | Writes the description (max 1200 chars) in that style; editable before filling |
 | 4 Requirements | – | Writes buyer questions and adds them |
-| 5 Gallery | Optional style | Writes an image prompt (free) to paste into Google Flow/Gemini; optionally generates the image with Google's API and uploads it |
+| 5 Gallery | Your own images (choose files or Ctrl+V, up to 3, saved in the browser) | Uploads them to the Fiverr gallery |
 
 ## Install
 1. `chrome://extensions` → Developer mode → **Load unpacked** → this folder.
