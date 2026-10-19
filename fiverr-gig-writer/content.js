@@ -3,6 +3,7 @@ if (window.__fgwLoaded) return;
 window.__fgwLoaded = true;
 // Runs on fiverr.com. Fiverr's markup changes often, so everything is located
 // by labels/placeholders/roles rather than fixed selectors. Best-effort.
+const rnd = () => String(Math.random()).slice(2);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const visible = el => !!(el.offsetParent || el.getClientRects().length);
 function labelText(el) {
@@ -39,19 +40,44 @@ function dropdownOptions(el) {
   if (el.tagName === "SELECT") return [...el.options].filter(o => o.value && !/^select/i.test(o.text)).map(o => o.text.trim());
   return [...new Set(optionEls().map(o => o.innerText.trim()).filter(Boolean))];
 }
+const leafish = () => [...document.querySelectorAll("li,div,span,a,button,p,label")].filter(e => {
+  if (!visible(e) || e.children.length > 2) return false;
+  const t = (e.innerText || "").trim(); return t.length > 0 && t.length < 70;
+});
+// Opens a dropdown and returns its option texts. Custom dropdowns with no ARIA roles are detected
+// by diffing which elements appeared after the click, and those are tagged data-fgw-opt.
+async function openOptions(el) {
+  if (el.tagName === "SELECT") return dropdownOptions(el);
+  document.querySelectorAll("[data-fgw-opt]").forEach(e => delete e.dataset.fgwOpt);
+  const before = new Set(leafish());
+  click(el); await sleep(500);
+  let texts;
+  const roled = optionEls();
+  if (roled.length) texts = roled.map(o => o.innerText.trim());
+  else {
+    const fresh = leafish().filter(e => !before.has(e));
+    fresh.forEach(e => e.dataset.fgwOpt = "1");
+    texts = fresh.map(e => e.innerText.trim());
+  }
+  return [...new Set(texts.filter(t => t && !/^\s*(select|choose)\b/i.test(t)))];
+}
 async function choose(el, matcher) {           // matcher: string or RegExp
   const ok = t => matcher instanceof RegExp ? matcher.test(t) : t.trim().toLowerCase() === String(matcher).trim().toLowerCase();
   if (el.tagName === "SELECT") {
     const o = [...el.options].find(o => ok(o.text)); if (!o) return false;
     setValue(el, o.value); return true;
   }
-  if (!optionEls().length) { click(el); await sleep(350); }
-  const o = optionEls().find(o => ok(o.innerText));
+  const find = () => {
+    let l = optionEls();
+    if (!l.length) l = [...document.querySelectorAll("[data-fgw-opt]")].filter(visible);
+    return l.find(o => ok(o.innerText));
+  };
+  let o = find();
+  if (!o) { await openOptions(el); o = find(); }
   if (!o) return false; click(o); await sleep(250); return true;
 }
 
 const visitedTabs = new Set();
-const rnd = () => String(Math.random()).slice(2);
 const isChecked = b => b.checked || b.getAttribute("aria-checked") === "true";
 const optText = b => (b.labels?.[0]?.innerText || b.closest("label")?.innerText || b.parentElement?.innerText || "").trim();
 function sectionLabel(el) {
@@ -62,13 +88,38 @@ function sectionLabel(el) {
   return "";
 }
 
+const isText = e => e.tagName === "TEXTAREA" || (e.tagName === "INPUT" && /^(text|number|tel|)$/.test(e.type));
+const isCheckEl = e => /checkbox|switch/.test(e.type || e.getAttribute("role") || "");
+function pricingGrid() {
+  const heads = ["basic", "standard", "premium"].map(w => [...document.querySelectorAll("th,td,div,span,p,h3,h4,label")]
+    .filter(e => visible(e) && (e.innerText || "").trim().toLowerCase() === w)
+    .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0]);
+  if (heads.some(h => !h)) return null;
+  const rects = heads.map(h => h.getBoundingClientRect());
+  const cx = rects.map(r => r.left + r.width / 2), half = Math.abs(cx[1] - cx[0]) / 2;
+  const extras = [...document.querySelectorAll("*")].find(e => visible(e) && /^\s*add extra services\s*$/i.test(e.innerText || ""));
+  const sel = "input:not([type=hidden]):not([type=file]),textarea,select,[role=combobox],[aria-haspopup=listbox],[role=checkbox],[role=switch]";
+  const cols = [[], [], []];
+  for (const e of document.querySelectorAll(sel)) {
+    if (!visible(e) || (extras && (extras.compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING))) continue;
+    if (e.parentElement?.closest("[role=combobox],[aria-haspopup=listbox],select")) continue;   // inner search boxes
+    const b = e.getBoundingClientRect(); if (b.top < rects[0].top - 5) continue;
+    const mid = b.left + b.width / 2; let k = 0, d = 1e9;
+    cx.forEach((x, i) => { if (Math.abs(mid - x) < d) { d = Math.abs(mid - x); k = i; } });
+    if (d < half) cols[k].push(e);
+  }
+  cols.forEach(col => col.sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top));
+  return { cols, left: cx[0] - half };
+}
+
 const handlers = {
   // Clicks the page's Save & Continue / Next button. Never clicks Publish.
   async CLICK_NEXT() {
-    const btn = [...document.querySelectorAll("button,a,[role=button]")].find(b => visible(b)
-      && /^\s*(save\s*(&|and)\s*continue|continue|next)\s*$/i.test(b.innerText || "") && !/publish/i.test(b.innerText));
-    if (!btn) return { clicked: "", reason: "no Next button found" };
-    if (btn.disabled || btn.getAttribute("aria-disabled") === "true") return { clicked: "", reason: "the Next button is disabled" };
+    const btns = [...document.querySelectorAll("button,a,[role=button]")].filter(b => visible(b) && !/publish/i.test(b.innerText || ""));
+    let btn = btns.find(b => /^\s*(save\s*(&|and)\s*continue|continue|next)\s*$/i.test(b.innerText || ""));
+    if (!btn) { const saves = btns.filter(b => /^\s*save\s*$/i.test(b.innerText || "")); btn = saves[saves.length - 1]; }  // bottom Save
+    if (!btn) return { clicked: "", reason: "no Next/Save button found" };
+    if (btn.disabled || btn.getAttribute("aria-disabled") === "true") return { clicked: "", reason: "the button is disabled" };
     btn.scrollIntoView({ block: "center" }); await sleep(300); btn.click();
     return { clicked: btn.innerText.trim() };
   },
@@ -104,15 +155,15 @@ const handlers = {
 
   // Opens the next unfilled dropdown and reports its options.
   async NEXT_DROPDOWN() {
-    const el = all(COMBO).find(e => !e.dataset.fgwDone && (
-      e.tagName === "SELECT" ? (!e.value || e.selectedIndex <= 0) : /select|choose|^\s*$/i.test((e.innerText || e.value || "").trim())));
+    const txt = e => (e.innerText || e.value || "").trim();
+    let el = all(COMBO).find(e => !e.dataset.fgwDone && (e.tagName === "SELECT" ? (!e.value || (e.selectedIndex <= 0 && /^\s*(select|choose|-)/i.test(e.options[0]?.text || ""))) : (!txt(e) || /^\s*(select|choose)\b/i.test(txt(e)))));
+    if (!el) el = leafish().find(e => !e.dataset.fgwDone && !e.closest("[data-fgw-done]") && /^\s*select (a |an )?[a-z]/i.test(e.innerText || ""));
     if (!el) return { found: false };
-    el.dataset.fgwId = el.dataset.fgwId || String(Math.random()).slice(2);
-    if (el.tagName !== "SELECT") { click(el); await sleep(450); }
-    const options = dropdownOptions(el);
+    el.dataset.fgwId = el.dataset.fgwId || rnd();
+    const label = txt(el) && /^\s*select/i.test(txt(el)) ? txt(el) : rowText(el).split("\n")[0].trim();
+    const options = await openOptions(el);
     el.dataset.fgwDone = "1";
     if (!options.length) return { found: false };
-    const label = rowText(el).split("\n")[0].trim();
     return { found: true, id: el.dataset.fgwId, label, options };
   },
   async CHOOSE_OPTION({ id, text }) {
@@ -153,63 +204,60 @@ const handlers = {
     return { clicked: t.innerText.trim() };
   },
 
-  // ---- Pricing feature grid: rows of 3 checkboxes / dropdowns (one per package)
+  // ---- Pricing: located by geometry (3 columns under the BASIC / STANDARD / PREMIUM headers)
   async PRICING_ROWS() {
-    const SEL = "input[type=checkbox],[role=checkbox],[role=switch],[role=combobox],[aria-haspopup=listbox],select";
-    const extras = [...document.querySelectorAll("*")].find(e => visible(e) && /^\s*add extra services\s*$/i.test(e.innerText || ""));
-    const ctrls = all(SEL).filter(el => !extras || !(extras.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING));
-    const rows = new Map();
-    for (const el of ctrls) {
-      let n = el.parentElement;
-      while (n && all(SEL).filter(x => n.contains(x) && ctrls.includes(x)).length < 3) n = n.parentElement;
-      if (!n) continue;
-      const inRow = ctrls.filter(x => n.contains(x));
-      if (inRow.length === 3) rows.set(n, inRow);
-    }
-    const out = [];
-    for (const [row, els] of rows) {
-      const label = (row.innerText || "").split("\n").map(s => s.trim()).filter(Boolean)[0] || "";
-      if (!label || /^\$?\d/.test(label) || /^price|deliver/i.test(label)) continue;
-      const isCheck = els.every(e => /checkbox|switch/.test(e.type || e.getAttribute("role") || ""));
+    const g = pricingGrid(); if (!g) return { rows: [] };
+    const leftLabel = ctrl => {
+      const b = ctrl.getBoundingClientRect(), cy = b.top + b.height / 2;
+      const area = e => { const r = e.getBoundingClientRect(); return r.width * r.height; };
+      const c = [...document.querySelectorAll("th,td,div,span,p,label")].filter(e => {
+        if (!visible(e) || e.querySelector("input,textarea,select")) return false;
+        const t = (e.innerText || "").trim(); if (t.length < 2 || t.length > 60) return false;
+        const r = e.getBoundingClientRect(); return r.right <= g.left + 8 && r.top <= cy && r.bottom >= cy && r.height < 80;
+      }).sort((a, b) => area(a) - area(b));
+      return c[0] ? c[0].innerText.trim().split("\n")[0] : "";
+    };
+    const rows = [];
+    for (const base of g.cols[0].filter(e => !isText(e))) {
+      const by = base.getBoundingClientRect().top;
+      const mates = [1, 2].map(i => g.cols[i].find(e => !isText(e) && Math.abs(e.getBoundingClientRect().top - by) < 12));
+      if (mates.some(m => !m)) continue;
+      const els = [base, ...mates], label = leftLabel(base);
+      if (!label || /deliver|price/i.test(label) || els.some(e => e.disabled || e.getAttribute("aria-disabled") === "true")) continue;
       els.forEach(e => e.dataset.fgwId = e.dataset.fgwId || rnd());
+      const isCheck = els.every(isCheckEl);
       const r = { label, kind: isCheck ? "check" : "select", ids: els.map(e => e.dataset.fgwId) };
       if (!isCheck) {
-        if (els[0].tagName !== "SELECT") { click(els[0]); await sleep(350); }
-        r.options = dropdownOptions(els[0]);
-        if (els[0].tagName !== "SELECT") { key(els[0], "Escape", 27); document.body.click(); await sleep(150); }
+        r.options = await openOptions(els[0]);
+        if (els[0].tagName !== "SELECT") { key(els[0], "Escape", 27); document.body.click(); await sleep(200); }
       }
-      out.push(r);
+      rows.push(r);
     }
-    return { rows: out };
+    return { rows };
   },
   async PRICING_APPLY({ rows }) {
     let n = 0;
     for (const r of rows) for (let i = 0; i < r.ids.length; i++) {
       const el = document.querySelector(`[data-fgw-id="${r.ids[i]}"]`);
       if (!el) continue;
-      if (r.kind === "check") { if (isChecked(el) !== !!r.values[i]) { (el.labels?.[0] || el).click(); n++; await sleep(120); } }
-      else if (r.values[i] && await choose(el, r.values[i])) { n++; await sleep(200); }
+      if (r.kind === "check") { if (isChecked(el) !== !!r.values[i]) { (el.labels?.[0] || el).click(); n++; await sleep(150); } }
+      else if (r.values[i] && await choose(el, r.values[i])) { n++; await sleep(250); }
     }
     return { count: n };
   },
 
   async FILL_PRICING({ packages }) {
-    const filled = [];
-    const names = all("input,textarea", /package.?name|name your package|title/);
-    const descs = all("textarea,input", /describe|description|details/).filter(e => !names.includes(e));
-    const prices = all("input", /price|amount/).length >= 3 ? all("input", /price|amount/) : all('input[type=number]');
-    packages.forEach((p, i) => {
-      if (names[i]) { setValue(names[i], p.name); }
-      if (descs[i]) { setValue(descs[i], p.description); }
-      if (prices[i]) { setValue(prices[i], String(p.price)); }
-    });
-    if (names.length) filled.push("names"); if (descs.length) filled.push("descriptions"); if (prices.length) filled.push("prices");
-    const dds = all(COMBO).filter(e => /deliver/.test(rowText(e)));
-    let n = 0;
-    for (let i = 0; i < Math.min(dds.length, packages.length); i++)
-      if (await choose(dds[i], new RegExp(`^\\s*${packages[i].days}\\s*days?\\b`, "i"))) n++;
-    if (n) filled.push("delivery days");
-    return { filled };
+    const g = pricingGrid(); if (!g) return { filled: [] };
+    const filled = new Set(); let days = 0;
+    for (let i = 0; i < 3; i++) {
+      const col = g.cols[i], p = packages[i], texts = col.filter(isText);   // name, description, ..., price
+      if (texts[0]) { setValue(texts[0], p.name); filled.add("names"); }
+      if (texts.length >= 3) { setValue(texts[1], p.description); filled.add("descriptions"); setValue(texts[texts.length - 1], String(p.price)); filled.add("prices"); }
+      const dd = col.find(e => !isText(e) && !isCheckEl(e));
+      if (dd && await choose(dd, new RegExp(`^\\s*${p.days}\\s*days?\\b`, "i"))) days++;
+    }
+    if (days) filled.add("delivery days");
+    return { filled: [...filled] };
   },
 
   async FILL_DESCRIPTION({ text }) {
@@ -221,23 +269,26 @@ const handlers = {
 
   async FILL_REQUIREMENTS({ items }) {
     let count = 0;
+    const emptyBox = () => all("textarea,input[type=text]").find(e => !e.value && !/search/i.test(hint(e)));
     for (const q of items) {
-      let box = all("textarea,input[type=text]", /question|requirement/).find(e => !e.value);
+      let box = emptyBox();
       if (!box) {
-        const add = [...document.querySelectorAll("button,a,[role=button]")].find(b => visible(b) && /add.*question|add new/i.test(b.innerText));
-        if (add) { click(add); await sleep(400); box = all("textarea,input[type=text]", /question|requirement/).find(e => !e.value); }
+        const add = [...document.querySelectorAll("button,a,[role=button]")].find(b => visible(b) && /add\s*(a\s*)?(new\s*)?question/i.test(b.innerText));
+        if (add) { add.scrollIntoView({ block: "center" }); click(add); await sleep(700); box = emptyBox(); }
       }
       if (!box) break;
       setValue(box, q);
+      await sleep(200);
       const confirm = [...document.querySelectorAll("button")].find(b => visible(b) && /^\s*add\s*$/i.test(b.innerText));
-      if (confirm) { click(confirm); await sleep(400); }
+      if (confirm) { click(confirm); await sleep(700); }
       count++;
     }
     return { count };
   },
 
   async UPLOAD_IMAGE({ dataUrl }) {
-    const input = [...document.querySelectorAll("input[type=file]")].find(i => !i.accept || /image/.test(i.accept));
+    const files = [...document.querySelectorAll("input[type=file]")].filter(i => !/video|pdf/i.test(i.accept || ""));
+    const input = files.find(i => /image/.test(i.accept || "")) || files[0];
     if (!input) return { ok: false };
     const blob = await (await fetch(dataUrl)).blob();
     const dt = new DataTransfer(); dt.items.add(new File([blob], "gig-image.png", { type: blob.type || "image/png" }));
