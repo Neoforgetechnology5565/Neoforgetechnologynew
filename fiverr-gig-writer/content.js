@@ -63,6 +63,15 @@ function sectionLabel(el) {
 }
 
 const handlers = {
+  // Clicks the page's Save & Continue / Next button. Never clicks Publish.
+  async CLICK_NEXT() {
+    const btn = [...document.querySelectorAll("button,a,[role=button]")].find(b => visible(b)
+      && /^\s*(save\s*(&|and)\s*continue|continue|next)\s*$/i.test(b.innerText || "") && !/publish/i.test(b.innerText));
+    if (!btn) return { clicked: "", reason: "no Next button found" };
+    if (btn.disabled || btn.getAttribute("aria-disabled") === "true") return { clicked: "", reason: "the Next button is disabled" };
+    btn.scrollIntoView({ block: "center" }); await sleep(300); btn.click();
+    return { clicked: btn.innerText.trim() };
+  },
   async DETECT() {   // which Fiverr gig-editor page is open?
     const t = document.body.innerText;
     const page = /set your packages|add extra services/i.test(t) ? "pricing"

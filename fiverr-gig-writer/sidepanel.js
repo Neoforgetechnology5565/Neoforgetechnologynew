@@ -213,15 +213,38 @@ $("parsePaste").onclick = async function () {
   status("Read your paste. Open a Fiverr gig page and click Fill this Fiverr page.", true);
 };
 
+const FILL = { overview: "fillOverview", pricing: "fillPricing", description: "fillDesc", requirements: "fillReq" };
+async function fillCurrent() {
+  const { page: p } = await page("DETECT", {});
+  if (p === "gallery") return { p, stop: "Reached the Gallery page. Add your image (Gallery tab), then click Next yourself." };
+  if (!FILL[p]) return { p, stop: "I can't tell which Fiverr page this is. Open Overview, Pricing, Description or Requirements." };
+  const btn = $(FILL[p]);
+  if (btn.disabled) return { p, stop: `Your paste has nothing for the ${p} page.` };
+  status(`Detected the ${p} page. Filling…`, true);
+  await btn.onclick.call(btn);
+  return { p, ok: $("status").className === "ok" };
+}
+
 $("fillThis").onclick = async () => {
+  S.stop = false;
   try {
-    const { page: p } = await page("DETECT", {});
-    const map = { overview: "fillOverview", pricing: "fillPricing", description: "fillDesc", requirements: "fillReq" };
-    if (p === "gallery") return status("This is the Gallery page. Use the Gallery tab to add an image, then click Next on Fiverr.");
-    if (!map[p]) return status("I can't tell which Fiverr page this is. Open Overview, Pricing, Description or Requirements, or use the numbered tabs.");
-    const btn = $(map[p]);
-    if (btn.disabled) return status(`Your paste has nothing for the ${p} page.`);
-    status(`Detected the ${p} page. Filling…`, true);
-    btn.click();
+    if (!$("auto").checked) { const r = await fillCurrent(); if (r.stop) status(r.stop); return; }
+    $("stopAuto").hidden = false; $("fillThis").disabled = true;
+    for (let i = 0; i < 6 && !S.stop; i++) {
+      const r = await fillCurrent();
+      if (r.stop) return status(r.stop);
+      if (!r.ok) return status(`Stopped: the ${r.p} page wasn't filled completely. Fix it, then continue.`);
+      if (S.stop) break;
+      await sleep(800);
+      const n = await page("CLICK_NEXT", {});
+      if (!n.clicked) return status(`Filled the ${r.p} page but stopped: ${n.reason}. Check the page for missing fields.`);
+      let moved = false;                                   // wait for Fiverr to load the next page
+      for (let t = 0; t < 20 && !S.stop; t++) { await sleep(700); try { if ((await page("DETECT", {})).page !== r.p) { moved = true; break; } } catch {} }
+      if (!moved) return status(`Clicked "${n.clicked}" but Fiverr stayed on the ${r.p} page. A required field is probably missing. Check the page.`);
+      await sleep(1500);
+    }
+    status(S.stop ? "Stopped." : "Auto-continue finished. Check the page before going on.", true);
   } catch (e) { status(e.message); }
+  finally { $("stopAuto").hidden = true; $("fillThis").disabled = false; }
 };
+$("stopAuto").onclick = () => { S.stop = true; status("Stopping after the current step…"); };
