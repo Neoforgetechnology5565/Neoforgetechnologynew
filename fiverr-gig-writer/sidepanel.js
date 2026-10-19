@@ -116,7 +116,13 @@ $("genPricing").onclick = async function () {
 $("fillPricing").onclick = async function () {
   try {
     const o = S.pricing[chosen("price")];
-    const pk = [o.basic, o.standard, o.premium];
+    let pk = [o.basic, o.standard, o.premium].map(p => ({ ...p }));
+    const adj = [], min = (await page("MIN_PRICE", {})).min;          // Fiverr shows a minimum package price
+    if (min) pk.forEach((p, i) => {
+      const was = Number(p.price); let np = Math.max(was, min);
+      if (i && np <= pk[i - 1].price) np = Math.round(pk[i - 1].price * 2.5 / 10) * 10;
+      if (np !== was) adj.push(`${["Basic", "Standard", "Premium"][i]} $${was} → $${np}`); p.price = np;
+    });
     const r = await page("FILL_PRICING", { packages: pk });
     status(`Filled: ${r.filled.join(", ") || "nothing found"}. Now ticking features…`, !!r.filled.length);
     const g = await page("PRICING_ROWS", {});
@@ -126,8 +132,7 @@ $("fillPricing").onclick = async function () {
       const apply = m.result.rows.map(x => ({ ...g.rows[x.index], values: x.values })).filter(x => x.ids);
       const a = await page("PRICING_APPLY", { rows: apply });
       status(`Filled pricing and ${g.rows.length} feature rows (${a.count} changes). Check everything, then click Next on Fiverr.`, true);
-      const mp = (await page("MIN_PRICE", {})).min;
-      if (mp && pk.some(p => Number(p.price) < mp)) status(`Fiverr requires package prices of at least $${mp}, but one of yours is lower (${pk.map(p => "$" + p.price).join(" / ")}). Raise it on the page or in your paste, then fill again.`);
+      if (adj.length) status(`Filled pricing and features. Raised prices to Fiverr's $${min} minimum: ${adj.join(", ")}. Check everything.`, true);
     } else status("Pricing filled, but I couldn't find the feature tick boxes. Tick them by hand, or click Scan page and send me the result.", true);
   } catch (e) { status(e.message); }
 };
@@ -191,7 +196,7 @@ $("scan").onclick = async () => {
 // ---- 0 paste from ChatGPT
 $("parsePaste").onclick = async function () {
   const text = $("paste").value.trim();
-  if (!text) return status("Paste your ChatGPT text first.");
+  if (!text) return status("Paste your notes or gig text first.");
   const g = await ai("parsePaste", { text }, this);
   S.faq = g.faq || []; S.hints = g.categoryHints || "";
   const set = (id, v) => { $(id).value = v; $(id).dispatchEvent(new Event("input")); };
@@ -217,7 +222,10 @@ $("parsePaste").onclick = async function () {
     `Description: ${(g.description || "").length} chars`, `FAQs: ${S.faq.length}`, `Requirements: ${(g.requirements || []).length}`,
     warn.length ? "⚠ " + warn.join("; ") : ""].filter(Boolean).join("\n");
   $("fillThis").disabled = false;
-  status("Read your paste. Open a Fiverr gig page and click Fill this Fiverr page.", true);
+  S.noteText = (g.notes || []).join("; ");
+  if (S.noteText) $("pasteSummary").textContent += "\nFixed for Fiverr: " + S.noteText;
+  status("Gig written." + ($("auto").checked ? " Filling the current Fiverr page…" : " Open a Fiverr gig page and click Fill this Fiverr page."), true);
+  if ($("auto").checked) { try { await page("DETECT", {}); $("fillThis").onclick(); } catch { status("Gig written. Open your Fiverr gig page, then click Fill this Fiverr page again."); } }
 };
 
 const FILL = { overview: "fillOverview", pricing: "fillPricing", description: "fillDesc", requirements: "fillReq" };

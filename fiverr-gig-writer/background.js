@@ -73,29 +73,47 @@ Rules: only tick a feature that the seller's scope, the package description and 
 Shape: {"rows":[{"index":0,"values":[false,true,true]}]}`,
       `Gig: ${title}\nScope: ${scope}\nPackages:\n${packages.map((p, i) => `${i + 1}. ${p.name} ($${p.price}, ${p.days} days, ${p.revisions ?? "?"} revisions): ${p.description}. Includes: ${(p.includes || []).join("; ") || "n/a"}`).join("\n")}\nRows:\n${rows.map((r, i) => `${i}. [${r.kind}] ${r.label}${r.options ? " options: " + r.options.join(" | ") : ""}`).join("\n")}`, 2500);
   },
-  // Turn pasted ChatGPT text into structured gig data (copy faithfully, never invent)
+  // "Write gig": turns ANY pasted text (rough notes or a finished document) into a Fiverr-standard gig
   async parsePaste({ text }) {
     const clean = text.replace(/\\\r?\n/g, "\n").replace(/\\$/gm, "").slice(0, 30000);   // markdown line-break backslashes
-    const g = await claudeJSON(`You extract a Fiverr gig from text the seller pasted (usually a ChatGPT document with numbered sections). Copy the seller's own wording faithfully; do NOT invent or embellish. Leave a field empty ("" or []) if the text doesn't contain it. Ignore portfolio ideas, long keyword lists, checklists, recommendations and notes.
-- title: the gig title (starts with "I will"), max 80 chars.
-- categoryHints: the category / subcategory / service type / expertise / language / technologies / project type lines, as one short string.
-- tags: the 5 search tags; lowercase letters, numbers and spaces only, max 20 chars each.
-- scope: 1-3 sentences summarising what the seller delivers.
-- packages: exactly 3 (basic, standard, premium) if present: {name (the part after the dash in the heading, max 25 chars), description (the "Package description", max 100 chars), days (integer delivery days), price (integer USD), revisions (integer), includes (the bullet list items)}; otherwise [].
-- description: only the "copy-ready" gig description text. Plain text, keep paragraph breaks and bullets ("•" or "-"), remove markdown backslashes and any label like "Copy-ready description".
-- faq: [{question, answer}] without the "Q1." prefixes.
-- requirements: one string per buyer question. If a question lists answer options, fold them into the same string like "What should the AI detect? Options: A / B / C". Include a final "additional project details" question only if the text lists one. Each under 380 characters, no line breaks.
-- imagePrompt: the thumbnail / image prompt text if present.
+    const g = await claudeJSON(`You are a senior Fiverr gig writer. The seller pastes everything they have: it may be rough notes, a few lines, or a finished ChatGPT document. Produce ONE complete, well-structured gig that meets Fiverr's standards.
+
+Rules:
+- Use the seller's facts and wording where they exist. If something is missing, write it sensibly in Fiverr style. NEVER invent credentials, years of experience, clients, results, awards, certifications or reviews.
+- Ignore portfolio ideas, long keyword lists, checklists and notes to self in the paste.
+- title: starts with "I will", max 80 chars, main keyword early, natural wording, no emojis, no hype.
+- tags: exactly 5, lowercase letters/numbers/spaces only, max 20 chars each, buyer-search terms.
+- scope: 1-3 sentences on exactly what the seller delivers.
+- categoryHints: short string naming the best Fiverr category, subcategory, service type, expertise, languages and technologies (use the seller's table if present).
+- description: max 1200 characters, plain text, short paragraphs, "•" bullets. Hook for the buyer, what's included, who it's for, why choose the seller, then invite buyers to message before ordering. NO emails, phone numbers, links, or WhatsApp/Telegram/Skype mentions, no prices, no guarantees.
+- packages: exactly 3 (basic, standard, premium), each {name max 25 chars, description max 100 chars, days integer, price integer USD, revisions integer, includes [short bullets]}. Use the seller's packages/prices if given, otherwise propose realistic ones. Scope and price must rise from basic to premium.
+- faq: 4-5 items {question max 100 chars, answer max 300 chars}.
+- requirements: 4-5 buyer questions, each under 380 chars, no line breaks; if a question has answer options, fold them in: "Question? Options: A / B / C".
+- imagePrompt: a detailed text-to-image prompt for a 16:9 gig cover image (no text, logos or watermarks), unless the seller gave one, then use theirs.
 Shape: {"title":"","categoryHints":"","tags":[],"scope":"","packages":[{"name":"","description":"","days":0,"price":0,"revisions":0,"includes":[]}],"description":"","faq":[{"question":"","answer":""}],"requirements":[],"imagePrompt":""}`,
-      clean, 6000);
-    g.description = String(g.description || "").replace(/\\$/gm, "").trim();
+      clean, 7000);
+    const notes = [];
+    const cut = (s, n, what) => { s = String(s || "").trim(); if (s.length <= n) return s; notes.push(`${what} shortened to ${n} characters`); return s.slice(0, n).replace(/\s+\S*$/, ""); };
+    const strip = t => String(t || "").replace(/https?:\/\/\S+|www\.\S+/gi, "").replace(/[\w.+-]+@[\w-]+\.[\w.]+/g, "").replace(/\+?\d[\d\s().-]{8,}\d/g, "").replace(/^.*\b(whatsapp|telegram|skype|discord|wechat)\b.*$/gim, "");
+    g.title = cut(String(g.title || "").replace(/^\s*(i will\s+)+/i, "I will "), 80, "Title");
+    g.tags = [...new Set((g.tags || []).map(t => String(t).toLowerCase().replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim().slice(0, 20).trim()).filter(Boolean))].slice(0, 5);
+    g.packages = (g.packages || []).slice(0, 3).map(p => ({ ...p, name: cut(p.name, 25, "Package name"), description: cut(p.description, 100, "Package description"),
+      days: Math.max(1, parseInt(p.days) || 1), price: Math.max(5, parseInt(String(p.price).replace(/[^\d]/g, "")) || 5), revisions: parseInt(p.revisions) || 1 }));
+    if (g.packages.length === 3) g.packages.forEach((p, i) => { if (i && p.price <= g.packages[i - 1].price) { p.price = Math.round(g.packages[i - 1].price * 2.5 / 10) * 10; notes.push("Prices adjusted so they rise from Basic to Premium"); } });
+    g.faq = (g.faq || []).slice(0, 8).map(f => ({ question: cut(f.question, 100, "FAQ question"), answer: cut(f.answer, 300, "FAQ answer") }));
+    g.requirements = (g.requirements || []).map(r => cut(String(r).replace(/\s*\n\s*/g, " "), 380, "A requirement question"));
+    const before = String(g.description || "").replace(/\\$/gm, "").trim();
+    g.description = strip(before).replace(/\n{3,}/g, "\n\n").trim();
+    if (g.description !== before) notes.push("Removed contact details/links from the description (Fiverr doesn't allow them)");
     if (g.description.length > 1200) {                       // Fiverr rejects > 1200 characters
-      g.descriptionOriginalLength = g.description.length;
-      const s = await claudeJSON(`Shorten this Fiverr gig description to at most 1100 characters. Keep the opening hook, the bullet list (merge or trim bullets if needed), the contact-me-before-ordering line and the closing line. Keep the seller's wording and tone; do not add claims.
+      const orig = g.description.length;
+      const s = await claudeJSON(`Shorten this Fiverr gig description to at most 1100 characters. Keep the opening hook, the bullet list (merge or trim bullets if needed), the contact-me-before-ordering line and the closing line. Keep the seller's wording; do not add claims.
 Shape: {"description":""}`, g.description, 2500);
       g.description = String(s.description || g.description).trim();
       if (g.description.length > 1200) g.description = g.description.slice(0, 1200).replace(/\s+\S*$/, "");
+      notes.push(`Description was ${orig} characters, shortened to ${g.description.length} (Fiverr max 1200)`);
     }
+    g.notes = notes;
     return g;
   },
   async pick({ label, options, title, keywords, context }) {

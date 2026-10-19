@@ -38,12 +38,12 @@ button:disabled{opacity:.5;cursor:not-allowed}
 </nav>
 
 <div id="s0" class="step">
-  <label>Paste your gig text from ChatGPT (title, tags, packages, description, requirements…)</label>
-  <textarea id="paste" rows="12" placeholder="Paste everything here. I'll read it and fill each Fiverr page from it."></textarea>
-  <button id="parsePaste">Read my paste</button>
+  <label>Paste everything you have: rough notes, a ChatGPT document, anything</label>
+  <textarea id="paste" rows="12" placeholder="e.g. I build AI video analysis and event detection with Python and YOLO. Packages around $90 / $250 / $600. Buyers are businesses with CCTV or sports footage…"></textarea>
+  <button id="parsePaste">Write gig</button>
   <div id="pasteSummary" class="summary"></div>
-  <label style="font-weight:400"><input type="checkbox" id="auto" style="width:auto"> Auto-continue: fill, click Save &amp; Continue, and repeat on the next pages</label>
-  <button id="fillThis" disabled>Fill this Fiverr page</button>
+  <label style="font-weight:400"><input type="checkbox" id="auto" style="width:auto" checked> Auto-fill and continue: after writing, fill this page, click Save &amp; Continue, and repeat (never Publish)</label>
+  <button id="fillThis" disabled>Fill this Fiverr page again</button>
   <button id="stopAuto" class="secondary" hidden>Stop</button>
   <p class="hint">Open a Fiverr gig page (Overview, Pricing, Description or Requirements), click above, check it, then click Fiverr's Next and repeat. Categories and options are picked automatically from your gig.</p>
 </div>
