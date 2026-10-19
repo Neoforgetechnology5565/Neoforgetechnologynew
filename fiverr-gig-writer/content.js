@@ -274,7 +274,7 @@ const handlers = {
 
   async FILL_FAQ({ items }) {
     let count = 0;
-    const boxes = () => all("textarea,input[type=text]").filter(e => !e.value && !/search/i.test(hint(e)));
+    const boxes = () => all("textarea,input:not([type]),input[type=text]").filter(e => !e.value && !/search/i.test(hint(e)));
     for (const f of items) {
       let b = boxes().filter(e => /question|answer|faq/.test(hint(e)));
       if (b.length < 2) {
@@ -296,7 +296,7 @@ const handlers = {
 
   async FILL_REQUIREMENTS({ items }) {
     let count = 0;
-    const emptyBox = () => all("textarea,input[type=text]").find(e => !e.value && !/search/i.test(hint(e)));
+    const emptyBox = () => all("textarea,input:not([type]),input[type=text]").find(e => !e.value && !/search/i.test(hint(e)));
     for (const q of items) {
       let box = emptyBox();
       if (!box) {
