@@ -173,7 +173,7 @@ export const inquirySchema = z.object({
 
 export const chatStartSchema = z.object({
   name: z.string().min(1).max(100).transform(stripTags),
-  email: z.string().email().max(200).or(z.literal("")).default(""),
+  email: z.string().trim().email().max(200),
   message: z.string().min(1).max(2000).transform(stripTags),
 });
 export const chatMessageSchema = z.object({

@@ -123,7 +123,7 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
       <form onSubmit={start} className={`flex flex-col gap-3 overflow-y-auto bg-stone-50 p-4 ${className}`}>
         <p className="text-sm text-stone-600">{greeting}</p>
         <input name="name" required maxLength={100} placeholder="Your name" aria-label="Your name" className={input} />
-        <input name="email" type="email" placeholder="Email (so we can follow up)" aria-label="Email" className={input} />
+        <input name="email" type="email" required maxLength={200} placeholder="Your email (we'll send our replies here)" aria-label="Your email" className={input} />
         <textarea name="message" required maxLength={2000} rows={4} placeholder="How can we help?" aria-label="Message" className={`${input} flex-1`} />
         {error && <p role="alert" className="text-xs text-red-600">{error}</p>}
         <p className="text-[11px] text-stone-500">By starting a chat you agree to our <Link href="/privacy" className="underline">Privacy Policy</Link>.</p>
@@ -141,8 +141,8 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
               {m.text && <p className="whitespace-pre-wrap break-words">{m.from === "visitor" ? m.text : <Rich text={m.text} />}</p>}
               {m.options && !msgs.some((x) => x.from === "visitor" && x.createdAt > m.createdAt) && (
                 <div className="mt-2 flex flex-col gap-2">
-                  <button type="button" onClick={() => choose("ai")} className="rounded-full bg-blue-600 px-4 py-2 text-left text-sm font-bold text-white hover:bg-blue-700">Continue with AI support</button>
-                  <button type="button" onClick={() => choose("developer")} className="rounded-full border border-blue-600 px-4 py-2 text-left text-sm font-bold text-blue-700 hover:bg-blue-50">Talk to the Developer</button>
+                  <button type="button" onClick={() => choose("ai")} className="rounded-full bg-blue-600 px-4 py-2 text-left text-sm font-bold text-white hover:bg-blue-700">A. Continue with AI for my enquiry</button>
+                  <button type="button" onClick={() => choose("developer")} className="rounded-full border border-blue-600 px-4 py-2 text-left text-sm font-bold text-blue-700 hover:bg-blue-50">B. Talk to the Developer</button>
                 </div>
               )}
               {m.file && <a href={m.file.url} target="_blank" rel="noopener noreferrer" className="underline">📎 {m.file.name || "attachment"}</a>}

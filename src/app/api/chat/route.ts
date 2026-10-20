@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { errorResponse } from "@/lib/auth";
-import { autoReplyInChat, chatAutoReplyActive } from "@/lib/auto-reply";
+import { chatAutoReplyActive, emailChatConfirmation, greetChat } from "@/lib/auto-reply";
 import { C, getContactSettings } from "@/lib/db";
 import { adminDb } from "@/lib/firebase-admin";
 import { notifyChat } from "@/lib/mail";
@@ -28,8 +28,9 @@ export async function POST(req: NextRequest) {
     const ai = (await chatAutoReplyActive()) && rateLimit(`aireply:${clientIp(req)}`, 40, 60 * 60_000);
     after(async () => {
       await notifyChat({ name: data.name, email: data.email, text: data.message, isNew: true });
+      await emailChatConfirmation(ref.id); // confirmation to the address the visitor entered
     });
-    if (ai) after(() => autoReplyInChat(ref.id, { first: true }));
+    if (ai) after(() => greetChat(ref.id));
     return NextResponse.json({ id: ref.id, token, ai });
   } catch (e) {
     return errorResponse(e);

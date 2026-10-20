@@ -4,7 +4,7 @@ import { chatReply, CHAT_FALLBACK, inquiryReply, type ChatTurn } from "./ai-repl
 import { C, getContactSettings } from "./db";
 import { notifyChatVisitor } from "./notify-visitor";
 import { adminDb } from "./firebase-admin";
-import { mailConfigured, recipient, sendMail } from "./mail";
+import { emailVisitor, mailConfigured, recipient, sendMail } from "./mail";
 import { siteUrl } from "./utils";
 
 const MAX_AI_REPLIES_PER_CHAT = 8;
@@ -15,7 +15,12 @@ export async function chatAutoReplyActive(): Promise<boolean> {
   return (await getContactSettings()).aiChatReply;
 }
 
-export const OPTIONS_TEXT = "How would you like to continue?\n\n**Continue with AI support** – keep asking me questions about your enquiry\n**Talk to the Developer** – we'll notify the developer to reply to you personally";
+export const OPTIONS_TEXT = (first: string) => `Hi ${first}, welcome to Neo Forge Technology! Thanks for your message. How would you like to continue?
+
+**A. Continue with AI for your enquiry** – ask me anything about your project
+**B. Talk to the Developer** – we'll notify the developer to reply to you personally
+
+Tap A or B (or type the letter).`;
 
 /** Posts one or two messages to a chat (the second always lands after the first). */
 async function post(ref: FirebaseFirestore.DocumentReference, msgs: { from: "ai" | "auto"; text: string; options?: string[] }[]) {
@@ -25,42 +30,80 @@ async function post(ref: FirebaseFirestore.DocumentReference, msgs: { from: "ai"
 }
 
 /**
- * Automatic replies in live chat. On the first message the visitor gets a welcome + an answer, then two choices
- * (continue with AI support, or talk to the Developer). Afterwards the AI answers each message until they ask for the
- * Developer or you reply yourself. Never throws.
+ * Live chat, step 1: right after the visitor's first message they get a welcome and two choices (A: continue with AI for
+ * the enquiry, B: talk to the Developer). Without an AI key they just get a fixed acknowledgement. Never throws.
  */
-export async function autoReplyInChat(chatId: string, opts: { first: boolean }): Promise<void> {
+export async function greetChat(chatId: string): Promise<void> {
+  try {
+    if (!(await getContactSettings()).aiChatReply) return;
+    const ref = adminDb().collection(C.chats).doc(chatId);
+    const chat = (await ref.get()).data();
+    if (!chat || chat.humanTakeover || chat.mode) return;
+    const name = String(chat.name || "");
+    if (aiConfigured()) {
+      await post(ref, [{ from: "ai", text: OPTIONS_TEXT(name.split(" ")[0] || "there"), options: ["ai", "developer"] }]);
+      await ref.update({ optionsPending: true });
+    } else {
+      await post(ref, [{ from: "auto", text: CHAT_FALLBACK(name) }]);
+    }
+  } catch (e) {
+    console.error("[auto-reply:greet]", (e as Error).message?.slice(0, 160));
+  }
+}
+
+/**
+ * Live chat, step 2: the AI answers a visitor message (the first one right after they pick A). It stops when the visitor
+ * picks B, when you reply yourself, or after a few replies. Never throws.
+ */
+export async function autoReplyInChat(chatId: string, opts: { afterChoice?: boolean } = {}): Promise<void> {
   try {
     const settings = await getContactSettings();
-    if (!settings.aiChatReply) return;
+    if (!settings.aiChatReply || !aiConfigured()) return;
     const ref = adminDb().collection(C.chats).doc(chatId);
     const chat = (await ref.get()).data();
     if (!chat || chat.humanTakeover || chat.mode === "human") return;
     const used = Number(chat.aiCount || 0);
     if (used >= MAX_AI_REPLIES_PER_CHAT) return;
     const name = String(chat.name || "");
-    const first = name.split(" ")[0] || "there";
 
     const snap = await ref.collection("messages").orderBy("createdAt", "desc").limit(12).get();
     const history: ChatTurn[] = snap.docs.map((d) => d.data() as ChatTurn).reverse();
-    const ai = aiConfigured() ? await chatReply(history, name) : null;
+    const hint = opts.afterChoice ? "The visitor just chose to continue with AI support. Answer the question or request in their first message, and ask one useful follow-up question." : "";
+    let text = await chatReply(history, name, hint);
+    if (!text && opts.afterChoice) text = "Great, I'm happy to help. Tell me a bit more about what you'd like to build or automate, and which software or systems are involved.";
+    if (!text) return;
     const fresh = (await ref.get()).data();
-    if (fresh?.humanTakeover || fresh?.mode === "human") return; // a person (or the visitor's choice) took over while the AI was thinking
-
-    if (opts.first) {
-      const welcome = ai ? `Hi ${first}, welcome to Neo Forge Technology! ${ai}` : CHAT_FALLBACK(name);
-      const msgs: { from: "ai" | "auto"; text: string; options?: string[] }[] = [{ from: ai ? "ai" : "auto", text: welcome }];
-      if (aiConfigured()) msgs.push({ from: "ai", text: OPTIONS_TEXT, options: ["ai", "developer"] });
-      await post(ref, msgs);
-      await ref.update({ aiCount: used + (ai ? 1 : 0) });
-      await notifyChatVisitor(chatId, welcome, { email: false, from: "ai" });
-    } else if (ai) {
-      await post(ref, [{ from: "ai", text: ai }]);
-      await ref.update({ aiCount: used + 1 });
-      await notifyChatVisitor(chatId, ai, { email: false, from: "ai" });
-    }
+    if (fresh?.humanTakeover || fresh?.mode === "human") return; // the visitor asked for the Developer, or you replied, while the AI was thinking
+    await post(ref, [{ from: "ai", text }]);
+    await ref.update({ aiCount: used + 1 });
+    await notifyChatVisitor(chatId, text, { email: false, from: "ai" });
   } catch (e) {
     console.error("[auto-reply:chat]", (e as Error).message?.slice(0, 160));
+  }
+}
+
+/** Emails the visitor a confirmation of the chat message they just sent (to the address they entered). One per address per day. Never throws. */
+export async function emailChatConfirmation(chatId: string): Promise<void> {
+  try {
+    const settings = await getContactSettings();
+    if (!settings.aiEmailReply || !mailConfigured()) return;
+    const db = adminDb();
+    const ref = db.collection(C.chats).doc(chatId);
+    const chat = (await ref.get()).data();
+    if (!chat?.email) return;
+    const dayAgo = Date.now() - 24 * 3600_000;
+    const prior = await db.collection(C.chats).where("email", "==", chat.email).limit(10).get();
+    if (prior.docs.some((d) => d.id !== chatId && Number(d.data().ackAt || 0) > dayAgo)) return;
+    const first = await ref.collection("messages").where("from", "==", "visitor").orderBy("createdAt").limit(1).get();
+    const r = await emailVisitor({
+      to: String(chat.email), subject: "We received your chat message — Neo Forge Technology",
+      heading: `Hi ${String(chat.name || "").split(" ")[0] || "there"}, we received your message`,
+      body: `Your message:\n${String(first.docs[0]?.data().text || "").slice(0, 1500)}\n\nA member of our team will read it and reply. We'll send our replies to this email address, and you can continue the conversation in the chat.`,
+      cta: { href: `${siteUrl()}/live-chat`, label: "Continue the conversation" },
+    });
+    if (r.ok) await ref.update({ ackAt: Date.now() });
+  } catch (e) {
+    console.error("[auto-reply:chat-email]", (e as Error).message?.slice(0, 160));
   }
 }
 

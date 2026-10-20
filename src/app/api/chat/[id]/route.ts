@@ -3,6 +3,7 @@ import { after, NextResponse, type NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { errorResponse, HttpError } from "@/lib/auth";
 import { autoReplyInChat, chatAutoReplyActive } from "@/lib/auto-reply";
+import { applyChoice, parseChoice } from "@/lib/chat-choice";
 import { C } from "@/lib/db";
 import { adminDb } from "@/lib/firebase-admin";
 import { notifyChat } from "@/lib/mail";
@@ -49,8 +50,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const notify = now - ((chat.lastNotifiedAt as number) || 0) > 10 * 60_000;
     await ref.update({ updatedAt: now, lastMessage: (data.text || "📎 attachment").slice(0, 120), unreadAdmin: FieldValue.increment(1), ...(notify ? { lastNotifiedAt: now } : {}) });
     if (notify) after(() => notifyChat({ name: String(chat.name || "Visitor"), email: String(chat.email || ""), text: data.text || "📎 sent an attachment", isNew: false }));
+    // typing "A" or "B" while the choices are showing counts as tapping the button
+    const typed = chat.optionsPending && !chat.mode ? parseChoice(data.text) : null;
+    if (typed) {
+      const { followUp } = await applyChoice(id, typed, { echo: false });
+      after(followUp);
+      return NextResponse.json({ id: msg.id, createdAt: now, ai: typed === "ai" });
+    }
+    if (chat.optionsPending) await ref.update({ optionsPending: false }); // they typed something else: the AI just carries on
     const ai = !chat.humanTakeover && data.text.trim().length > 0 && (await chatAutoReplyActive()) && rateLimit(`aireply:${clientIp(req)}`, 40, 60 * 60_000);
-    if (ai) after(() => autoReplyInChat(id, { first: false }));
+    if (ai) after(() => autoReplyInChat(id));
     return NextResponse.json({ id: msg.id, createdAt: now, ai });
   } catch (e) {
     return errorResponse(e);
