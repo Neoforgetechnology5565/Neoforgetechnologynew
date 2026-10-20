@@ -16,7 +16,11 @@ async function callGemini(model, geminiKey, system, user, maxTokens) {
   });
 }
 const sleepMs = ms => new Promise(r => setTimeout(r, ms));
-const TEMP = new Set([429, 500, 502, 503, 504]);
+const TEMP = new Set([0, 429, 500, 502, 503, 504]);       // 0 = could not connect at all
+async function callGeminiSafe(...args) {                    // a network failure becomes a pseudo-response instead of throwing
+  try { return await callGemini(...args); }
+  catch (e) { return { ok: false, status: 0, text: async () => String(e?.message || e) }; }
+}
 
 async function fallbackModels(geminiKey, current) {
   try {
@@ -36,13 +40,14 @@ async function claudeJSON(system, user, maxTokens = 2000) {
   let res, tried = [primary], models = [primary];
   for (let m = 0; m < models.length; m++) {
     for (let attempt = 0; attempt < 3; attempt++) {
-      res = await callGemini(models[m], geminiKey, system, user, maxTokens);
+      res = await callGeminiSafe(models[m], geminiKey, system, user, maxTokens);
       if (res.ok || !TEMP.has(res.status)) break;
       await sleepMs(2000 * 2 ** attempt);               // 2s, 4s, 8s
     }
-    if (res.ok || !TEMP.has(res.status)) break;
+    if (res.ok || !TEMP.has(res.status) || res.status === 0) break;      // no point trying other models if we cannot connect
     if (m === 0) { models.push(...await fallbackModels(geminiKey, primary)); tried = models; }
   }
+  if (!res.ok && res.status === 0) throw new Error(`Can't reach Google's Gemini service (${(await res.text()).slice(0, 80)}). Check your internet connection, and any VPN, firewall, antivirus or ad-blocker that might block generativelanguage.googleapis.com, then try again.`);
   if (!res.ok) throw new Error(`Gemini is busy or unavailable (${res.status}) after trying ${tried.join(", ")}. Wait a minute and try again. ${(await res.text()).slice(0, 150)}`);
   const data = await res.json();
   const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
