@@ -2,6 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
 import { errorResponse, HttpError } from "@/lib/auth";
+import { autoReplyInChat, chatAutoReplyActive } from "@/lib/auto-reply";
 import { C } from "@/lib/db";
 import { adminDb } from "@/lib/firebase-admin";
 import { notifyChat } from "@/lib/mail";
@@ -48,7 +49,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const notify = now - ((chat.lastNotifiedAt as number) || 0) > 10 * 60_000;
     await ref.update({ updatedAt: now, lastMessage: (data.text || "📎 attachment").slice(0, 120), unreadAdmin: FieldValue.increment(1), ...(notify ? { lastNotifiedAt: now } : {}) });
     if (notify) after(() => notifyChat({ name: String(chat.name || "Visitor"), email: String(chat.email || ""), text: data.text || "📎 sent an attachment", isNew: false }));
-    return NextResponse.json({ id: msg.id, createdAt: now });
+    const ai = !chat.humanTakeover && data.text.trim().length > 0 && (await chatAutoReplyActive()) && rateLimit(`aireply:${clientIp(req)}`, 40, 60 * 60_000);
+    if (ai) after(() => autoReplyInChat(id, { first: false }));
+    return NextResponse.json({ id: msg.id, createdAt: now, ai });
   } catch (e) {
     return errorResponse(e);
   }

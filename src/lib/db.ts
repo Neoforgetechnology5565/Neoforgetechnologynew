@@ -19,6 +19,7 @@ export const C = {
   content: "content",
   inquiries: "inquiries",
   chats: "chats",
+  presence: "presence",
   meta: "meta",
   daily: "analytics_daily",
   visitors: "analytics_visitors",

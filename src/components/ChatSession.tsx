@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MediaRef } from "@/lib/types";
 import { uploadToCloudinary } from "@/lib/upload";
 
-interface Msg { id: string; from: "visitor" | "admin"; text: string; file: MediaRef | null; createdAt: number }
-interface Conv { id: string; token: string }
+interface Msg { id: string; from: "visitor" | "admin" | "ai" | "auto"; text: string; file: MediaRef | null; createdAt: number }
+interface Conv { id: string; token: string; ai?: boolean }
 const KEY = "nf_chat";
 
 /**
@@ -18,6 +18,8 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
   const [text, setText] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [typing, setTyping] = useState(false);
+  const typingUntil = useRef(0);
   const last = useRef(0);
   const list = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -36,7 +38,8 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
       if (messages.length) {
         last.current = messages[messages.length - 1].createdAt;
         setMsgs((m) => [...m, ...messages.filter((x) => !m.some((y) => y.id === x.id))]);
-        if (!activeRef.current) onUnread?.(messages.filter((x) => x.from === "admin").length);
+        if (messages.some((x) => x.from !== "visitor")) { typingUntil.current = 0; setTyping(false); }
+        if (!activeRef.current) onUnread?.(messages.filter((x) => x.from !== "visitor").length);
       }
     } catch { /* offline: retry next tick */ }
   }, [conv, onUnread]);
@@ -47,7 +50,9 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
     const t = setInterval(() => !document.hidden && poll(), active ? 4000 : 20000);
     return () => clearInterval(t);
   }, [conv, active, poll]);
-  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [msgs, active]);
+  useEffect(() => { list.current?.scrollTo({ top: list.current.scrollHeight }); }, [msgs, active, typing]);
+  // "typing…" while the AI assistant is writing (it normally answers within a few seconds)
+  const expectReply = () => { typingUntil.current = Date.now() + 30_000; setTyping(true); setTimeout(() => { if (Date.now() >= typingUntil.current) setTyping(false); }, 30_500); };
 
   async function start(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -59,6 +64,7 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
     const c = (await r.json()) as Conv;
     localStorage.setItem(KEY, JSON.stringify(c));
     last.current = 0; setMsgs([]); setConv(c);
+    if (c.ai) expectReply();
   }
 
   async function send(payload: { text?: string; file?: MediaRef }) {
@@ -66,6 +72,7 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
     setError("");
     const r = await fetch(`/api/chat/${conv.id}`, { method: "POST", headers: { "Content-Type": "application/json", "x-chat-token": conv.token }, body: JSON.stringify({ text: payload.text ?? "", file: payload.file ?? null }) });
     if (!r.ok) { setError((await r.json().catch(() => ({}))).error || "Message failed to send."); return; }
+    if (payload.text && (await r.json().catch(() => ({}))).ai) expectReply();
     poll();
   }
 
@@ -97,12 +104,15 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
         {msgs.map((m) => (
           <div key={m.id} className={`flex ${m.from === "visitor" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${m.from === "visitor" ? "rounded-br-sm bg-blue-600 text-white" : "rounded-bl-sm border border-stone-200 bg-white text-stone-800"}`}>
+              {(m.from === "ai" || m.from === "auto") && <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">{m.from === "ai" ? "AI assistant" : "Automatic reply"}</p>}
               {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
               {m.file && <a href={m.file.url} target="_blank" rel="noopener noreferrer" className="underline">📎 {m.file.name || "attachment"}</a>}
             </div>
           </div>
         ))}
+        {typing && <p className="text-xs text-stone-500" role="status">AI assistant is typing…</p>}
       </div>
+      {conv.ai && <p className="border-t border-stone-200 bg-white px-4 pt-2 text-[11px] text-stone-500">Replies may come from an AI assistant first. A team member will follow up.</p>}
       {error && <p role="alert" className="bg-white px-4 pt-2 text-xs text-red-600">{error}</p>}
       <form onSubmit={(e) => { e.preventDefault(); const t = text.trim(); if (t) { setText(""); send({ text: t }); } }} className="flex items-center gap-2 border-t border-stone-200 bg-white p-3">
         <button type="button" onClick={() => fileInput.current?.click()} disabled={busy} aria-label="Attach image or PDF" className="px-2 text-stone-500 hover:text-blue-600">📎</button>

@@ -133,6 +133,10 @@ export interface ContactSettings {
   youtube: string;
   chatEnabled: boolean;
   chatGreeting: string;
+  /** Answer live-chat messages automatically with an AI assistant (needs ANTHROPIC_API_KEY) */
+  aiChatReply: boolean;
+  /** Email an automatic acknowledgement to people who send the contact form (needs SMTP) */
+  aiEmailReply: boolean;
 }
 
 export interface Branding {
@@ -159,4 +163,6 @@ export interface Inquiry {
   files: MediaRef[];
   status: "unread" | "read";
   createdAt: number;
+  /** Set when an automatic acknowledgement email was sent to the visitor */
+  autoReply?: { at: number; ai: boolean };
 }

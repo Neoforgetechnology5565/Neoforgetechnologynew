@@ -15,6 +15,12 @@ const RULES = `You write for the Neo Forge Technology blog. Audience: engineers,
 Hard rules: never invent statistics, percentages, client names, quotes, case studies, awards or product claims. Speak in general, accurate terms; say "typically" or "often" where unsure. Use plain, specific language, no hype, no filler. Markdown only (## and ### headings, paragraphs, - and 1. lists, **bold**); no raw HTML, no H1, no images, no links.
 ${COMPANY}`;
 
+/** Shared Anthropic client (also used for chat and enquiry auto-replies). */
+export function anthropicClient(timeoutMs = 55_000) {
+  if (!aiConfigured()) throw new HttpError(503, "AI is not set up (ANTHROPIC_API_KEY missing).");
+  return new Anthropic({ apiKey: apiKey(), timeout: timeoutMs, maxRetries: 1 });
+}
+
 function client() {
   if (!aiConfigured()) throw new HttpError(503, "AI writing isn't set up yet. Add ANTHROPIC_API_KEY in Vercel → Settings → Environment Variables, then redeploy.");
   return new Anthropic({ apiKey: apiKey(), timeout: 55_000, maxRetries: 1 });

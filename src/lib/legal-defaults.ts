@@ -6,6 +6,8 @@ export const PRIVACY_TEMPLATE = `This policy explains what personal information 
 - **Contact form:** your name, email address, company, project type, budget, timeline, message and any files you attach.
 - **Live chat:** your name, email address (optional) and the messages you send.
 - **Visitor statistics (only if you accept):** a random visitor ID stored in your browser, the pages you view and your country. We do not store your IP address or browser details, and we do not use advertising or tracking cookies.
+- **Online-now counter:** an anonymous heartbeat (a random ID that exists only while the page is open and is never stored on your device, the page you are on and your country) so we can see how many people are on the site. We do not store your IP address.
+- **Automatic replies:** messages you send through live chat or the contact form may be answered automatically by an AI service. We send the text of your message to that provider (Anthropic) only to write the reply. A member of our team follows up personally.
 - **Admin sign-in:** only for our own staff.
 
 ## Why we use it
@@ -18,7 +20,7 @@ We do not sell your information and we do not use it for automated decision-maki
 
 ## Who we share it with
 
-We use trusted service providers who process data for us: hosting and delivery (Vercel), database and sign-in (Google Firebase), file and image storage (Cloudinary), and email (Zoho Mail). Some of them are based outside the UK and EEA; where that happens we rely on appropriate safeguards such as standard contractual clauses.
+We use trusted service providers who process data for us: hosting and delivery (Vercel), database and sign-in (Google Firebase), file and image storage (Cloudinary), and email (Zoho Mail), and AI replies (Anthropic). Some of them are based outside the UK and EEA; where that happens we rely on appropriate safeguards such as standard contractual clauses.
 
 ## How long we keep it
 

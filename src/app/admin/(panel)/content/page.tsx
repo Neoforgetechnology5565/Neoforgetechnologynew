@@ -94,6 +94,8 @@ export default function Content() {
             </Field>
           ))}
           <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={contact.chatEnabled} onChange={(e) => setContact({ ...contact, chatEnabled: e.target.checked })} /> Enable live chat widget</label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={contact.aiChatReply} onChange={(e) => setContact({ ...contact, aiChatReply: e.target.checked })} /> AI assistant answers live chat messages automatically (stops as soon as you reply yourself; needs <code>ANTHROPIC_API_KEY</code>)</label>
+          <label className="flex items-center gap-2 text-sm sm:col-span-2"><input type="checkbox" checked={contact.aiEmailReply} onChange={(e) => setContact({ ...contact, aiEmailReply: e.target.checked })} /> Email an automatic acknowledgement to people who send the contact form (AI-written when a key is set; needs email set up)</label>
           <div className="sm:col-span-2"><Field label="Chat greeting"><input className="field" value={contact.chatGreeting} onChange={(e) => setContact({ ...contact, chatGreeting: e.target.value })} /></Field></div>
           <p className="text-xs text-paper/45 sm:col-span-2">If a WhatsApp number is set, a WhatsApp button appears next to the chat button (and is shown alone if live chat is disabled).</p>
           <div className="sm:col-span-2"><button className="btn-primary !py-2" onClick={() => put("contact", contact)}>Save contact settings</button></div>

@@ -43,6 +43,8 @@ export const CONTACT_DEFAULTS: ContactSettings = {
   youtube: "",
   chatEnabled: true,
   chatGreeting: "Hi — tell us what you're building and an engineer will reply here.",
+  aiChatReply: true,
+  aiEmailReply: true,
 };
 
 export const DEFAULT_FAQS = [

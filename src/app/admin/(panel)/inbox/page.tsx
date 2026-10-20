@@ -45,7 +45,7 @@ export default function Inbox() {
               <div className="flex gap-3 text-sm"><button className="hover:text-forge" onClick={() => setStatus(cur, cur.status === "read" ? "unread" : "read")}>Mark {cur.status === "read" ? "unread" : "read"}</button><button className="text-red-400" onClick={() => remove(cur)}>Delete</button></div>
             </div>
             <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-              {([["Company", cur.company], ["Project type", cur.projectType], ["Division", cur.division], ["Budget", cur.budget], ["Timeline", cur.timeline], ["Received", formatDateTime(cur.createdAt)], ["Status", cur.status]] as const).map(([k, v]) => v ? <div key={k}><dt className="label">{k}</dt><dd>{v}</dd></div> : null)}
+              {([["Company", cur.company], ["Project type", cur.projectType], ["Division", cur.division], ["Budget", cur.budget], ["Timeline", cur.timeline], ["Received", formatDateTime(cur.createdAt)], ["Auto-reply", cur.autoReply ? `Sent ${formatDateTime(cur.autoReply.at)}${cur.autoReply.ai ? " (AI-written)" : " (standard text)"}` : ""], ["Status", cur.status]] as const).map(([k, v]) => v ? <div key={k}><dt className="label">{k}</dt><dd>{v}</dd></div> : null)}
             </dl>
             <p className="label mt-6">Message</p>
             <p className="whitespace-pre-wrap text-sm text-paper/85">{cur.message}</p>

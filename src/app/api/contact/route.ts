@@ -1,5 +1,6 @@
 import { after, NextResponse, type NextRequest } from "next/server";
 import { errorResponse } from "@/lib/auth";
+import { autoReplyToInquiry } from "@/lib/auto-reply";
 import { C } from "@/lib/db";
 import { adminDb } from "@/lib/firebase-admin";
 import { notifyInquiry } from "@/lib/mail";
@@ -18,8 +19,11 @@ export async function POST(req: NextRequest) {
     const { website, ...data } = inquirySchema.parse(await req.json());
     if (website) return NextResponse.json({ ok: true }); // honeypot: silently accept
 
-    await adminDb().collection(C.inquiries).add({ ...data, status: "unread", createdAt: Date.now() });
-    after(() => notifyInquiry(data)); // email after the response is sent; never blocks or fails the visitor
+    const ref = await adminDb().collection(C.inquiries).add({ ...data, status: "unread", createdAt: Date.now() });
+    after(async () => { // emails go out after the response is sent; they never block or fail the visitor
+      await notifyInquiry(data);
+      await autoReplyToInquiry(ref.id, data);
+    });
     return NextResponse.json({ ok: true });
   } catch (e) {
     return errorResponse(e);

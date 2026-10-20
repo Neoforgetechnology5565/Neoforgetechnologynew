@@ -7,7 +7,7 @@ import { formatDateTime } from "@/lib/utils";
 import type { MediaRef } from "@/lib/types";
 
 interface Chat { id: string; name: string; email: string; updatedAt: number; lastMessage?: string; unreadAdmin?: number }
-interface Msg { id: string; from: "visitor" | "admin"; text: string; file: MediaRef | null; createdAt: number }
+interface Msg { id: string; from: "visitor" | "admin" | "ai" | "auto"; text: string; file: MediaRef | null; createdAt: number }
 
 export default function Chats() {
   const [chats, setChats] = useState<Chat[]>([]);
@@ -65,8 +65,9 @@ export default function Chats() {
             </header>
             <div ref={box} className="flex-1 space-y-2 overflow-y-auto p-4">
               {msgs.map((m) => (
-                <div key={m.id} className={`flex ${m.from === "admin" ? "justify-end" : ""}`}>
-                  <div className={`max-w-[80%] px-3 py-2 text-sm ${m.from === "admin" ? "bg-forge text-white" : "bg-ink-700"}`}>
+                <div key={m.id} className={`flex ${m.from === "admin" || m.from === "ai" || m.from === "auto" ? "justify-end" : ""}`}>
+                  <div className={`max-w-[80%] px-3 py-2 text-sm ${m.from === "admin" ? "bg-forge text-white" : m.from === "visitor" ? "bg-ink-700" : "border border-forge/40 bg-white"}`}>
+                    {(m.from === "ai" || m.from === "auto") && <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-forge">{m.from === "ai" ? "AI assistant (automatic)" : "Automatic reply"}</p>}
                     {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
                     {m.file && <a href={m.file.url} target="_blank" rel="noopener noreferrer" className="underline">📎 {m.file.name || "attachment"}</a>}
                     <p className="mt-1 text-[10px] opacity-60">{formatDateTime(m.createdAt)}</p>

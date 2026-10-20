@@ -141,6 +141,8 @@ export const contactSettingsSchema = z.object({
   youtube: httpUrl,
   chatEnabled: z.boolean(),
   chatGreeting: text(300),
+  aiChatReply: z.boolean().default(true),
+  aiEmailReply: z.boolean().default(true),
 });
 
 export const brandingSchema = z.object({

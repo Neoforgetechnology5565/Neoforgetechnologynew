@@ -19,7 +19,7 @@ export const POST = adminRoute<{ id: string }>(async (req, { params }) => {
   const ref = adminDb().collection(C.chats).doc(id);
   const now = Date.now();
   await ref.collection("messages").add({ from: "admin", text: data.text, file: data.file, createdAt: now });
-  await ref.update({ updatedAt: now, lastMessage: `You: ${data.text}`.slice(0, 120) });
+  await ref.update({ updatedAt: now, lastMessage: `You: ${data.text}`.slice(0, 120), humanTakeover: true }); // once a person replies, the AI stops
   return NextResponse.json({ ok: true });
 });
 
