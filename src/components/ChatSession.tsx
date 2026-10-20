@@ -2,9 +2,15 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { MediaRef } from "@/lib/types";
+import { enablePush, pushSupported } from "@/lib/push-client";
 import { uploadToCloudinary } from "@/lib/upload";
 
-interface Msg { id: string; from: "visitor" | "admin" | "ai" | "auto"; text: string; file: MediaRef | null; createdAt: number }
+interface Msg { id: string; from: "visitor" | "admin" | "ai" | "auto"; text: string; file: MediaRef | null; createdAt: number; options?: string[] }
+
+/** Renders **bold** text. Everything else stays plain text. */
+function Rich({ text }: { text: string }) {
+  return <>{text.split(/(\*\*[^*]+\*\*)/g).map((p, i) => (p.startsWith("**") && p.endsWith("**") ? <strong key={i}>{p.slice(2, -2)}</strong> : <span key={i}>{p}</span>))}</>;
+}
 interface Conv { id: string; token: string; ai?: boolean }
 const KEY = "nf_chat";
 
@@ -20,6 +26,7 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
   const [busy, setBusy] = useState(false);
   const [typing, setTyping] = useState(false);
   const typingUntil = useRef(0);
+  const [notify, setNotify] = useState<"idle" | "on" | "blocked">("idle");
   const last = useRef(0);
   const list = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
@@ -27,6 +34,11 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
   activeRef.current = active;
 
   useEffect(() => { try { const s = localStorage.getItem(KEY); if (s) setConv(JSON.parse(s)); } catch { /* ignore */ } }, []);
+  useEffect(() => {
+    const back = () => { if (!document.hidden) document.title = document.title.replace(/^\(1\) New reply · /, ""); };
+    document.addEventListener("visibilitychange", back);
+    return () => document.removeEventListener("visibilitychange", back);
+  }, []);
 
   const poll = useCallback(async () => {
     if (!conv) return;
@@ -38,7 +50,10 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
       if (messages.length) {
         last.current = messages[messages.length - 1].createdAt;
         setMsgs((m) => [...m, ...messages.filter((x) => !m.some((y) => y.id === x.id))]);
-        if (messages.some((x) => x.from !== "visitor")) { typingUntil.current = 0; setTyping(false); }
+        if (messages.some((x) => x.from !== "visitor")) {
+          typingUntil.current = 0; setTyping(false);
+          if (document.hidden && !document.title.startsWith("(1)")) document.title = `(1) New reply · ${document.title}`;
+        }
         if (!activeRef.current) onUnread?.(messages.filter((x) => x.from !== "visitor").length);
       }
     } catch { /* offline: retry next tick */ }
@@ -76,6 +91,24 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
     poll();
   }
 
+  async function choose(choice: "ai" | "developer") {
+    if (!conv) return;
+    setError("");
+    const r = await fetch(`/api/chat/${conv.id}/choose`, { method: "POST", headers: { "Content-Type": "application/json", "x-chat-token": conv.token }, body: JSON.stringify({ choice }) });
+    if (!r.ok) { setError((await r.json().catch(() => ({}))).error || "Could not send your choice."); return; }
+    poll();
+  }
+
+  async function turnOnNotifications() {
+    if (!conv) return;
+    try {
+      const sub = await enablePush();
+      const r = await fetch(`/api/chat/${conv.id}/push`, { method: "POST", headers: { "Content-Type": "application/json", "x-chat-token": conv.token }, body: JSON.stringify(sub) });
+      if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || "Could not turn on notifications.");
+      setNotify("on");
+    } catch (e) { setError((e as Error).message); setNotify("blocked"); }
+  }
+
   async function attach(file: File) {
     setBusy(true);
     try { await send({ file: await uploadToCloudinary(file, { endpoint: "/api/upload-sign", kind: "image" }) }); }
@@ -105,13 +138,21 @@ export default function ChatSession({ greeting, active, onUnread, className = ""
           <div key={m.id} className={`flex ${m.from === "visitor" ? "justify-end" : "justify-start"}`}>
             <div className={`max-w-[85%] rounded-2xl px-3.5 py-2 text-sm ${m.from === "visitor" ? "rounded-br-sm bg-blue-600 text-white" : "rounded-bl-sm border border-stone-200 bg-white text-stone-800"}`}>
               {(m.from === "ai" || m.from === "auto") && <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-wide text-blue-700">{m.from === "ai" ? "AI assistant" : "Automatic reply"}</p>}
-              {m.text && <p className="whitespace-pre-wrap break-words">{m.text}</p>}
+              {m.text && <p className="whitespace-pre-wrap break-words">{m.from === "visitor" ? m.text : <Rich text={m.text} />}</p>}
+              {m.options && !msgs.some((x) => x.from === "visitor" && x.createdAt > m.createdAt) && (
+                <div className="mt-2 flex flex-col gap-2">
+                  <button type="button" onClick={() => choose("ai")} className="rounded-full bg-blue-600 px-4 py-2 text-left text-sm font-bold text-white hover:bg-blue-700">Continue with AI support</button>
+                  <button type="button" onClick={() => choose("developer")} className="rounded-full border border-blue-600 px-4 py-2 text-left text-sm font-bold text-blue-700 hover:bg-blue-50">Talk to the Developer</button>
+                </div>
+              )}
               {m.file && <a href={m.file.url} target="_blank" rel="noopener noreferrer" className="underline">📎 {m.file.name || "attachment"}</a>}
             </div>
           </div>
         ))}
         {typing && <p className="text-xs text-stone-500" role="status">AI assistant is typing…</p>}
       </div>
+      {pushSupported() && notify !== "on" && Notification.permission !== "denied" && <button type="button" onClick={turnOnNotifications} className="border-t border-stone-200 bg-white px-4 py-2 text-left text-xs font-semibold text-blue-700 hover:bg-stone-50">🔔 Notify me on this device when you reply</button>}
+      {notify === "on" && <p className="border-t border-stone-200 bg-white px-4 py-2 text-xs text-stone-600">🔔 Notifications are on for this device.</p>}
       {conv.ai && <p className="border-t border-stone-200 bg-white px-4 pt-2 text-[11px] text-stone-500">Replies may come from an AI assistant first. A team member will follow up.</p>}
       {error && <p role="alert" className="bg-white px-4 pt-2 text-xs text-red-600">{error}</p>}
       <form onSubmit={(e) => { e.preventDefault(); const t = text.trim(); if (t) { setText(""); send({ text: t }); } }} className="flex items-center gap-2 border-t border-stone-200 bg-white p-3">

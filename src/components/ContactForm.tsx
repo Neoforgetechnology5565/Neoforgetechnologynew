@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { DIVISIONS, PROJECT_TYPES } from "@/lib/divisions";
 import type { MediaRef } from "@/lib/types";
+import { enablePush, pushSupported } from "@/lib/push-client";
 import FileDrop from "./FileDrop";
 
 const F = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-blue-600 focus:outline-none";
@@ -14,6 +15,17 @@ export default function ContactForm({ initialDivision = "" }: { initialDivision?
   const [files, setFiles] = useState<MediaRef[]>([]);
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState("");
+  const [sent, setSent] = useState<{ id: string; token: string } | null>(null);
+  const [notify, setNotify] = useState<"idle" | "on" | "failed">("idle");
+
+  async function turnOnNotifications() {
+    if (!sent) return;
+    try {
+      const sub = await enablePush();
+      const r = await fetch("/api/contact/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: sent.id, token: sent.token, sub }) });
+      setNotify(r.ok ? "on" : "failed");
+    } catch { setNotify("failed"); }
+  }
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,7 +34,7 @@ export default function ContactForm({ initialDivision = "" }: { initialDivision?
     const f = new FormData(e.currentTarget);
     const payload = Object.fromEntries(f.entries());
     const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, files }) });
-    if (res.ok) { setState("done"); return; }
+    if (res.ok) { const j = await res.json().catch(() => ({})); if (j.id && j.token) setSent({ id: j.id, token: j.token }); setState("done"); return; }
     const j = await res.json().catch(() => ({}));
     setError(j.issues ? "Please check the highlighted fields — name, a valid email, and a description of at least 10 characters are required." : j.error || "Something went wrong. Please try again.");
     setState("idle");
@@ -33,7 +45,10 @@ export default function ContactForm({ initialDivision = "" }: { initialDivision?
       <div className="rounded-2xl bg-blue-50 p-8" role="status">
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Received</p>
         <h3 className="mt-2 font-display text-2xl font-semibold text-stone-900">Thanks — your inquiry is in.</h3>
-        <p className="mt-2 text-stone-600">An engineer will review the details and reply by email.</p>
+        <p className="mt-2 text-stone-600">An engineer will review the details and reply by email. We&apos;ve also sent a confirmation to the address you gave.</p>
+        {sent && pushSupported() && typeof Notification !== "undefined" && Notification.permission !== "denied" && notify === "idle" && <button type="button" onClick={turnOnNotifications} className="mt-4 rounded-full border border-blue-600 px-5 py-2 text-sm font-semibold text-blue-700 hover:bg-white">🔔 Notify me on this device when you reply</button>}
+        {notify === "on" && <p className="mt-4 text-sm text-stone-700">🔔 Done. We&apos;ll notify this device when we reply.</p>}
+        {notify === "failed" && <p className="mt-4 text-sm text-red-600">Notifications couldn&apos;t be turned on. You&apos;ll still get our reply by email.</p>}
       </div>
     );
 

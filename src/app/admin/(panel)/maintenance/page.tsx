@@ -15,6 +15,12 @@ export default function Maintenance() {
     try { const r = await api<{ to: string }>("/api/admin/test-email", "POST"); toast.ok(`Test email sent to ${r.to}`); } catch (e) { toast.err(e); }
     setSending(false);
   }
+  const [push, setPush] = useState<boolean | null>(null);
+  const [keys, setKeys] = useState<{ publicKey: string; privateKey: string } | null>(null);
+  useEffect(() => { api<{ configured: boolean }>("/api/admin/push-keys").then((r) => setPush(r.configured)).catch(() => {}); }, []);
+  async function genKeys() {
+    try { setKeys(await api<{ publicKey: string; privateKey: string }>("/api/admin/push-keys", "POST")); } catch (e) { toast.err(e); }
+  }
   async function run() {
     setBusy(true);
     try { const r = await api<{ log: string[] }>("/api/admin/migrate", "POST"); setLog(r.log); toast.ok("Migrations complete"); } catch (e) { toast.err(e); }
@@ -38,6 +44,24 @@ export default function Maintenance() {
           <p className="mt-3 text-sm">Status: <b className="text-red-600">Not set up</b>. Add <code>SMTP_HOST</code>, <code>SMTP_USER</code> and <code>SMTP_PASS</code> in Vercel (see the setup steps), then redeploy.</p>
         )}
         <button className="btn-primary mt-4 !py-2" onClick={testMail} disabled={sending || !mail?.configured}>{sending ? "Sending…" : "Send a test email"}</button>
+      </Card>
+      <Card className="mt-5 max-w-2xl">
+        <h2 className="font-semibold">Visitor notifications (phone &amp; browser)</h2>
+        <p className="mt-2 text-sm text-paper/65">After a visitor starts a chat or sends an enquiry they can tap “Notify me on this device when you reply”. When you reply, their phone or browser shows a notification, even if the site is closed. This needs a one-time pair of keys.</p>
+        <p className="mt-3 text-sm">Status: {push ? <b className="text-signal-dim">On</b> : <b className="text-red-600">Not set up</b>}</p>
+        {!push && (
+          <>
+            <button className="btn-primary mt-4 !py-2" onClick={genKeys}>Generate my keys</button>
+            {keys && (
+              <div className="mt-4 space-y-3 text-sm">
+                <p>In Vercel → Settings → Environment Variables, add these two (Production), then <b>Redeploy</b>. Copy them now: the private key is shown only here.</p>
+                <p className="label">NEXT_PUBLIC_VAPID_PUBLIC_KEY</p><pre className="overflow-x-auto bg-ink-950 p-3 font-mono text-xs">{keys.publicKey}</pre>
+                <p className="label">VAPID_PRIVATE_KEY</p><pre className="overflow-x-auto bg-ink-950 p-3 font-mono text-xs">{keys.privateKey}</pre>
+              </div>
+            )}
+          </>
+        )}
+        <p className="mt-3 text-xs text-paper/50">On iPhone, notifications work only after the visitor adds the website to their Home Screen. Android and computers work in the browser.</p>
       </Card>
       {toast.el}
     </>

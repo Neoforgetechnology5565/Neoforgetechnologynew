@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { adminRoute } from "@/lib/auth";
 import { C } from "@/lib/db";
 import { adminDb } from "@/lib/firebase-admin";
+import { notifyChatVisitor } from "@/lib/notify-visitor";
 import { chatMessageSchema } from "@/lib/schemas";
 
 export const GET = adminRoute<{ id: string }>(async (req, { params }) => {
@@ -19,7 +20,9 @@ export const POST = adminRoute<{ id: string }>(async (req, { params }) => {
   const ref = adminDb().collection(C.chats).doc(id);
   const now = Date.now();
   await ref.collection("messages").add({ from: "admin", text: data.text, file: data.file, createdAt: now });
-  await ref.update({ updatedAt: now, lastMessage: `You: ${data.text}`.slice(0, 120), humanTakeover: true }); // once a person replies, the AI stops
+  await ref.update({ updatedAt: now, lastMessage: `You: ${data.text}`.slice(0, 120), humanTakeover: true, wantsHuman: false }); // once a person replies, the AI stops
+  // every reply you send is also emailed to the address the visitor gave, and pushed to their phone/browser if they opted in
+  if (data.text) after(() => notifyChatVisitor(id, data.text, { email: true, from: "you" }));
   return NextResponse.json({ ok: true });
 });
 

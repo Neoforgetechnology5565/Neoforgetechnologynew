@@ -12,6 +12,18 @@ export default function Inbox() {
   const load = useCallback(() => api<{ items: Inquiry[] }>("/api/admin/inquiries").then((r) => setItems(r.items)).catch(toast.err), []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load(); }, [load]);
   const cur = items.find((i) => i.id === sel);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  async function sendReply() {
+    if (!cur || !reply.trim()) return;
+    setSending(true);
+    try {
+      const r = await api<{ at: number }>(`/api/admin/inquiries/${cur.id}/reply`, "POST", { text: reply.trim() });
+      setItems((l) => l.map((x) => (x.id === cur.id ? { ...x, status: "read", replies: [...(x.replies ?? []), { at: r.at, text: reply.trim() }] } : x)));
+      setReply(""); toast.ok(`Reply emailed to ${cur.email}`);
+    } catch (e) { toast.err(e); }
+    setSending(false);
+  }
 
   async function setStatus(i: Inquiry, status: "read" | "unread") {
     setItems((l) => l.map((x) => (x.id === i.id ? { ...x, status } : x)));
@@ -50,6 +62,10 @@ export default function Inbox() {
             <p className="label mt-6">Message</p>
             <p className="whitespace-pre-wrap text-sm text-paper/85">{cur.message}</p>
             {cur.files?.length > 0 && (<><p className="label mt-6">Attachments</p><ul className="space-y-1 text-sm">{cur.files.map((f) => <li key={f.publicId}><a className="text-forge hover:underline" href={f.url} target="_blank" rel="noopener noreferrer">{f.name || f.publicId} ({formatBytes(f.bytes)})</a></li>)}</ul></>)}
+            <p className="label mt-8">Reply by email</p>
+            {cur.replies?.map((r) => <div key={r.at} className="mt-2 border border-paper/15 bg-ink-800 p-3 text-sm"><p className="text-[11px] text-paper/50">You · {formatDateTime(r.at)} · emailed to {cur.email}</p><p className="mt-1 whitespace-pre-wrap">{r.text}</p></div>)}
+            <textarea className="field mt-3" rows={4} value={reply} onChange={(e) => setReply(e.target.value)} placeholder={`Write your reply to ${cur.name}…`} />
+            <div className="mt-2 flex flex-wrap items-center gap-3"><button className="btn-primary !py-2" disabled={sending || !reply.trim()} onClick={sendReply}>{sending ? "Sending…" : "Send reply by email"}</button><span className="text-xs text-paper/50">Sent to {cur.email}. If they turned on notifications, their phone or browser is notified too.</span></div>
           </article>
         ) : <div className="hidden border border-dashed border-paper/20 p-10 text-center text-sm text-paper/45 lg:block">Select an inquiry</div>}
       </div>

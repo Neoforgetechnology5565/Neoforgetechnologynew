@@ -6,7 +6,7 @@ import { uploadToCloudinary } from "@/lib/upload";
 import { formatDateTime } from "@/lib/utils";
 import type { MediaRef } from "@/lib/types";
 
-interface Chat { id: string; name: string; email: string; updatedAt: number; lastMessage?: string; unreadAdmin?: number }
+interface Chat { id: string; name: string; email: string; updatedAt: number; lastMessage?: string; unreadAdmin?: number; wantsHuman?: boolean; mode?: string }
 interface Msg { id: string; from: "visitor" | "admin" | "ai" | "auto"; text: string; file: MediaRef | null; createdAt: number }
 
 export default function Chats() {
@@ -52,7 +52,7 @@ export default function Chats() {
           {chats.length === 0 && <p className="p-5 text-sm text-paper/50">No conversations yet.</p>}
           {chats.map((c) => (
             <button key={c.id} onClick={() => setSel(c.id)} className={`block w-full p-3 text-left text-sm hover:bg-paper/5 ${sel === c.id ? "bg-paper/10" : ""}`}>
-              <div className="flex justify-between gap-2"><span className={c.unreadAdmin ? "font-semibold" : ""}>{c.name}</span>{!!c.unreadAdmin && <span className="bg-forge px-1.5 font-mono text-[10px] text-white">{c.unreadAdmin}</span>}</div>
+              <div className="flex justify-between gap-2"><span className={c.unreadAdmin ? "font-semibold" : ""}>{c.name}{c.wantsHuman && <span className="ml-2 bg-red-600 px-1.5 text-[10px] font-semibold uppercase text-white">Wants Developer</span>}</span>{!!c.unreadAdmin && <span className="bg-forge px-1.5 font-mono text-[10px] text-white">{c.unreadAdmin}</span>}</div>
               <p className="truncate text-xs text-paper/50">{c.lastMessage}</p><p className="text-[11px] text-paper/35">{formatDateTime(c.updatedAt)}</p>
             </button>
           ))}

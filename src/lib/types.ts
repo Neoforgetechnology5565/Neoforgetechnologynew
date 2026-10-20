@@ -165,4 +165,6 @@ export interface Inquiry {
   createdAt: number;
   /** Set when an automatic acknowledgement email was sent to the visitor */
   autoReply?: { at: number; ai: boolean };
+  /** Replies you sent from the admin (also emailed to the visitor) */
+  replies?: { at: number; text: string }[];
 }

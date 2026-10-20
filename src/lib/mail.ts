@@ -76,3 +76,25 @@ export async function notifyChat(c: { name: string; email: string; text: string;
     html: shell(c.isNew ? "New live chat" : "New chat message", [["Name", esc(c.name)], ["Email", c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""]], esc(clip(c.text, 1500)), { href: admin, label: "Reply in admin" }),
   });
 }
+
+/** A plain, friendly email to a visitor (copies of our replies, confirmations). Replies go to our own mailbox. */
+export async function emailVisitor(o: { to: string; subject: string; heading: string; body: string; cta?: { href: string; label: string } }) {
+  const ours = await recipient();
+  const cta = o.cta ? `<p style="margin:20px 0"><a href="${esc(o.cta.href)}" style="display:inline-block;background:#34821d;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-size:14px">${esc(o.cta.label)}</a></p>` : "";
+  return sendMail({
+    to: o.to, subject: o.subject, replyTo: ours || undefined,
+    text: `${o.heading}\n\n${clip(o.body)}\n\n${o.cta ? `${o.cta.label}: ${o.cta.href}\n\n` : ""}— The Neo Forge Technology team\n${siteUrl()}\n\nYou can reply to this email to reach us.`,
+    html: `<div style="font-family:Georgia,serif;max-width:600px;margin:auto;color:#0b0b0b;font-size:15px;line-height:1.55"><h2 style="margin:0 0 12px;font-size:20px">${esc(o.heading)}</h2><div style="white-space:pre-wrap;padding:14px;background:#f1f5f9;border-radius:8px">${esc(clip(o.body))}</div>${cta}<p style="margin-top:20px">— The Neo Forge Technology team<br><a href="${esc(siteUrl())}">${esc(siteUrl())}</a></p><p style="font-size:12px;color:#64748b">You can reply to this email to reach us.</p></div>`,
+  });
+}
+
+/** Alert for the owner when a chat visitor asks to talk to the developer. */
+export async function notifyDeveloperRequested(c: { name: string; email: string; lastMessage: string }) {
+  const admin = `${siteUrl()}/admin/chats`;
+  return sendMail({
+    subject: `⚠ ${c.name} wants to talk to the Developer (live chat)`,
+    replyTo: c.email || undefined,
+    text: `A visitor asked to talk to the developer in live chat.\n\nName: ${c.name}\nEmail: ${c.email || "(not given)"}\n\nTheir message:\n${clip(c.lastMessage, 1500)}\n\nReply in admin: ${admin}`,
+    html: shell("Visitor wants to talk to the Developer", [["Name", esc(c.name)], ["Email", c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""]], esc(clip(c.lastMessage, 1500)), { href: admin, label: "Reply in admin" }),
+  });
+}
