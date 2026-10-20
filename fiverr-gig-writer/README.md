@@ -20,3 +20,6 @@ A side-panel wizard that follows Fiverr's gig-creation pages. On each page you g
 - Fiverr's page markup changes and isn't documented, so field detection is best-effort. If something is missed the panel says so; fill that field by hand. Report what failed and the selectors can be tuned.
 - It never clicks Next/Save/Publish. Keep it that way: automated submitting can get a seller account flagged.
 - Don't claim fake reviews/results in your gig.
+
+## Category analysis
+After **Write gig**, the Paste tab shows a Category section: the gig is analysed (main service, deliverables, tools, industry) and the top 3 category paths are suggested with a confidence score and reason. You can change category / subcategory / service type by hand (changing the category resets the rest). Below 75% confidence it asks you to choose instead of filling. Mappings are **suggestions**, editable in Settings (⚙ > Category mappings); when filling, the extension only selects options Fiverr actually shows and stops rather than substituting a different category.

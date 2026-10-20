@@ -61,10 +61,20 @@ Shape: {"titles":["","","","",""]}`,
       `Keywords: ${keywords.join(", ")}\n${notes ? "Notes: " + notes : ""}`);
   },
   // choose the best option from a dropdown the page actually offers
-  async pickMany({ label, options, title, keywords, max, context }) {
-    return claudeJSON(`You choose which checkbox options best describe a seller's Fiverr gig. Pick between 1 and ${max || 4} options, only from the list, exactly as written.
+  async pickMany({ label, options, title, keywords, max, context, guidance }) {
+    return claudeJSON(`You choose which checkbox options of a Fiverr gig's metadata clearly apply to the seller's gig. Pick between 0 and ${max || 4} options, only from the list, exactly as written.
+Only pick options that clearly apply to the gig's MAIN service. If none clearly apply, return an empty list. Never pick unrelated technologies or tools (for example, web frameworks or programming languages for an architectural drawing gig).
 Shape: {"choices":["<option text>"]}`,
-      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nSection: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 400);
+      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nAnalysis: ${guidance || "n/a"}\nSection: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 400);
+  },
+  // Analyse the gig and recommend the Fiverr category path (top 3 with confidence and reasons)
+  async categorize({ title, scope, description, packages, hints, taxonomy }) {
+    return claudeJSON(`You analyse a Fiverr gig and recommend where it belongs on Fiverr.
+First identify: the MAIN service, the deliverables, the target buyers, the tools and the industry. The main service is the strongest signal, NOT isolated keywords (a permit-drawing gig that mentions software is still architecture, not programming). If the gig covers several services choose the dominant one and describe the overlap in "ambiguity".
+Then pick the best category path. Prefer paths from the provided suggested mappings. If none fits, you may propose a path with "inMapping": false, but never present an invented path as certain. Return the 3 best candidates, best first, each with a calibrated confidence from 0 to 1 (lower it when the gig is ambiguous) and a one-sentence reason.
+Also give: searchTags (up to 5, lowercase letters/numbers/spaces, max 20 chars each), positiveKeywords (up to 8) and metadataFields (names of metadata fields that are relevant to THIS service only; never list programming languages or web frameworks for non-software gigs).
+Shape: {"mainService":"","deliverables":[""],"buyers":"","tools":[""],"industry":"","ambiguity":"","candidates":[{"category":"","subcategory":"","serviceType":"","confidence":0.0,"reason":"","inMapping":true,"searchTags":[""],"positiveKeywords":[""],"metadataFields":[""]}]}`,
+      `Title: ${title}\nScope: ${scope || "n/a"}\nPackages: ${packages || "n/a"}\nHints from the seller: ${hints || "n/a"}\nDescription: ${description || "n/a"}\n\nSuggested mappings (category > subcategory: service types):\n${(taxonomy || []).map(t => `- ${t.category} > ${t.subcategory}: ${(t.serviceTypes || []).join(", ")}`).join("\n")}`, 3000);
   },
   // Decide which feature rows each package includes (checkbox rows -> true/false, dropdown rows -> option text)
   async matrix({ title, scope, packages, rows }) {
@@ -115,10 +125,12 @@ Shape: {"description":""}`, g.description, 2500);
     g.notes = notes;
     return g;
   },
-  async pick({ label, options, title, keywords, context }) {
-    return claudeJSON(`You choose the single best option in a Fiverr gig form dropdown for a seller's gig. Pick only from the given options, exactly as written.
-Shape: {"choice":"<option text>"}`,
-      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nDropdown: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 300);
+  async pick({ label, options, title, keywords, context, target, strict }) {
+    return claudeJSON(`You choose the single best option in a Fiverr gig form dropdown. Pick only from the given options, exactly as written.
+If a TARGET is given, choose the option that means the same as the target (ignore small wording differences). ${strict ? 'If no option is equivalent to the target, answer "NONE".' : "If no option is equivalent, choose the closest real option for this gig."}
+Never choose an option that belongs to an unrelated field (for example web development for an architecture gig).
+Shape: {"choice":"<option text, or NONE>"}`,
+      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nTARGET: ${target || "(none)"}\nDropdown: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 300);
   },
   // scope + days idea + budget -> 3 complete pricing schemes to choose from
   async pricing({ title, scope, days, budget }) {

@@ -5,7 +5,7 @@ body{font:13px system-ui,sans-serif;margin:0;padding:12px;color:#222}
 header{display:flex;justify-content:space-between;align-items:center}
 h1{font-size:16px;margin:0;color:var(--g)}
 label{display:block;margin:10px 0 3px;font-weight:600}
-input,textarea{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px;font:inherit}
+select,input,textarea{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px;font:inherit}
 button{margin-top:10px;padding:8px 12px;background:var(--g);color:#fff;border:0;border-radius:5px;cursor:pointer;font-weight:600;width:100%}
 button.secondary{background:#555}button.ghost{background:none;color:#555;width:auto;margin:0;font-size:16px}
 button:disabled{opacity:.5;cursor:not-allowed}
@@ -29,7 +29,9 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <label>Writing model</label><input id="textModel" placeholder="gemini-3.8-flash">
   <button id="saveSettings">Save &amp; test key</button>
   <div id="saveMsg" style="margin-top:8px;font-weight:600"></div>
-  <p class="hint">Key stays in this browser and goes only to Google.</p>
+  <label>Category mappings (JSON, editable)</label><textarea id="taxJson" rows="6" style="font-family:monospace;font-size:11px"></textarea>
+  <div class="row"><button id="saveTax" class="secondary">Save mappings</button><button id="resetTax" class="secondary">Reset to defaults</button></div>
+  <p class="hint">Key stays in this browser and goes only to Google. Mappings are suggestions, not a verified list of Fiverr's current categories.</p>
 </section>
 
 <nav id="tabs">
@@ -42,6 +44,17 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <button id="parsePaste">Write gig</button>
   <div id="pasteSummary" class="summary"></div>
   <label style="font-weight:400"><input type="checkbox" id="auto" style="width:auto" checked> Auto-fill and continue: after writing, fill this page, click Save &amp; Continue, and repeat (never Publish)</label>
+  <div id="catBox" hidden>
+    <label>Category <span>(suggested mapping, not a verified live Fiverr list)</span></label>
+    <div id="catWhy" class="summary"></div>
+    <div id="catCands" class="choices"></div>
+    <label>Category</label><select id="catCat"></select>
+    <label>Subcategory</label><select id="catSub"></select>
+    <label>Service type</label><select id="catST"></select>
+    <label>Relevant metadata fields (guidance)</label><input id="catMeta">
+    <div id="catTags" class="summary"></div>
+    <div class="row"><button id="useTags" class="secondary">Use suggested tags</button><button id="reCat" class="secondary">Re-analyze category</button></div>
+  </div>
   <button id="fillThis" disabled>Fill this Fiverr page again</button>
   <button id="stopAuto" class="secondary" hidden>Stop</button>
   <p class="hint">Open a Fiverr gig page (Overview, Pricing, Description or Requirements), click above, check it, then click Fiverr's Next and repeat. Categories and options are picked automatically from your gig.</p>
@@ -93,5 +106,6 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <div id="status"></div>
 <p class="hint">You click Fiverr's Next/Save yourself on every page. Always check what was filled before publishing.</p>
 <button id="scan" class="secondary">Scan page (for troubleshooting)</button>
+<script src="taxonomy.js"></script>
 <script src="sidepanel.js"></script>
 </body></html>

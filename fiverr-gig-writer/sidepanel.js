@@ -1,5 +1,6 @@
 const $ = id => document.getElementById(id);
-const S = { titles: [], pricing: [], image: null, faq: [], hints: "" };
+const S = { titles: [], pricing: [], image: null, faq: [], hints: "", cat: null };
+let TAX = window.DEFAULT_TAXONOMY;
 const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "desc", "req"];
 
 const status = (m, ok) => { $("status").textContent = m; $("status").className = ok ? "ok" : ""; };
@@ -26,11 +27,13 @@ async function page(type, data) {
   }
 }
 const title = () => chosen("title");
-const ctx = () => `${S.hints || ""}\n${$("scope").value}\n${$("desc").value}`.trim().slice(0, 1000);
+const ctx = () => `${S.cat?.analysisText || ""}\n${S.hints || ""}\n${$("scope").value}\n${$("desc").value}`.trim().slice(0, 1200);
 const esc = x => String(x ?? "").replace(/"/g, "&quot;");
 
 // ---- persistence / tabs / settings
-chrome.storage.local.get(["geminiKey", "textModel", "form"]).then(s => {
+chrome.storage.local.get(["geminiKey", "textModel", "form", "taxonomy"]).then(s => {
+  if (Array.isArray(s.taxonomy) && s.taxonomy.length) TAX = s.taxonomy;
+  $("taxJson").value = JSON.stringify(TAX, null, 1);
   $("textModel").value = s.textModel || ""; $("geminiKey").value = s.geminiKey || "";
   KEYS.forEach(k => s.form?.[k] && ($(k).value = s.form[k]));
   if (!s.geminiKey) $("settings").hidden = false; counts();
@@ -74,20 +77,29 @@ $("fillOverview").onclick = async function () {
     const r = await page("FILL_OVERVIEW", { title: t, tags });
     if (!r.filled.length) status("Couldn't find the title/tag boxes. Click \"Scan page\" at the bottom and send me the result.");
     else status(`Filled ${r.filled.join(", ")}. Picking categories…`, true);
-    for (let i = 0; i < 8; i++) {                       // category -> subcategory -> service type -> ...
+    const plan = await ensureCategory();                  // {category, subcategory, serviceType, metadata}
+    for (let i = 0; i < 8; i++) {                         // category -> subcategory -> service type -> ...
       const d = await page("NEXT_DROPDOWN", {});
       if (!d.found) break;
-      const p = await chrome.runtime.sendMessage({ action: "pick", payload: { label: d.label, options: d.options, title: t, keywords: tags, context: ctx() } });
-      if (!p.ok) throw new Error(p.error);
-      await page("CHOOSE_OPTION", { id: d.id, text: p.result.choice });
-      status(`${d.label || "Dropdown"}: ${p.result.choice}`, true);
+      const kind = /sub\s*-?\s*categor/i.test(d.label) ? "subcategory" : /categor/i.test(d.label) ? "category" : /service\s*type/i.test(d.label) ? "serviceType" : "other";
+      const target = plan[kind];
+      let choice = target ? bestMatch(target, d.options) : null, note = "";
+      if (!choice) {
+        const strict = kind === "category" || kind === "subcategory";
+        const p = await chrome.runtime.sendMessage({ action: "pick", payload: { label: d.label, options: d.options, title: t, keywords: tags, context: ctx(), target, strict } });
+        if (!p.ok) throw new Error(p.error);
+        choice = d.options.find(o => norm(o) === norm(p.result.choice)) || null;   // must be a real option on the page
+        if (!choice && strict) throw new Error(`Fiverr's list has no ${kind} matching "${target}". Choose it yourself on the page (options include: ${d.options.slice(0, 8).join(", ")}), then click Fill this Fiverr page again.`);
+        if (choice && target) note = " (closest available option)";
+      }
+      if (choice) { await page("CHOOSE_OPTION", { id: d.id, text: choice }); status(`${d.label || "Dropdown"}: ${choice}${note}`, true); }
       await sleep(900);
     }
     status("Selecting gig metadata…", true);
     for (let i = 0; i < 10; i++) {                      // metadata tabs -> checkbox lists
       const c = await page("NEXT_CHECKS", {});
       if (c.found) {
-        const p = await chrome.runtime.sendMessage({ action: "pickMany", payload: { label: c.label, options: c.options.map(o => o.text), title: t, keywords: tags, max: 4, context: ctx() } });
+        const p = await chrome.runtime.sendMessage({ action: "pickMany", payload: { label: c.label, options: c.options.map(o => o.text), title: t, keywords: tags, max: 4, context: ctx(), guidance: S.cat?.analysisText + " Relevant metadata: " + ($("catMeta").value || "n/a") } });
         if (!p.ok) throw new Error(p.error);
         const want = p.result.choices.map(x => x.trim().toLowerCase());
         const ids = c.options.filter(o => want.includes(o.text.trim().toLowerCase())).map(o => o.id);
@@ -248,6 +260,11 @@ $("parsePaste").onclick = async function () {
   $("fillThis").disabled = false;
   S.noteText = (g.notes || []).join("; ");
   if (S.noteText) $("pasteSummary").textContent += "\nFixed for Fiverr: " + S.noteText;
+  status("Gig written. Analyzing the category…", true);
+  try { await runCategorize(); }
+  catch (e) { return status("Gig written, but the category analysis failed: " + e.message + " Choose the category below, then click Fill this Fiverr page."); }
+  const conf = S.cat?.chosen?.confidence ?? 0;
+  if (conf < 0.75) return status(`Gig written. I'm not sure about the category (${Math.round(conf * 100)}% confidence). Pick one of the suggestions below or change it, then click Fill this Fiverr page.`);
   status("Gig written." + ($("auto").checked ? " Filling the current Fiverr page…" : " Open a Fiverr gig page and click Fill this Fiverr page."), true);
   if ($("auto").checked) { try { await page("DETECT", {}); $("fillThis").onclick(); } catch { status("Gig written. Open your Fiverr gig page, then click Fill this Fiverr page again."); } }
 };
@@ -264,7 +281,7 @@ async function fillCurrent() {
   if (btn.disabled) return { p, stop: `Your paste has nothing for the ${p} page.` };
   status(`Detected the ${p} page. Filling…`, true);
   await btn.onclick.call(btn);
-  return { p, ok: $("status").className === "ok" };
+  return { p, ok: $("status").className === "ok", msg: $("status").textContent };
 }
 
 $("fillThis").onclick = async () => {
@@ -275,7 +292,7 @@ $("fillThis").onclick = async () => {
     for (let i = 0; i < 6 && !S.stop; i++) {
       const r = await fillCurrent();
       if (r.stop) return status(r.stop);
-      if (!r.ok) return status(`Stopped: the ${r.p} page wasn't filled completely. Fix it, then continue.`);
+      if (!r.ok) return status(`Stopped on the ${r.p} page: ${r.msg || "it wasn't filled completely"}`);
       if (S.stop) break;
       await sleep(800);
       const n = await page("CLICK_NEXT", {});
@@ -290,3 +307,75 @@ $("fillThis").onclick = async () => {
   finally { $("stopAuto").hidden = true; $("fillThis").disabled = false; }
 };
 $("stopAuto").onclick = () => { S.stop = true; status("Stopping after the current step…"); };
+
+// ---- category analysis: recommend category / subcategory / service type / metadata, editable by hand
+const norm = x => String(x ?? "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9 ]/g, " ").replace(/\s+/g, " ").trim();
+const toks = x => new Set(norm(x).split(" ").filter(w => w && !["and", "the", "of", "a", "for"].includes(w)).map(w => w.replace(/s$/, "")));
+function bestMatch(target, options) {              // fuzzy match of a wanted name against Fiverr's real options
+  const t = norm(target); let best = null, top = 0;
+  for (const o of options) {
+    const n = norm(o); if (n === t) return o;
+    const A = toks(target), B = toks(o), inter = [...A].filter(w => B.has(w)).length;
+    const sc = Math.max(inter / (new Set([...A, ...B]).size || 1), (n.includes(t) || t.includes(n)) ? 0.7 : 0);
+    if (sc > top) { top = sc; best = o; }
+  }
+  return top >= 0.6 ? best : null;
+}
+const uniq = a => [...new Set(a)];
+function fillSel(sel, values, cur) { sel.innerHTML = values.map(v => `<option>${esc(v)}</option>`).join(""); if (cur && values.includes(cur)) sel.value = cur; else if (values.length) sel.value = values[0]; }
+function refreshST(st, keepMeta) {
+  const rows = TAX.filter(t => t.category === $("catCat").value && t.subcategory === $("catSub").value);
+  const sts = uniq(rows.flatMap(t => t.serviceTypes || [])); if (st && !sts.includes(st)) sts.push(st);
+  fillSel($("catST"), sts, st);
+  if (!keepMeta) $("catMeta").value = uniq(rows.flatMap(t => t.metadata || [])).join(", ");
+}
+function refreshSub(sub, st, keepMeta) {
+  const subs = uniq(TAX.filter(t => t.category === $("catCat").value).map(t => t.subcategory)); if (sub && !subs.includes(sub)) subs.push(sub);
+  fillSel($("catSub"), subs, sub); refreshST(st, keepMeta);
+}
+function renderCategory(c) {
+  const cats = uniq(TAX.map(t => t.category)); if (c.category && !cats.includes(c.category)) cats.push(c.category);
+  fillSel($("catCat"), cats, c.category); refreshSub(c.subcategory, c.serviceType, true);
+  $("catMeta").value = (c.metadataFields || []).join(", ");
+  $("catTags").textContent = `Suggested tags: ${(c.searchTags || []).join(", ") || "-"}\nPositive keywords: ${(c.positiveKeywords || []).join(", ") || "-"}`;
+  $("catBox").hidden = false;
+}
+function renderCandidates() {
+  const c = S.cat; if (!c) return;
+  const low = (c.chosen?.confidence ?? 0) < 0.75;
+  $("catWhy").textContent = `Main service: ${c.mainService || "?"}\nConfidence: ${Math.round((c.chosen?.confidence ?? 0) * 100)}%${low ? " (low, please choose)" : ""}. ${c.chosen?.reason || ""}${c.ambiguity ? "\nAmbiguity: " + c.ambiguity : ""}${c.chosen?.inMapping === false ? "\nThis path is not in my mapping list; it will only be used if Fiverr actually shows it." : ""}`;
+  $("catCands").innerHTML = c.candidates.map((x, i) => `<label><input type="radio" name="cand" value="${i}" ${x === c.chosen ? "checked" : ""}><b>${Math.round(x.confidence * 100)}%</b> ${esc(x.category)} › ${esc(x.subcategory)} › ${esc(x.serviceType)}<small>${esc(x.reason)}</small></label>`).join("");
+  $("catCands").querySelectorAll("input").forEach(r => r.onchange = () => { c.chosen = c.candidates[r.value]; c.manual = false; c.analysisText = analysisOf(c); renderCategory(c.chosen); renderCandidates(); });
+}
+const analysisOf = c => `Main service: ${c.mainService}. Deliverables: ${(c.deliverables || []).join(", ")}. Tools: ${(c.tools || []).join(", ")}. Industry: ${c.industry}. Category: ${c.chosen?.category} > ${c.chosen?.subcategory} > ${c.chosen?.serviceType}.`;
+async function runCategorize() {
+  const pk = S.pricing[0] ? [S.pricing[0].basic, S.pricing[0].standard, S.pricing[0].premium].map(p => p.name).join(", ") : "";
+  const r = await ai("categorize", { title: title() || "", scope: $("scope").value, description: $("desc").value.slice(0, 1200), packages: pk, hints: S.hints,
+    taxonomy: TAX.map(t => ({ category: t.category, subcategory: t.subcategory, serviceTypes: t.serviceTypes })) });
+  r.candidates = (r.candidates || []).map(x => ({ ...x, confidence: Math.max(0, Math.min(1, Number(x.confidence) || 0)) })).sort((a, b) => b.confidence - a.confidence).slice(0, 3);
+  if (!r.candidates.length) throw new Error("No category suggestions came back.");
+  r.chosen = r.candidates[0]; r.manual = false; r.analysisText = analysisOf(r); S.cat = r;
+  renderCategory(r.chosen); renderCandidates();
+}
+const readCat = () => ({ category: $("catCat").value, subcategory: $("catSub").value, serviceType: $("catST").value, metadata: $("catMeta").value.split(",").map(x => x.trim()).filter(Boolean) });
+async function ensureCategory() {                  // used before filling the Overview page
+  if (!S.cat) { await runCategorize(); }
+  if (!S.cat.manual && (S.cat.chosen?.confidence ?? 0) < 0.75) {
+    document.querySelector('#tabs button[data-step="0"]').click();
+    throw new Error("I'm not sure about the category. Choose one of the suggestions in the Paste tab, then fill again.");
+  }
+  return readCat();
+}
+const manual = () => { if (S.cat) { S.cat.manual = true; S.cat.chosen = { ...(S.cat.chosen || {}), ...readCat(), confidence: 1 }; S.cat.analysisText = analysisOf(S.cat); } };
+$("catCat").onchange = () => { refreshSub(null, null); manual(); };       // changing the category resets incompatible choices
+$("catSub").onchange = () => { refreshST(null); manual(); };
+$("catST").onchange = manual;
+$("catMeta").oninput = () => { if (S.cat) S.cat.manual = true; };
+$("reCat").onclick = async function () { try { await runCategorize(); } catch (e) { status(e.message); } };
+$("useTags").onclick = () => { const t = S.cat?.chosen?.searchTags; if (t?.length) { $("keywords").value = t.join(", "); $("keywords").dispatchEvent(new Event("input")); status("Tags replaced with the suggested ones.", true); } };
+$("saveTax").onclick = async () => {
+  try { const v = JSON.parse($("taxJson").value); if (!Array.isArray(v) || !v.every(t => t.category && t.subcategory)) throw new Error("Each item needs category and subcategory.");
+    TAX = v; await chrome.storage.local.set({ taxonomy: v }); $("saveMsg").textContent = "Mappings saved."; $("saveMsg").style.color = "#117a45";
+  } catch (e) { $("saveMsg").textContent = "Mappings not saved: " + e.message; $("saveMsg").style.color = "#b00"; }
+};
+$("resetTax").onclick = async () => { TAX = window.DEFAULT_TAXONOMY; await chrome.storage.local.remove("taxonomy"); $("taxJson").value = JSON.stringify(TAX, null, 1); $("saveMsg").textContent = "Mappings reset."; };
