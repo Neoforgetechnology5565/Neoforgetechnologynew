@@ -4,16 +4,21 @@ const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
 
 // Gemini text generation (free tier available). Returns parsed JSON.
 // Retries temporary errors (429/500/503) with backoff, then falls back to other Flash models.
+let thinkingOK = true;                       // ask Gemini not to "think" (faster); drop the option if the model rejects it
 async function callGemini(model, geminiKey, system, user, maxTokens) {
-  return fetch(`${GEMINI}/${model}:generateContent`, {
+  const gc = { responseMimeType: "application/json", maxOutputTokens: Math.max(maxTokens, 4096), temperature: 0.8 };
+  if (thinkingOK) gc.thinkingConfig = { thinkingBudget: 0 };
+  const res = await fetch(`${GEMINI}/${model}:generateContent`, {
     method: "POST",
     headers: { "content-type": "application/json", "x-goog-api-key": geminiKey },
     body: JSON.stringify({
       systemInstruction: { parts: [{ text: system + "\nRespond with ONLY valid JSON." }] },
       contents: [{ role: "user", parts: [{ text: user }] }],
-      generationConfig: { responseMimeType: "application/json", maxOutputTokens: Math.max(maxTokens, 4096), temperature: 0.8 }
+      generationConfig: gc
     })
   });
+  if (res.status === 400 && thinkingOK && /thinking/i.test(await res.clone().text())) { thinkingOK = false; return callGemini(model, geminiKey, system, user, maxTokens); }
+  return res;
 }
 const sleepMs = ms => new Promise(r => setTimeout(r, ms));
 const TEMP = new Set([0, 429, 500, 502, 503, 504]);       // 0 = could not connect at all

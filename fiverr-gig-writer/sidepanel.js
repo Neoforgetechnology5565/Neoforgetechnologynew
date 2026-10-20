@@ -16,11 +16,12 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function ai(action, payload, btn) {
   if (btn) btn.disabled = true; status("Working…", true);
+  const t0 = Date.now(), iv = setInterval(() => status(`Working with Gemini… ${Math.round((Date.now() - t0) / 1000)}s`, true), 1000);
   try {
     const r = await chrome.runtime.sendMessage({ action, payload });
     if (!r.ok) throw new Error(r.error);
     status("Done.", true); return r.result;
-  } catch (e) { status(e.message); throw e; } finally { if (btn) btn.disabled = false; }
+  } catch (e) { status(e.message); throw e; } finally { clearInterval(iv); if (btn) btn.disabled = false; }
 }
 async function page(type, data) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -87,8 +88,8 @@ $("fillOverview").onclick = async function () {
     if (!r.filled.length) status("Couldn't find the title/tag boxes. Click \"Scan page\" at the bottom and send me the result.");
     else status(`Filled ${r.filled.join(", ")}. Picking categories…`, true);
     const plan = await ensureCategory();                  // {category, subcategory, serviceType, metadata}
-    await sleep(2500);                                    // Fiverr suggests categories from the title
-    const sg = (await page("READ_SUGGESTIONS", {})).items || [];
+    let sg = [];                                          // Fiverr may suggest categories from the title (not always)
+    for (let k = 0; k < 6 && !sg.length; k++) { await sleep(500); sg = (await page("READ_SUGGESTIONS", {})).items || []; }
     let usedSuggestion = false;
     for (const x of sg) {                                 // use a Fiverr suggestion only if it matches our analysis
       const [sc, ss] = x.text.split(/\s*[>›»]\s*/);
@@ -113,7 +114,7 @@ $("fillOverview").onclick = async function () {
         if (choice && target) note = " (closest available option)";
       }
       if (choice) { await page("CHOOSE_OPTION", { id: d.id, text: choice }); status(`${d.label || "Dropdown"}: ${choice}${note}`, true); }
-      await sleep(900);
+      await sleep(600);
     }
     status("Selecting gig metadata…", true);
     for (let i = 0; i < 10; i++) {                      // metadata tabs -> checkbox lists
@@ -125,11 +126,11 @@ $("fillOverview").onclick = async function () {
         const ids = c.options.filter(o => want.includes(o.text.trim().toLowerCase())).map(o => o.id);
         await page("CHOOSE_CHECKS", { ids });
         status(`${c.label || "Metadata"}: ${p.result.choices.join(", ")}`, true);
-        await sleep(600);
+        await sleep(400);
       }
       const tab = await page("NEXT_TAB", {});
       if (!tab.clicked && !c.found) break;
-      await sleep(800);
+      await sleep(600);
     }
     status("Overview filled. Check it (especially Gig metadata), then click Next on Fiverr." + (long.length ? ` Note: Fiverr tags max 20 chars: ${long.join(", ")}` : ""), true);
   } catch (e) { status(e.message); } finally { this.disabled = false; }
@@ -323,7 +324,7 @@ $("fillThis").onclick = async () => {
       let moved = false;                                   // wait for Fiverr to load the next page
       for (let t = 0; t < 20 && !S.stop; t++) { await sleep(700); try { if ((await page("DETECT", {})).page !== r.p) { moved = true; break; } } catch {} }
       if (!moved) return status(`Clicked "${n.clicked}" but Fiverr stayed on the ${r.p} page. A required field is probably missing. Check the page.`);
-      await sleep(1500);
+      await sleep(1000);
     }
     status(S.stop ? "Stopped." : "Auto-continue finished. Check the page before going on.", true);
   } catch (e) { status(e.message); }
