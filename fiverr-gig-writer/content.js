@@ -135,6 +135,24 @@ function findRole(role) {
 function closeDropdown(el) { key(el, "Escape", 27); document.body.click(); }
 
 const handlers = {
+  // Fiverr shows "Suggested categories" (e.g. "Programming & Tech > AI Development") after you type the title
+  async READ_SUGGESTIONS() {
+    const head = [...document.querySelectorAll("*")].find(e => visible(e) && /^\s*suggested categories\s*:?\s*$/i.test(e.innerText || ""));
+    if (!head) return { items: [] };
+    let box = head.parentElement, els = [];
+    for (let i = 0; i < 4 && box; i++, box = box.parentElement) {
+      els = [...box.querySelectorAll("li,a,button,span,div")].filter(e => visible(e) && e.children.length <= 1 && /[>›»]/.test(e.innerText || "") && e.innerText.trim().length < 120 && !e.contains(head));
+      if (els.length) break;
+    }
+    const byText = new Map();                              // same text on a <li> and its <a>: keep the innermost
+    for (const e of els) { const t = e.innerText.trim(), cur = byText.get(t); if (!cur || cur.contains(e)) byText.set(t, e); }
+    const items = [...byText].map(([text, e]) => { e.dataset.fgwSug = rnd(); return { id: e.dataset.fgwSug, text }; });
+    return { items };
+  },
+  async CLICK_SUGGESTION({ id }) {
+    const el = document.querySelector(`[data-fgw-sug="${id}"]`);
+    if (!el) return { ok: false }; click(el); el.click(); return { ok: true };
+  },
   async TAX_INIT() {
     document.querySelectorAll("[data-fgw-role]").forEach(e => delete e.dataset.fgwRole);
     const cat = findRole("category"), sub = findRole("subcategory");

@@ -80,6 +80,17 @@ $("fillOverview").onclick = async function () {
     if (!r.filled.length) status("Couldn't find the title/tag boxes. Click \"Scan page\" at the bottom and send me the result.");
     else status(`Filled ${r.filled.join(", ")}. Picking categories…`, true);
     const plan = await ensureCategory();                  // {category, subcategory, serviceType, metadata}
+    await sleep(2500);                                    // Fiverr suggests categories from the title
+    const sg = (await page("READ_SUGGESTIONS", {})).items || [];
+    let usedSuggestion = false;
+    for (const x of sg) {                                 // use a Fiverr suggestion only if it matches our analysis
+      const [sc, ss] = x.text.split(/\s*[>›»]\s*/);
+      if (sc && ss && bestMatch(plan.category, [sc]) && bestMatch(plan.subcategory, [ss])) {
+        await page("CLICK_SUGGESTION", { id: x.id }); usedSuggestion = true; await sleep(1200);
+        status(`Used Fiverr's suggested category: ${x.text}`, true); break;
+      }
+    }
+    if (!usedSuggestion && sg.length) status(`Fiverr suggests: ${sg.map(x => x.text).join("; ")}. Using ${plan.category} › ${plan.subcategory} from your gig instead.`, true);
     for (let i = 0; i < 8; i++) {                         // category -> subcategory -> service type -> ...
       const d = await page("NEXT_DROPDOWN", {});
       if (!d.found) break;
