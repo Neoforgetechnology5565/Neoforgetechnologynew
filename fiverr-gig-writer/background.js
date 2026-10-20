@@ -1,68 +1,42 @@
 chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 
-const GEMINI = "https://generativelanguage.googleapis.com/v1beta/models";
-
-// Gemini text generation (free tier available). Returns parsed JSON.
-// Retries temporary errors (429/500/503) with backoff, then falls back to other Flash models.
-let thinkingOK = true;                       // ask Gemini not to "think" (faster); drop the option if the model rejects it
-async function callGemini(model, geminiKey, system, user, maxTokens) {
-  const gc = { responseMimeType: "application/json", maxOutputTokens: Math.max(maxTokens, 4096), temperature: 0.8 };
-  if (thinkingOK) gc.thinkingConfig = { thinkingBudget: 0 };
-  const res = await fetch(`${GEMINI}/${model}:generateContent`, {
-    method: "POST",
-    headers: { "content-type": "application/json", "x-goog-api-key": geminiKey },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: system + "\nRespond with ONLY valid JSON." }] },
-      contents: [{ role: "user", parts: [{ text: user }] }],
-      generationConfig: gc
-    })
-  });
-  if (res.status === 400 && thinkingOK && /thinking/i.test(await res.clone().text())) { thinkingOK = false; return callGemini(model, geminiKey, system, user, maxTokens); }
-  return res;
-}
+const DEFAULT_MODEL = "claude-haiku-5-5";          // fast and cheap; change it in Settings (e.g. claude-sonnet-5-5 for higher quality)
 const sleepMs = ms => new Promise(r => setTimeout(r, ms));
-const TEMP = new Set([0, 429, 500, 502, 503, 504]);       // 0 = could not connect at all
-async function callGeminiSafe(...args) {                    // a network failure becomes a pseudo-response instead of throwing
-  try { return await callGemini(...args); }
-  catch (e) { return { ok: false, status: 0, text: async () => String(e?.message || e) }; }
-}
+const TEMP = new Set([0, 429, 500, 502, 503, 504, 529]);   // 0 = could not connect, 529 = Anthropic overloaded
 
-async function fallbackModels(geminiKey, current) {
-  try {
-    const r = await fetch(`${GEMINI}?pageSize=100`, { headers: { "x-goog-api-key": geminiKey } });
-    const list = (await r.json()).models || [];
-    return list.filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
-      .map(m => m.name.replace(/^models\//, ""))
-      .filter(n => /flash/.test(n) && !/image|tts|live|audio|thinking-exp|preview-\d{2}-\d{2}/.test(n) && n !== current)
-      .slice(0, 2);
-  } catch { return []; }
-}
-
+// Claude (Anthropic Messages API). Returns the parsed JSON object the prompt asks for.
 async function claudeJSON(system, user, maxTokens = 2000) {
-  const { geminiKey, textModel } = await chrome.storage.local.get(["geminiKey", "textModel"]);
-  if (!geminiKey) throw new Error("Add your free Google AI (Gemini) API key in Settings first.");
-  const primary = textModel || "gemini-3.8-flash";
-  let res, tried = [primary], models = [primary];
-  for (let m = 0; m < models.length; m++) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      res = await callGeminiSafe(models[m], geminiKey, system, user, maxTokens);
-      if (res.ok || !TEMP.has(res.status)) break;
-      await sleepMs(2000 * 2 ** attempt);               // 2s, 4s, 8s
-    }
-    if (res.ok || !TEMP.has(res.status) || res.status === 0) break;      // no point trying other models if we cannot connect
-    if (m === 0) { models.push(...await fallbackModels(geminiKey, primary)); tried = models; }
+  const { claudeKey, claudeModel } = await chrome.storage.local.get(["claudeKey", "claudeModel"]);
+  if (!claudeKey) throw new Error("Add your Claude API key in Settings first.");
+  const model = claudeModel || DEFAULT_MODEL;
+  let res;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: { "content-type": "application/json", "x-api-key": claudeKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
+        body: JSON.stringify({ model, max_tokens: Math.max(maxTokens, 1024), system: system + "\nRespond with ONLY valid JSON. No markdown fences, no commentary.", messages: [{ role: "user", content: user }] })
+      });
+    } catch (e) { res = { ok: false, status: 0, text: async () => String(e?.message || e) }; }
+    if (res.ok || !TEMP.has(res.status)) break;
+    await sleepMs(1500 * 2 ** attempt);                     // 1.5s, 3s
   }
-  if (!res.ok && res.status === 0) throw new Error(`Can't reach Google's Gemini service (${(await res.text()).slice(0, 80)}). Check your internet connection, and any VPN, firewall, antivirus or ad-blocker that might block generativelanguage.googleapis.com, then try again.`);
-  if (!res.ok) throw new Error(`Gemini is busy or unavailable (${res.status}) after trying ${tried.join(", ")}. Wait a minute and try again. ${(await res.text()).slice(0, 150)}`);
+  if (!res.ok) {
+    const t = (await res.text()).slice(0, 300);
+    if (res.status === 0) throw new Error(`Can't reach Anthropic (${t.slice(0, 80)}). Check your internet connection, and any VPN, firewall, antivirus or ad-blocker that might block api.anthropic.com.`);
+    if (res.status === 401) throw new Error("Anthropic rejected your API key (401). Check the key in Settings.");
+    if (res.status === 403) throw new Error("Anthropic refused the request (403). Your key may not have access to this model or region.");
+    if (res.status === 404) throw new Error(`Model "${model}" was not found (404). Set a valid Claude model name in Settings.`);
+    if (/credit balance|billing/i.test(t)) throw new Error("Your Anthropic account is out of credit. Add credit at console.anthropic.com, then try again.");
+    throw new Error(`Claude API ${res.status}: ${t}`);
+  }
   const data = await res.json();
-  const text = (data.candidates?.[0]?.content?.parts || []).map(p => p.text || "").join("");
+  const text = (data.content || []).map(p => p.text || "").join("");
   try { return JSON.parse(text); }
   catch { const s = text.search(/[{[]/), e = Math.max(text.lastIndexOf("}"), text.lastIndexOf("]")); return JSON.parse(text.slice(s, e + 1)); }
 }
 
-const COPY_RULES = `You write Fiverr gigs that rank in search and convert. Be honest: no fake reviews, numbers, guarantees or claims the seller didn't state. Plain, natural English.`;
-
-// "Use exactly what I pasted": Gemini only LOCATES the fields. Nothing is rewritten, shortened or invented;
+// "Use exactly what I pasted": Claude only LOCATES the fields. Nothing is rewritten, shortened or invented;
 // problems (over Fiverr's limits, wording that differs from the paste) are reported as warnings, never silently "fixed".
 async function parseExact(clean) {
   const g = await claudeJSON(`You are a precise extractor for a Fiverr gig. The seller's pasted text already contains everything they want. COPY it EXACTLY, character for character: never rewrite, shorten, correct, reorder, summarize, translate or add anything. If a field is not in the text, leave it empty ("" or []). Remove only markdown artifacts (trailing backslashes, ** markers, link syntax, "Copy-ready description" style labels). Ignore portfolio ideas, long keyword lists, checklists and notes.

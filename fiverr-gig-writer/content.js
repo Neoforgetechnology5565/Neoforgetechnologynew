@@ -31,8 +31,16 @@ function setValue(el, value) {
   el.dispatchEvent(new Event("change", { bubbles: true }));
 }
 const key = (el, k, code) => ["keydown", "keyup"].forEach(t => el.dispatchEvent(new KeyboardEvent(t, { key: k, code: k, keyCode: code, bubbles: true })));
-const click = el => { ["mousedown", "mouseup", "click"].forEach(t => el.dispatchEvent(new MouseEvent(t, { bubbles: true }))); };
+const click = el => {                         // a real-looking click: pointer + mouse events with coordinates
+  const r = el.getBoundingClientRect();
+  const o = { bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0 };
+  try { el.focus?.({ preventScroll: true }); } catch {}
+  for (const t of ["pointerdown", "mousedown", "pointerup", "mouseup", "click"])
+    el.dispatchEvent(t.startsWith("pointer") ? new PointerEvent(t, { ...o, pointerType: "mouse", isPrimary: true }) : new MouseEvent(t, o));
+};
 
+let KNOWN = new Set();                         // normalised names of every Fiverr category / subcategory / service type
+const normK = s => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 const COMBO = '[role=combobox],[aria-haspopup=listbox],select';
 const optionEls = () => all('[role=option],[role=listbox] li,li[class*=option i],div[class*=option i]');
 
@@ -46,9 +54,27 @@ const leafish = () => [...document.querySelectorAll("li,div,span,a,button,p,labe
 });
 // Opens a dropdown and returns its option texts. Custom dropdowns with no ARIA roles are detected
 // by diffing which elements appeared after the click, and those are tagged data-fgw-opt.
+const closeMenu = el => { key(el, "Escape", 27); document.body.click(); };
+const innermost = list => list.filter(e => !list.some(o => o !== e && e.contains(o)));   // drop wrappers that merely contain another match
+const knownLeaves = () => leafish().filter(e => KNOWN.has(normK(e.innerText)));
+
+// Opens a dropdown and returns its option texts. With the known-names list, options are recognised by their text
+// (independent of Fiverr's markup); several ways of opening the menu are tried.
 async function openOptions(el) {
   if (el.tagName === "SELECT") return dropdownOptions(el);
   document.querySelectorAll("[data-fgw-opt]").forEach(e => delete e.dataset.fgwOpt);
+  if (KNOWN.size) {
+    const targets = [el, el.firstElementChild, el.lastElementChild, el.parentElement].filter((t, i, a) => t && a.indexOf(t) === i);
+    for (const how of [...targets, "keyboard"]) {
+      const before = new Set(knownLeaves());
+      if (how === "keyboard") { el.focus?.(); key(el, "ArrowDown", 40); key(el, "Enter", 13); } else click(how);
+      await sleep(450);
+      const fresh = innermost(knownLeaves().filter(e => !before.has(e)));
+      if (fresh.length >= 1) { fresh.forEach(e => e.dataset.fgwOpt = "1"); return [...new Set(fresh.map(e => e.innerText.trim()))]; }
+      closeMenu(el); await sleep(150);
+    }
+    return [];
+  }
   const before = new Set(leafish());
   const read = () => {
     const roled = optionEls();
@@ -59,11 +85,11 @@ async function openOptions(el) {
   };
   click(el); await sleep(500);
   let texts = read();
-  if (!texts.length && el.firstElementChild) { click(el.firstElementChild); await sleep(450); texts = read(); }   // handler may sit on the inner element
+  if (!texts.length && el.firstElementChild) { click(el.firstElementChild); await sleep(450); texts = read(); }
   return [...new Set(texts.filter(t => t && !t.includes("\n") && !/^\s*(select|choose)\b/i.test(t)))];
 }
 async function choose(el, matcher) {           // matcher: string or RegExp
-  const ok = t => matcher instanceof RegExp ? matcher.test(t) : t.trim().toLowerCase() === String(matcher).trim().toLowerCase();
+  const ok = t => matcher instanceof RegExp ? matcher.test(t) : normK(t) === normK(matcher);
   if (el.tagName === "SELECT") {
     const o = [...el.options].find(o => ok(o.text)); if (!o) return false;
     setValue(el, o.value); return true;
@@ -71,11 +97,19 @@ async function choose(el, matcher) {           // matcher: string or RegExp
   const find = () => {
     let l = optionEls();
     if (!l.length) l = [...document.querySelectorAll("[data-fgw-opt]")].filter(visible);
-    return l.find(o => ok(o.innerText));
+    if (!l.length && KNOWN.size) l = knownLeaves();
+    return innermost(l.filter(o => ok(o.innerText)))[0];
   };
   let o = find();
   if (!o) { await openOptions(el); o = find(); }
-  if (!o) return false; click(o); await sleep(250); return true;
+  if (!o) return false;
+  const picked = typeof matcher === "string" ? normK(matcher) : null;
+  const done = () => !document.contains(o) || !visible(o) || (picked && normK(el.innerText).includes(picked));
+  for (const how of [() => click(o), () => o.click(), () => o.parentElement && click(o.parentElement), () => { key(o, "Enter", 13); }]) {
+    how(); await sleep(300);
+    if (done()) return true;
+  }
+  return false;
 }
 
 const visitedTabs = new Set();
@@ -135,6 +169,25 @@ function findRole(role) {
 function closeDropdown(el) { key(el, "Escape", 27); document.body.click(); }
 
 const handlers = {
+  async SET_NAMES({ names }) { KNOWN = new Set((names || []).map(normK)); return { ok: true, count: KNOWN.size }; },
+
+  // Diagnostic: try to open a dropdown and report exactly what the page does (to send to the developer if it fails)
+  async PROBE_DROPDOWN({ role }) {
+    const el = findRole(role || "category");
+    if (!el) return { found: false, note: "dropdown not found" };
+    const outline = []; for (let n = el, i = 0; n && i < 5; n = n.parentElement, i++) { const cs = getComputedStyle(n); outline.push({ tag: n.tagName, cls: String(n.className).slice(0, 80), role: n.getAttribute("role") || "", cursor: cs.cursor, w: Math.round(n.getBoundingClientRect().width) }); }
+    const tries = [];
+    for (const [name, t] of [["box", el], ["first child", el.firstElementChild], ["last child", el.lastElementChild], ["parent", el.parentElement]]) {
+      if (!t) continue;
+      const before = new Set(leafish());
+      click(t); await sleep(500);
+      const fresh = leafish().filter(e => !before.has(e));
+      tries.push({ target: name, newVisibleTexts: fresh.length, sample: fresh.slice(0, 6).map(e => e.innerText.trim()), knownMatches: fresh.filter(e => KNOWN.has(normK(e.innerText))).length });
+      closeMenu(el); await sleep(200);
+    }
+    return { found: true, known: KNOWN.size, outline, tries };
+  },
+
   // Fiverr shows "Suggested categories" (e.g. "Programming & Tech > AI Development") after you type the title
   async READ_SUGGESTIONS() {
     const head = [...document.querySelectorAll("*")].find(e => visible(e) && /^\s*suggested categories\s*:?\s*$/i.test(e.innerText || ""));

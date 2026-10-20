@@ -25,13 +25,13 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <header><h1>Fiverr Gig Writer</h1><button id="gear" class="ghost" title="Settings">⚙</button></header>
 
 <section id="settings" hidden>
-  <label>Google AI (Gemini) API key — free at aistudio.google.com</label><input id="geminiKey" type="password" placeholder="AIza...">
-  <label>Writing model</label><input id="textModel" placeholder="gemini-3.8-flash">
+  <label>Claude API key (from console.anthropic.com)</label><input id="claudeKey" type="password" placeholder="sk-ant-...">
+  <label>Claude model (blank = fast default)</label><input id="claudeModel" placeholder="claude-haiku-5-5">
   <button id="saveSettings">Save &amp; test key</button>
   <div id="saveMsg" style="margin-top:8px;font-weight:600"></div>
   <label>Category mappings (JSON, editable)</label><textarea id="taxJson" rows="6" style="font-family:monospace;font-size:11px"></textarea>
   <div class="row"><button id="saveTax" class="secondary">Save mappings</button><button id="resetTax" class="secondary">Reset to defaults</button></div>
-  <p class="hint">Key stays in this browser and goes only to Google. Mappings are suggestions, not a verified list of Fiverr's current categories.</p>
+  <p class="hint">Key stays in this browser and goes only to Anthropic. Mappings are suggestions, not a verified list of Fiverr's current categories.</p>
 </section>
 
 <nav id="tabs">

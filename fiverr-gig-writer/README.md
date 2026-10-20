@@ -12,11 +12,11 @@ A side-panel wizard that follows Fiverr's gig-creation pages. On each page you g
 
 ## Install
 1. `chrome://extensions` → Developer mode → **Load unpacked** → this folder.
-2. Click the extension icon (opens the side panel) → ⚙ → paste your free **Google AI (Gemini) API key** (aistudio.google.com) → Save. One key does all the writing.
+2. Click the extension icon (opens the side panel) → ⚙ → paste your **Claude API key** (console.anthropic.com) → Save & test key.
 3. Open Fiverr → Selling → Gigs → Create, keep that tab active, work through steps 1–5.
 
 ## Notes
-- **Writing** uses Gemini (default `gemini-3.8-flash`, free tier). **Image**: Google Flow has no public API, so the free route is copying the prompt into Flow/Gemini yourself; the optional in-panel generator uses a Google image model (may be paid).
+- **Writing** uses the Claude API (default model `claude-haiku-5-5`, fast and cheap; change it in Settings).
 - Fiverr's page markup changes and isn't documented, so field detection is best-effort. If something is missed the panel says so; fill that field by hand. Report what failed and the selectors can be tuned.
 - It never clicks Next/Save/Publish. Keep it that way: automated submitting can get a seller account flagged.
 - Don't claim fake reviews/results in your gig.
@@ -28,7 +28,7 @@ After **Write gig**, the Paste tab shows a Category section: the gig is analysed
 In the Paste tab click **Scan Fiverr categories** on a fresh *Create a Gig* Overview page (nothing selected). The extension opens Fiverr's own dropdowns one by one and saves the real category > subcategory > service type list in this browser. Category analysis then chooses only from that verified list, and filling uses Fiverr's exact names. It never saves or publishes anything; reload the Fiverr page afterwards.
 
 ## Exact mode (default)
-**Write gig** uses exactly what you pasted: Gemini only locates the title, tags, packages, description, FAQs and requirements and guides the category choice. Nothing is rewritten, shortened or invented. Problems (over Fiverr's limits, missing fields, a price below Fiverr's minimum) are shown as warnings, not silently changed. Tick *Let AI write / improve for me* for the old behaviour (fill gaps, shorten, raise prices to the minimum). Fiverr's own "Suggested categories" (when shown) are only a hint for the category choice.
+**Write gig** uses exactly what you pasted: Claude only locates the title, tags, packages, description, FAQs and requirements and guides the category choice. Nothing is rewritten, shortened or invented. Problems (over Fiverr's limits, missing fields, a price below Fiverr's minimum) are shown as warnings, not silently changed. Tick *Let AI write / improve for me* for the old behaviour (fill gaps, shorten, raise prices to the minimum). Fiverr's own "Suggested categories" (when shown) are only a hint for the category choice.
 
 ## Real service-type names
 `fiverr-service-types.json` is a snapshot of Fiverr's own data file (subcategory > service types, 211 subcategories). It is used for the default category suggestions and for a fast scan (the scan then only has to read categories and subcategories). Tick *Also read service types live* to read them from the page instead.

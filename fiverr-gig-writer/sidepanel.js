@@ -1,11 +1,13 @@
 const $ = id => document.getElementById(id);
 const S = { titles: [], pricing: [], image: null, faq: [], hints: "", cat: null, scanned: null };
+let NAMES = [];
 let TAX = window.DEFAULT_TAXONOMY, TAXSRC = "default", SERVICE_TYPES = {};
 // Real subcategory > service types, taken from Fiverr's own data file (snapshot). Used when no live scan of service types was done.
 function applyServiceTypes() {
   if (TAXSRC !== "default" || !Object.keys(SERVICE_TYPES).length) return;
   TAX = window.DEFAULT_TAXONOMY.map(t => ({ ...t, serviceTypes: SERVICE_TYPES[t.subcategory] || t.serviceTypes }));
 }
+try { fetch(chrome.runtime.getURL("fiverr-names.json")).then(r => r.json()).then(j => { NAMES = [...j.c, ...j.s, ...j.t]; }).catch(() => {}); } catch {}
 try { fetch(chrome.runtime.getURL("fiverr-service-types.json")).then(r => r.json()).then(j => { SERVICE_TYPES = j; applyServiceTypes(); }).catch(() => {}); } catch {}
 const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "desc", "req"];
 
@@ -16,13 +18,14 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 async function ai(action, payload, btn) {
   if (btn) btn.disabled = true; status("Working…", true);
-  const t0 = Date.now(), iv = setInterval(() => status(`Working with Gemini… ${Math.round((Date.now() - t0) / 1000)}s`, true), 1000);
+  const t0 = Date.now(), iv = setInterval(() => status(`Working with Claude… ${Math.round((Date.now() - t0) / 1000)}s`, true), 1000);
   try {
     const r = await chrome.runtime.sendMessage({ action, payload });
     if (!r.ok) throw new Error(r.error);
     status("Done.", true); return r.result;
   } catch (e) { status(e.message); throw e; } finally { clearInterval(iv); if (btn) btn.disabled = false; }
 }
+const sendNames = () => NAMES.length ? page("SET_NAMES", { names: NAMES }) : null;
 async function page(type, data) {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab || !/fiverr\.com/.test(tab.url || "")) throw new Error("This tab isn't Fiverr. Click your Fiverr gig editor tab, then try again.");
@@ -38,15 +41,15 @@ const ctx = () => `${S.cat?.analysisText || ""}\n${S.hints || ""}\n${$("scope").
 const esc = x => String(x ?? "").replace(/"/g, "&quot;");
 
 // ---- persistence / tabs / settings
-chrome.storage.local.get(["geminiKey", "textModel", "form", "taxonomy", "scanned"]).then(s => {
+chrome.storage.local.get(["claudeKey", "claudeModel", "form", "taxonomy", "scanned"]).then(s => {
   if (Array.isArray(s.taxonomy) && s.taxonomy.length) { TAX = s.taxonomy; TAXSRC = "custom"; }
   if (s.scanned?.items?.length) { TAX = s.scanned.items; S.scanned = s.scanned; TAXSRC = "scanned"; }
   applyServiceTypes();
   showScanInfo();
   $("taxJson").value = JSON.stringify(TAX, null, 1);
-  $("textModel").value = s.textModel || ""; $("geminiKey").value = s.geminiKey || "";
+  $("claudeModel").value = s.claudeModel || ""; $("claudeKey").value = s.claudeKey || "";
   KEYS.forEach(k => s.form?.[k] && ($(k).value = s.form[k]));
-  if (!s.geminiKey) $("settings").hidden = false; counts();
+  if (!s.claudeKey) $("settings").hidden = false; counts();
 });
 KEYS.forEach(k => $(k).addEventListener("input", () => {
   chrome.storage.local.set({ form: Object.fromEntries(KEYS.map(x => [x, $(x).value])) }); counts();
@@ -55,12 +58,12 @@ const counts = () => $("dlen").textContent = `${$("desc").value.length}/1200`;
 $("gear").onclick = () => $("settings").hidden = !$("settings").hidden;
 $("saveSettings").onclick = async () => {
   const msg = (t, ok) => { $("saveMsg").textContent = t; $("saveMsg").style.color = ok ? "#117a45" : "#b00"; };
-  const key = $("geminiKey").value.trim();
+  const key = $("claudeKey").value.trim();
   if (!key) return msg("Paste your key first.");
   try {
-    await chrome.storage.local.set({ textModel: $("textModel").value.trim(), geminiKey: key });
-    const back = await chrome.storage.local.get("geminiKey");
-    if (back.geminiKey !== key) return msg("Could not save to Chrome storage. Reload the extension and try again.");
+    await chrome.storage.local.set({ claudeModel: $("claudeModel").value.trim(), claudeKey: key });
+    const back = await chrome.storage.local.get("claudeKey");
+    if (back.claudeKey !== key) return msg("Could not save to Chrome storage. Reload the extension and try again.");
     msg("Saved. Testing key…", true);
     const r = await chrome.runtime.sendMessage({ action: "ping", payload: {} });
     msg(r.ok ? "Saved ✓ Key works." : "Saved, but the key test failed: " + r.error, r.ok);
@@ -87,6 +90,7 @@ $("fillOverview").onclick = async function () {
     const r = await page("FILL_OVERVIEW", { title: t, tags });
     if (!r.filled.length) status("Couldn't find the title/tag boxes. Click \"Scan page\" at the bottom and send me the result.");
     else status(`Filled ${r.filled.join(", ")}. Picking categories…`, true);
+    await sendNames();
     const plan = await ensureCategory();                  // {category, subcategory, serviceType, metadata}
     let sg = [];                                          // Fiverr may suggest categories from the title (not always)
     for (let k = 0; k < 6 && !sg.length; k++) { await sleep(500); sg = (await page("READ_SUGGESTIONS", {})).items || []; }
@@ -101,7 +105,14 @@ $("fillOverview").onclick = async function () {
     if (!usedSuggestion && sg.length) status(`Fiverr suggests: ${sg.map(x => x.text).join("; ")}. Using ${plan.category} › ${plan.subcategory} from your gig instead.`, true);
     for (let i = 0; i < 8; i++) {                         // category -> subcategory -> service type -> ...
       const d = await page("NEXT_DROPDOWN", {});
-      if (!d.found) break;
+      if (!d.found) {
+        if (i === 0 && !usedSuggestion) {                // nothing could be opened: report instead of silently skipping
+          const probe = await page("PROBE_DROPDOWN", { role: "category" });
+          try { await navigator.clipboard.writeText(JSON.stringify(probe, null, 1)); } catch {}
+          throw new Error("I couldn't open Fiverr's category dropdown (or it is already filled). If it is empty, I copied a diagnostic report: paste it in the chat and I'll fix it.");
+        }
+        break;
+      }
       const kind = /sub\s*-?\s*categor/i.test(d.label) ? "subcategory" : /categor/i.test(d.label) ? "category" : /service\s*type/i.test(d.label) ? "serviceType" : "other";
       const target = plan[kind];
       let choice = target ? bestMatch(target, d.options) : null, note = "";
@@ -415,10 +426,15 @@ $("scanTax").onclick = async function () {
   S.stopScan = false; this.disabled = true; $("stopScan").hidden = false;
   const items = [];
   try {
+    await sendNames();
     const init = await page("TAX_INIT", {});
     if (!init.ok) throw new Error("I can't find the empty category and subcategory dropdowns. Open a fresh Create a Gig page (nothing selected) and try again.");
     const cats = (await page("TAX_LIST", { role: "category" })).options;
-    if (!cats.length) throw new Error("I couldn't read the category list.");
+    if (!cats.length) {
+      const probe = await page("PROBE_DROPDOWN", { role: "category" });
+      try { await navigator.clipboard.writeText(JSON.stringify(probe, null, 1)); } catch {}
+      throw new Error("I couldn't open Fiverr's category dropdown. I copied a diagnostic report to your clipboard: paste it in the chat and I'll fix it.");
+    }
     for (let i = 0; i < cats.length && !S.stopScan; i++) {
       status(`Scanning ${cats[i]} (${i + 1}/${cats.length})…`, true);
       if (!(await page("TAX_PICK", { role: "category", text: cats[i] })).ok) continue;
