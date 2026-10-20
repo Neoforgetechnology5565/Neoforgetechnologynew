@@ -41,6 +41,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 <div id="s0" class="step">
   <label>Paste everything you have: rough notes, a ChatGPT document, anything</label>
   <textarea id="paste" rows="12" placeholder="e.g. I build AI video analysis and event detection with Python and YOLO. Packages around $90 / $250 / $600. Buyers are businesses with CCTV or sports footage…"></textarea>
+  <label style="font-weight:400"><input type="checkbox" id="improve" style="width:auto"> Let AI write / improve for me (fill gaps, shorten to Fiverr's limits, raise prices to Fiverr's minimum). <b>Off = use exactly what I pasted.</b></label>
   <button id="parsePaste">Write gig</button>
   <div id="pasteSummary" class="summary"></div>
   <label style="font-weight:400"><input type="checkbox" id="auto" style="width:auto" checked> Auto-fill and continue: after writing, fill this page, click Save &amp; Continue, and repeat (never Publish)</label>

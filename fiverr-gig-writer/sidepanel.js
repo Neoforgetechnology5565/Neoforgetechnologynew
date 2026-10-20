@@ -99,7 +99,7 @@ $("fillOverview").onclick = async function () {
       let choice = target ? bestMatch(target, d.options) : null, note = "";
       if (!choice) {
         const strict = kind === "category" || kind === "subcategory";
-        const p = await chrome.runtime.sendMessage({ action: "pick", payload: { label: d.label, options: d.options, title: t, keywords: tags, context: ctx(), target, strict } });
+        const p = await chrome.runtime.sendMessage({ action: "pick", payload: { label: d.label, options: d.options, title: t, keywords: tags, context: ctx(), target, strict, fiverrSuggestions: sg.map(x => x.text) } });
         if (!p.ok) throw new Error(p.error);
         choice = d.options.find(o => norm(o) === norm(p.result.choice)) || null;   // must be a real option on the page
         if (!choice && strict) throw new Error(`Fiverr's list has no ${kind} matching "${target}". Choose it yourself on the page (options include: ${d.options.slice(0, 8).join(", ")}), then click Fill this Fiverr page again.`);
@@ -143,7 +143,7 @@ $("fillPricing").onclick = async function () {
     const o = S.pricing[chosen("price")];
     let pk = [o.basic, o.standard, o.premium].map(p => ({ ...p }));
     const adj = [], min = (await page("MIN_PRICE", {})).min;          // Fiverr shows a minimum package price
-    if (min) pk.forEach((p, i) => {
+    if (min && $("improve").checked) pk.forEach((p, i) => {
       const was = Number(p.price); let np = Math.max(was, min);
       if (i && np <= pk[i - 1].price) np = Math.round(pk[i - 1].price * 2.5 / 10) * 10;
       if (np !== was) adj.push(`${["Basic", "Standard", "Premium"][i]} $${was} → $${np}`); p.price = np;
@@ -157,7 +157,8 @@ $("fillPricing").onclick = async function () {
       const apply = m.result.rows.map(x => ({ ...g.rows[x.index], values: x.values })).filter(x => x.ids);
       const a = await page("PRICING_APPLY", { rows: apply });
       status(`Filled pricing and ${g.rows.length} feature rows (${a.count} changes). Check everything, then click Next on Fiverr.`, true);
-      if (adj.length) status(`Filled pricing and features. Raised prices to Fiverr's $${min} minimum: ${adj.join(", ")}. Check everything.`, true);
+      if (min && !$("improve").checked && pk.some(p => Number(p.price) < min)) status(`Fiverr requires package prices of at least $${min}, but your paste has ${pk.map(p => "$" + p.price).join(" / ")}. I left your prices as pasted. Change them on the page or in your paste (or tick "Let AI write / improve for me"), then continue.`);
+      else if (adj.length) status(`Filled pricing and features. Raised prices to Fiverr's $${min} minimum: ${adj.join(", ")}. Check everything.`, true);
     } else status("Pricing filled, but I couldn't find the feature tick boxes. Tick them by hand, or click Scan page and send me the result.", true);
   } catch (e) { status(e.message); }
 };
@@ -172,6 +173,7 @@ $("fillDesc").onclick = async () => {
   try {
     const r = await page("FILL_DESCRIPTION", { text: $("desc").value });
     if (!r.ok) return status("Couldn't find the description box.");
+    if ($("desc").value.length > 1200) return status(`Description filled, but it is ${$("desc").value.length} characters and Fiverr's limit is 1200, so Fiverr will not accept it. Shorten it in your paste (or tick "Let AI write / improve for me"), then continue.`);
     let msg = "Description filled.";
     if (S.faq?.length) { const f = await page("FILL_FAQ", { items: S.faq }); msg += ` Added ${f.count} of ${S.faq.length} FAQs.`; }
     status(msg + " Check it, then click Next on Fiverr.", true);
@@ -247,7 +249,7 @@ $("scan").onclick = async () => {
 $("parsePaste").onclick = async function () {
   const text = $("paste").value.trim();
   if (!text) return status("Paste your notes or gig text first.");
-  const g = await ai("parsePaste", { text }, this);
+  const g = await ai("parsePaste", { text, exact: !$("improve").checked }, this);
   S.faq = g.faq || []; S.hints = g.categoryHints || "";
   const set = (id, v) => { $(id).value = v; $(id).dispatchEvent(new Event("input")); };
   const warn = [];
@@ -269,10 +271,11 @@ $("parsePaste").onclick = async function () {
     `Title: ${g.title || "(none found)"}`, `Tags: ${(g.tags || []).join(", ") || "(none)"}`,
     `Packages: ${(g.packages || []).length === 3 ? g.packages.map(p => `${p.name} $${p.price}/${p.days}d`).join(" / ") : "(not found)"}`,
     `Description: ${(g.description || "").length} chars`, `FAQs: ${S.faq.length}`, `Requirements: ${(g.requirements || []).length}`,
-    warn.length ? "⚠ " + warn.join("; ") : ""].filter(Boolean).join("\n");
+    warn.length ? "⚠ " + warn.join("; ") : "", ...(g.warnings || []).map(w => "⚠ " + w)].filter(Boolean).join("\n");
   $("fillThis").disabled = false;
   S.noteText = (g.notes || []).join("; ");
   if (S.noteText) $("pasteSummary").textContent += "\nFixed for Fiverr: " + S.noteText;
+  if (!$("improve").checked && (g.warnings || []).some(w => /characters \(Fiverr max|tags; Fiverr/.test(w))) S.overLimit = true; else S.overLimit = false;
   status("Gig written. Analyzing the category…", true);
   try { await runCategorize(); }
   catch (e) { return status("Gig written, but the category analysis failed: " + e.message + " Choose the category below, then click Fill this Fiverr page."); }

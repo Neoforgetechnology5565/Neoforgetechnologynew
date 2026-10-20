@@ -52,6 +52,44 @@ async function claudeJSON(system, user, maxTokens = 2000) {
 
 const COPY_RULES = `You write Fiverr gigs that rank in search and convert. Be honest: no fake reviews, numbers, guarantees or claims the seller didn't state. Plain, natural English.`;
 
+// "Use exactly what I pasted": Gemini only LOCATES the fields. Nothing is rewritten, shortened or invented;
+// problems (over Fiverr's limits, wording that differs from the paste) are reported as warnings, never silently "fixed".
+async function parseExact(clean) {
+  const g = await claudeJSON(`You are a precise extractor for a Fiverr gig. The seller's pasted text already contains everything they want. COPY it EXACTLY, character for character: never rewrite, shorten, correct, reorder, summarize, translate or add anything. If a field is not in the text, leave it empty ("" or []). Remove only markdown artifacts (trailing backslashes, ** markers, link syntax, "Copy-ready description" style labels). Ignore portfolio ideas, long keyword lists, checklists and notes.
+- title: the gig title exactly as written.
+- tags: the search tags exactly as written (the 5 tags section).
+- categoryHints: the category / subcategory / service type / expertise / language / technologies lines, copied.
+- scope: ONLY for internal category analysis: one factual sentence summarising what the seller delivers.
+- packages: Basic, Standard, Premium, each {name (the part after the dash), description (the "Package description" text exactly), days, price, revisions, includes (bullets exactly)}; [] if the text has none.
+- description: the gig description exactly, keeping paragraph breaks and bullets.
+- faq: [{question, answer}] exactly, without the "Q1." prefix.
+- requirements: one string per buyer question, exactly; if a question lists answer options, append them to the same string as "Question? Options: A / B / C". Include "additional project details" only if the text lists it.
+Shape: {"title":"","categoryHints":"","tags":[],"scope":"","packages":[{"name":"","description":"","days":0,"price":0,"revisions":0,"includes":[]}],"description":"","faq":[{"question":"","answer":""}],"requirements":[]}`, clean, 7000);
+  const nz = s => String(s || "").toLowerCase().replace(/[\s\\*_`#>•–—-]+/g, " ").trim();
+  const src = nz(clean), warnings = [];
+  g.title = String(g.title || "").trim();
+  if (g.title && !src.includes(nz(g.title))) {               // the model changed the wording: use the pasted line itself
+    const line = clean.split("\n").map(l => l.replace(/^[\s#>*-]+/, "").trim()).find(l => /^i will\b/i.test(l));
+    if (line) g.title = line; else warnings.push("The title wording differs from your paste.");
+  }
+  g.description = String(g.description || "").trim();
+  if (g.description && !src.includes(nz(g.description))) warnings.push("The description wording may differ slightly from your paste. Compare before publishing.");
+  g.tags = (g.tags || []).map(t => String(t).trim()).filter(Boolean);
+  g.packages = (g.packages || []).slice(0, 3).map(p => ({ ...p, days: parseInt(p.days) || 1, price: parseInt(String(p.price).replace(/[^\d]/g, "")) || 0, revisions: parseInt(p.revisions) || 1 }));
+  g.faq = g.faq || []; g.requirements = (g.requirements || []).map(r => String(r).replace(/\s*\n\s*/g, " "));
+  const over = (v, n, what) => { if (String(v).length > n) warnings.push(`${what} is ${String(v).length} characters (Fiverr max ${n}).`); };
+  over(g.title, 80, "Title"); over(g.description, 1200, "Description");
+  if (g.tags.length > 5) warnings.push(`There are ${g.tags.length} tags; Fiverr allows 5.`);
+  g.tags.forEach(t => over(t, 20, `Tag "${t}"`));
+  g.packages.forEach((p, i) => { over(p.name, 25, `Package ${i + 1} name`); over(p.description, 100, `Package ${i + 1} description`); });
+  g.faq.forEach((f, i) => { over(f.question, 100, `FAQ ${i + 1} question`); over(f.answer, 300, `FAQ ${i + 1} answer`); });
+  g.requirements.forEach((r, i) => over(r, 400, `Requirement ${i + 1}`));
+  const missing = [!g.title && "title", !g.tags.length && "tags", g.packages.length !== 3 && "packages", !g.description && "description", !g.faq.length && "FAQs", !g.requirements.length && "requirements"].filter(Boolean);
+  if (missing.length) warnings.push(`Not found in your paste: ${missing.join(", ")}.`);
+  g.warnings = warnings; g.notes = [];
+  return g;
+}
+
 const handlers = {
   async ping() { return claudeJSON("Reply with the JSON {\"ok\":true}", "ping", 50); },
   // 5 keywords -> 5 title options
@@ -84,8 +122,9 @@ Shape: {"rows":[{"index":0,"values":[false,true,true]}]}`,
       `Gig: ${title}\nScope: ${scope}\nPackages:\n${packages.map((p, i) => `${i + 1}. ${p.name} ($${p.price}, ${p.days} days, ${p.revisions ?? "?"} revisions): ${p.description}. Includes: ${(p.includes || []).join("; ") || "n/a"}`).join("\n")}\nRows:\n${rows.map((r, i) => `${i}. [${r.kind}] ${r.label}${r.options ? " options: " + r.options.join(" | ") : ""}`).join("\n")}`, 2500);
   },
   // "Write gig": turns ANY pasted text (rough notes or a finished document) into a Fiverr-standard gig
-  async parsePaste({ text }) {
+  async parsePaste({ text, exact }) {
     const clean = text.replace(/\\\r?\n/g, "\n").replace(/\\$/gm, "").slice(0, 30000);   // markdown line-break backslashes
+    if (exact) return parseExact(clean);
     const g = await claudeJSON(`You are a senior Fiverr gig writer. The seller pastes everything they have: it may be rough notes, a few lines, or a finished ChatGPT document. Produce ONE complete, well-structured gig that meets Fiverr's standards.
 
 Rules:
@@ -125,12 +164,12 @@ Shape: {"description":""}`, g.description, 2500);
     g.notes = notes;
     return g;
   },
-  async pick({ label, options, title, keywords, context, target, strict }) {
+  async pick({ label, options, title, keywords, context, target, strict, fiverrSuggestions }) {
     return claudeJSON(`You choose the single best option in a Fiverr gig form dropdown. Pick only from the given options, exactly as written.
 If a TARGET is given, choose the option that means the same as the target (ignore small wording differences). ${strict ? 'If no option is equivalent to the target, answer "NONE".' : "If no option is equivalent, choose the closest real option for this gig."}
 Never choose an option that belongs to an unrelated field (for example web development for an architecture gig).
 Shape: {"choice":"<option text, or NONE>"}`,
-      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nTARGET: ${target || "(none)"}\nDropdown: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 300);
+      `Gig title: ${title}\nKeywords: ${keywords.join(", ")}\nAbout the gig: ${context || "n/a"}\nFiverr's own suggestions from the title (a hint only; they may be empty or wrong): ${(fiverrSuggestions || []).join("; ") || "none"}\nTARGET: ${target || "(none)"}\nDropdown: ${label || "(unlabelled)"}\nOptions:\n${options.map(o => "- " + o).join("\n")}`, 300);
   },
   // scope + days idea + budget -> 3 complete pricing schemes to choose from
   async pricing({ title, scope, days, budget }) {

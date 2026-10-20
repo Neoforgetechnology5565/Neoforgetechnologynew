@@ -26,3 +26,6 @@ After **Write gig**, the Paste tab shows a Category section: the gig is analysed
 
 ## Scan Fiverr categories
 In the Paste tab click **Scan Fiverr categories** on a fresh *Create a Gig* Overview page (nothing selected). The extension opens Fiverr's own dropdowns one by one and saves the real category > subcategory > service type list in this browser. Category analysis then chooses only from that verified list, and filling uses Fiverr's exact names. It never saves or publishes anything; reload the Fiverr page afterwards.
+
+## Exact mode (default)
+**Write gig** uses exactly what you pasted: Gemini only locates the title, tags, packages, description, FAQs and requirements and guides the category choice. Nothing is rewritten, shortened or invented. Problems (over Fiverr's limits, missing fields, a price below Fiverr's minimum) are shown as warnings, not silently changed. Tick *Let AI write / improve for me* for the old behaviour (fill gaps, shorten, raise prices to the minimum). Fiverr's own "Suggested categories" (when shown) are only a hint for the category choice.
