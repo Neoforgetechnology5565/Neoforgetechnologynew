@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const S = { titles: [], pricing: [], image: null, faq: [], hints: "", cat: null };
+const S = { titles: [], pricing: [], image: null, faq: [], hints: "", cat: null, scanned: null };
 let TAX = window.DEFAULT_TAXONOMY;
 const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "desc", "req"];
 
@@ -31,8 +31,10 @@ const ctx = () => `${S.cat?.analysisText || ""}\n${S.hints || ""}\n${$("scope").
 const esc = x => String(x ?? "").replace(/"/g, "&quot;");
 
 // ---- persistence / tabs / settings
-chrome.storage.local.get(["geminiKey", "textModel", "form", "taxonomy"]).then(s => {
+chrome.storage.local.get(["geminiKey", "textModel", "form", "taxonomy", "scanned"]).then(s => {
   if (Array.isArray(s.taxonomy) && s.taxonomy.length) TAX = s.taxonomy;
+  if (s.scanned?.items?.length) { TAX = s.scanned.items; S.scanned = s.scanned; }
+  showScanInfo();
   $("taxJson").value = JSON.stringify(TAX, null, 1);
   $("textModel").value = s.textModel || ""; $("geminiKey").value = s.geminiKey || "";
   KEYS.forEach(k => s.form?.[k] && ($(k).value = s.form[k]));
@@ -351,7 +353,7 @@ const analysisOf = c => `Main service: ${c.mainService}. Deliverables: ${(c.deli
 async function runCategorize() {
   const pk = S.pricing[0] ? [S.pricing[0].basic, S.pricing[0].standard, S.pricing[0].premium].map(p => p.name).join(", ") : "";
   const r = await ai("categorize", { title: title() || "", scope: $("scope").value, description: $("desc").value.slice(0, 1200), packages: pk, hints: S.hints,
-    taxonomy: TAX.map(t => ({ category: t.category, subcategory: t.subcategory, serviceTypes: t.serviceTypes })) });
+    taxonomy: TAX.map(t => ({ category: t.category, subcategory: t.subcategory, serviceTypes: t.serviceTypes })), verified: !!S.scanned });
   r.candidates = (r.candidates || []).map(x => ({ ...x, confidence: Math.max(0, Math.min(1, Number(x.confidence) || 0)) })).sort((a, b) => b.confidence - a.confidence).slice(0, 3);
   if (!r.candidates.length) throw new Error("No category suggestions came back.");
   r.chosen = r.candidates[0]; r.manual = false; r.analysisText = analysisOf(r); S.cat = r;
@@ -379,3 +381,42 @@ $("saveTax").onclick = async () => {
   } catch (e) { $("saveMsg").textContent = "Mappings not saved: " + e.message; $("saveMsg").style.color = "#b00"; }
 };
 $("resetTax").onclick = async () => { TAX = window.DEFAULT_TAXONOMY; await chrome.storage.local.remove("taxonomy"); $("taxJson").value = JSON.stringify(TAX, null, 1); $("saveMsg").textContent = "Mappings reset."; };
+
+// ---- scan Fiverr's real category list (category > subcategory > service type) from the open Create-a-Gig page
+function showScanInfo() {
+  const sc = S.scanned;
+  $("scanInfo").textContent = sc ? `Using the VERIFIED list scanned ${new Date(sc.at).toLocaleString()}: ${uniq(sc.items.map(i => i.category)).length} categories, ${sc.items.length} subcategories.`
+    : "Using suggested mappings (not verified). Scan Fiverr to use its real category names.";
+}
+$("scanTax").onclick = async function () {
+  S.stopScan = false; this.disabled = true; $("stopScan").hidden = false;
+  const items = [];
+  try {
+    const init = await page("TAX_INIT", {});
+    if (!init.ok) throw new Error("I can't find the empty category and subcategory dropdowns. Open a fresh Create a Gig page (nothing selected) and try again.");
+    const cats = (await page("TAX_LIST", { role: "category" })).options;
+    if (!cats.length) throw new Error("I couldn't read the category list.");
+    for (let i = 0; i < cats.length && !S.stopScan; i++) {
+      status(`Scanning ${cats[i]} (${i + 1}/${cats.length})…`, true);
+      if (!(await page("TAX_PICK", { role: "category", text: cats[i] })).ok) continue;
+      await sleep(1200);
+      const subs = (await page("TAX_LIST", { role: "subcategory" })).options;
+      for (let j = 0; j < subs.length && !S.stopScan; j++) {
+        status(`Scanning ${cats[i]} (${i + 1}/${cats.length}) › ${subs[j]} (${j + 1}/${subs.length})`, true);
+        let sts = [];
+        if (!(await page("TAX_PICK", { role: "subcategory", text: subs[j] })).ok) continue;
+        if ($("scanST").checked) { await sleep(1200); sts = (await page("TAX_LIST", { role: "service" })).options; }
+        items.push({ category: cats[i], subcategory: subs[j], serviceTypes: sts });
+      }
+      if (items.length) { S.scanned = { at: Date.now(), items: [...items] }; await chrome.storage.local.set({ scanned: S.scanned }); }   // keep progress
+    }
+    if (!items.length) throw new Error("Nothing was scanned.");
+    S.scanned = { at: Date.now(), items }; TAX = items; await chrome.storage.local.set({ scanned: S.scanned });
+    $("taxJson").value = JSON.stringify(TAX, null, 1); showScanInfo();
+    status(`${S.stopScan ? "Stopped. Saved" : "Done. Saved"} ${items.length} subcategories. Reload the Fiverr page before writing a gig, because the scan changed the dropdowns.`, true);
+  } catch (e) {
+    if (items.length) { S.scanned = { at: Date.now(), items }; TAX = items; await chrome.storage.local.set({ scanned: S.scanned }); showScanInfo(); }
+    status(e.message);
+  } finally { this.disabled = false; $("stopScan").hidden = true; }
+};
+$("stopScan").onclick = () => { S.stopScan = true; status("Stopping after this step…"); };

@@ -44,6 +44,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
   <button id="parsePaste">Write gig</button>
   <div id="pasteSummary" class="summary"></div>
   <label style="font-weight:400"><input type="checkbox" id="auto" style="width:auto" checked> Auto-fill and continue: after writing, fill this page, click Save &amp; Continue, and repeat (never Publish)</label>
+  <div id="scanBox" class="summary" style="border:1px solid #ddd;border-radius:6px;padding:8px">
+    <b>Fiverr categories</b>
+    <div id="scanInfo" class="hint"></div>
+    <label style="font-weight:400"><input type="checkbox" id="scanST" style="width:auto" checked> Also scan service types (slower)</label>
+    <button id="scanTax" class="secondary">Scan Fiverr categories</button>
+    <button id="stopScan" class="secondary" hidden>Stop (keeps what was scanned)</button>
+    <div class="hint">Open a fresh <b>Create a Gig</b> Overview page (nothing selected yet), then click Scan. It opens Fiverr's own dropdowns one by one, takes a few minutes, and never saves or publishes anything.</div>
+  </div>
   <div id="catBox" hidden>
     <label>Category <span>(suggested mapping, not a verified live Fiverr list)</span></label>
     <div id="catWhy" class="summary"></div>

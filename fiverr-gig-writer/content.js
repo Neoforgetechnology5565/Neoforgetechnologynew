@@ -50,15 +50,16 @@ async function openOptions(el) {
   if (el.tagName === "SELECT") return dropdownOptions(el);
   document.querySelectorAll("[data-fgw-opt]").forEach(e => delete e.dataset.fgwOpt);
   const before = new Set(leafish());
-  click(el); await sleep(500);
-  let texts;
-  const roled = optionEls();
-  if (roled.length) texts = roled.map(o => o.innerText.trim());
-  else {
+  const read = () => {
+    const roled = optionEls();
+    if (roled.length) return roled.map(o => o.innerText.trim());
     const fresh = leafish().filter(e => !before.has(e));
     fresh.forEach(e => e.dataset.fgwOpt = "1");
-    texts = fresh.map(e => e.innerText.trim());
-  }
+    return fresh.map(e => e.innerText.trim());
+  };
+  click(el); await sleep(500);
+  let texts = read();
+  if (!texts.length && el.firstElementChild) { click(el.firstElementChild); await sleep(450); texts = read(); }   // handler may sit on the inner element
   return [...new Set(texts.filter(t => t && !t.includes("\n") && !/^\s*(select|choose)\b/i.test(t)))];
 }
 async function choose(el, matcher) {           // matcher: string or RegExp
@@ -112,7 +113,44 @@ function pricingGrid() {
   return { cols, left: cx[0] - half };
 }
 
+// ---- taxonomy scan: find the category / subcategory / service-type dropdowns on a fresh "Create a Gig" Overview page
+function boxOf(leaf) {                      // the clickable dropdown box that contains a placeholder text
+  let n = leaf, pointer = null;
+  for (let i = 0; i < 5 && n && n !== document.body; i++, n = n.parentElement) {
+    const cs = getComputedStyle(n), w = n.getBoundingClientRect().width;
+    if (parseFloat(cs.borderTopWidth) > 0 && w > 120 && w < 700) return n;          // bordered box
+    if (cs.cursor === "pointer" && w < 700) pointer = n;                              // outermost clickable ancestor
+  }
+  return pointer || leaf;
+}
+const PLACEHOLDER = { category: /^\s*select (a |an )?categor(y|ies)\s*$/i, subcategory: /^\s*select (a |an )?sub-?\s*categor(y|ies)\s*$/i, service: /^\s*select\b/i };
+function findRole(role) {
+  const tagged = document.querySelector(`[data-fgw-role="${role}"]`);
+  if (tagged && document.contains(tagged) && visible(tagged)) return tagged;
+  const cand = leafish().filter(e => PLACEHOLDER[role].test((e.innerText || "").trim()) && !e.closest("[data-fgw-role]"));
+  if (!cand.length) return null;
+  const inner = cand.filter(e => !cand.some(o => o !== e && e.contains(o)))[0];   // innermost match
+  const box = boxOf(inner); box.dataset.fgwRole = role; return box;
+}
+function closeDropdown(el) { key(el, "Escape", 27); document.body.click(); }
+
 const handlers = {
+  async TAX_INIT() {
+    document.querySelectorAll("[data-fgw-role]").forEach(e => delete e.dataset.fgwRole);
+    const cat = findRole("category"), sub = findRole("subcategory");
+    return { ok: !!(cat && sub), category: !!cat, subcategory: !!sub };
+  },
+  async TAX_LIST({ role }) {
+    const el = findRole(role); if (!el) return { found: false, options: [] };
+    const options = await openOptions(el);
+    closeDropdown(el); await sleep(250);
+    return { found: true, options };
+  },
+  async TAX_PICK({ role, text }) {
+    const el = findRole(role); if (!el) return { ok: false };
+    const ok = await choose(el, text); await sleep(300);
+    return { ok };
+  },
   // Clicks the page's Save & Continue / Next button. Never clicks Publish.
   async CLICK_NEXT() {
     const btns = [...document.querySelectorAll("button,a,[role=button]")].filter(b => visible(b) && !/publish/i.test(b.innerText || ""));

@@ -23,3 +23,6 @@ A side-panel wizard that follows Fiverr's gig-creation pages. On each page you g
 
 ## Category analysis
 After **Write gig**, the Paste tab shows a Category section: the gig is analysed (main service, deliverables, tools, industry) and the top 3 category paths are suggested with a confidence score and reason. You can change category / subcategory / service type by hand (changing the category resets the rest). Below 75% confidence it asks you to choose instead of filling. Mappings are **suggestions**, editable in Settings (⚙ > Category mappings); when filling, the extension only selects options Fiverr actually shows and stops rather than substituting a different category.
+
+## Scan Fiverr categories
+In the Paste tab click **Scan Fiverr categories** on a fresh *Create a Gig* Overview page (nothing selected). The extension opens Fiverr's own dropdowns one by one and saves the real category > subcategory > service type list in this browser. Category analysis then chooses only from that verified list, and filling uses Fiverr's exact names. It never saves or publishes anything; reload the Fiverr page afterwards.
