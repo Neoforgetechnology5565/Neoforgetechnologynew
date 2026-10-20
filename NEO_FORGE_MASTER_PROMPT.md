@@ -208,3 +208,11 @@ Keep the stack lean: Next.js + Firebase + Cloudinary + Vercel + GitHub only.
 
 **Live indicators in admin** — the sidebar polls `/api/admin/counts` every 12 s: number badges on Inquiries and Live chat (unread), “N visitors online now”, a pop-up when a visitor arrives or a new message/inquiry comes in, and the unread total in the browser tab title. “Online now” uses an anonymous heartbeat (`/api/presence`, random in-memory id per page load, nothing stored on the visitor's device, no IP stored), counted over the last 90 seconds; the Privacy Policy template describes it and the AI replies.
 
+## 16. Chat choices, emailed replies and visitor notifications
+
+**Welcome + choices** — on the first message the visitor gets a welcome with the AI's answer, then a message with two bold options and buttons: **Continue with AI support** (the AI keeps answering) or **Talk to the Developer** (`POST /api/chat/[id]/choose`: the AI stops, the chat is flagged “Wants Developer” in admin, the owner gets an alert email and the visitor a confirmation email). If the visitor just types, the AI continues. Your first reply clears the flag and permanently stops the AI for that chat.
+
+**Everything you send reaches the visitor's inbox** — each admin reply in live chat is emailed to the address the visitor entered (up to 30 per chat); enquiries can be answered from Admin → Inquiries (“Reply by email”: sent to the visitor's address and kept on the inquiry). AI replies are not emailed (they are instant in the chat).
+
+**Notifications on the visitor's phone or browser (opt-in Web Push)** — after starting a chat or sending an enquiry the visitor can tap “Notify me on this device when you reply”. Replies then trigger a notification even when the site is closed (service worker `public/sw.js`, `src/lib/push.ts`, `web-push`). Needs a VAPID key pair: generate in Admin → Maintenance, then add `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` (optional `VAPID_SUBJECT`) in Vercel and redeploy. Subscriptions are stored per chat/enquiry behind a secret token; expired ones are removed automatically. iPhone requires the site to be added to the Home Screen.
+

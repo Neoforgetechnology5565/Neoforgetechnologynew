@@ -17,10 +17,13 @@ export const pushSubSchema = z.object({
 });
 export type PushSub = z.infer<typeof pushSubSchema>;
 
+/** Web Push needs an https: or mailto: contact for the sender. */
+const vapidSubject = () => process.env.VAPID_SUBJECT || (siteUrl().startsWith("https://") ? siteUrl() : `mailto:${process.env.SMTP_USER || "noreply@neoforgetechnologies.com"}`);
+
 /** Sends a notification to each subscription. Returns the subscriptions that are still valid (expired ones are dropped). */
 export async function sendPush(subs: PushSub[], p: { title: string; body: string; url: string; tag?: string }): Promise<PushSub[]> {
   if (!pushConfigured() || !subs.length) return subs;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || siteUrl(), process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
+  webpush.setVapidDetails(vapidSubject(), process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!, process.env.VAPID_PRIVATE_KEY!);
   const b = await getBranding().catch(() => null);
   const payload = JSON.stringify({ ...p, body: p.body.slice(0, 180), icon: b?.icon ? iconUrl(b.icon, 192) : undefined });
   const keep: PushSub[] = [];
