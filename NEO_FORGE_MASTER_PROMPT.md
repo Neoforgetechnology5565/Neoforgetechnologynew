@@ -199,3 +199,12 @@ Keep the stack lean: Next.js + Firebase + Cloudinary + Vercel + GitHub only.
 **Reviews** — Admin → Reviews (name, role, text, 0–5 stars, source and link, visible, order). Shown as a quote section on the home page and every service page; nothing is shown until real reviews are added. Star-rating markup (AggregateRating + Review on the Service JSON-LD) is added automatically only when 3 or more visible reviews have a rating. The admin page warns to add only genuine, permitted reviews.
 
 **Speed** — images are lazy-loaded with responsive `srcset` and `f_auto,q_auto`; the hero slide is 1280 px with high fetch priority for the first image; photo uploads are shrunk on upload by Cloudinary (`c_limit,w_2400,h_2400,q_auto:good`, signed, not applied to PDFs/SVG/GIF).
+
+## 15. Auto-replies and live indicators
+
+**AI replies in live chat** — each visitor message gets a short reply from an AI assistant (`src/lib/ai-reply.ts`, `src/lib/auto-reply.ts`), labelled “AI assistant” with a typing indicator and a disclosure line; max 8 AI replies per chat, 40 per IP per hour; it stops permanently once an admin replies (`humanTakeover`). The prompt forbids prices, delivery times, invented clients/results and rule changes by the visitor; it can only answer and ask up to two questions. Without an API key the first message still gets a fixed “automatic reply”. Model: `ANTHROPIC_CHAT_MODEL` (default `claude-sonnet-5-5`).
+
+**Enquiry acknowledgement email** — after the contact form is saved, the owner is emailed (as before) and the sender gets an acknowledgement email (AI-written when a key is set, otherwise a fixed template), at most one per address per 24 h, recorded on the inquiry (`autoReply`) and shown in Admin → Inquiries. Both behaviours have switches in Admin → Site content → Contact & chat (`aiChatReply`, `aiEmailReply`).
+
+**Live indicators in admin** — the sidebar polls `/api/admin/counts` every 12 s: number badges on Inquiries and Live chat (unread), “N visitors online now”, a pop-up when a visitor arrives or a new message/inquiry comes in, and the unread total in the browser tab title. “Online now” uses an anonymous heartbeat (`/api/presence`, random in-memory id per page load, nothing stored on the visitor's device, no IP stored), counted over the last 90 seconds; the Privacy Policy template describes it and the AI replies.
+
