@@ -29,3 +29,6 @@ In the Paste tab click **Scan Fiverr categories** on a fresh *Create a Gig* Over
 
 ## Exact mode (default)
 **Write gig** uses exactly what you pasted: Gemini only locates the title, tags, packages, description, FAQs and requirements and guides the category choice. Nothing is rewritten, shortened or invented. Problems (over Fiverr's limits, missing fields, a price below Fiverr's minimum) are shown as warnings, not silently changed. Tick *Let AI write / improve for me* for the old behaviour (fill gaps, shorten, raise prices to the minimum). Fiverr's own "Suggested categories" (when shown) are only a hint for the category choice.
+
+## Real service-type names
+`fiverr-service-types.json` is a snapshot of Fiverr's own data file (subcategory > service types, 211 subcategories). It is used for the default category suggestions and for a fast scan (the scan then only has to read categories and subcategories). Tick *Also read service types live* to read them from the page instead.

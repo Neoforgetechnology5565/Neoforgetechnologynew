@@ -1,6 +1,12 @@
 const $ = id => document.getElementById(id);
 const S = { titles: [], pricing: [], image: null, faq: [], hints: "", cat: null, scanned: null };
-let TAX = window.DEFAULT_TAXONOMY;
+let TAX = window.DEFAULT_TAXONOMY, TAXSRC = "default", SERVICE_TYPES = {};
+// Real subcategory > service types, taken from Fiverr's own data file (snapshot). Used when no live scan of service types was done.
+function applyServiceTypes() {
+  if (TAXSRC !== "default" || !Object.keys(SERVICE_TYPES).length) return;
+  TAX = window.DEFAULT_TAXONOMY.map(t => ({ ...t, serviceTypes: SERVICE_TYPES[t.subcategory] || t.serviceTypes }));
+}
+try { fetch(chrome.runtime.getURL("fiverr-service-types.json")).then(r => r.json()).then(j => { SERVICE_TYPES = j; applyServiceTypes(); }).catch(() => {}); } catch {}
 const KEYS = ["keywords", "notes", "scope", "days", "budget", "style", "desc", "req"];
 
 const status = (m, ok) => { $("status").textContent = m; $("status").className = ok ? "ok" : ""; };
@@ -32,8 +38,9 @@ const esc = x => String(x ?? "").replace(/"/g, "&quot;");
 
 // ---- persistence / tabs / settings
 chrome.storage.local.get(["geminiKey", "textModel", "form", "taxonomy", "scanned"]).then(s => {
-  if (Array.isArray(s.taxonomy) && s.taxonomy.length) TAX = s.taxonomy;
-  if (s.scanned?.items?.length) { TAX = s.scanned.items; S.scanned = s.scanned; }
+  if (Array.isArray(s.taxonomy) && s.taxonomy.length) { TAX = s.taxonomy; TAXSRC = "custom"; }
+  if (s.scanned?.items?.length) { TAX = s.scanned.items; S.scanned = s.scanned; TAXSRC = "scanned"; }
+  applyServiceTypes();
   showScanInfo();
   $("taxJson").value = JSON.stringify(TAX, null, 1);
   $("textModel").value = s.textModel || ""; $("geminiKey").value = s.geminiKey || "";
@@ -341,7 +348,8 @@ const uniq = a => [...new Set(a)];
 function fillSel(sel, values, cur) { sel.innerHTML = values.map(v => `<option>${esc(v)}</option>`).join(""); if (cur && values.includes(cur)) sel.value = cur; else if (values.length) sel.value = values[0]; }
 function refreshST(st, keepMeta) {
   const rows = TAX.filter(t => t.category === $("catCat").value && t.subcategory === $("catSub").value);
-  const sts = uniq(rows.flatMap(t => t.serviceTypes || [])); if (st && !sts.includes(st)) sts.push(st);
+  let sts = uniq(rows.flatMap(t => t.serviceTypes || [])); if (!sts.length) sts = [...(SERVICE_TYPES[$("catSub").value] || [])];
+  if (st && !sts.includes(st)) sts.push(st);
   fillSel($("catST"), sts, st);
   if (!keepMeta) $("catMeta").value = uniq(rows.flatMap(t => t.metadata || [])).join(", ");
 }
@@ -420,12 +428,13 @@ $("scanTax").onclick = async function () {
         let sts = [];
         if (!(await page("TAX_PICK", { role: "subcategory", text: subs[j] })).ok) continue;
         if ($("scanST").checked) { await sleep(1200); sts = (await page("TAX_LIST", { role: "service" })).options; }
+        else sts = [...(SERVICE_TYPES[subs[j]] || [])];                // from Fiverr's own data file (faster scan)
         items.push({ category: cats[i], subcategory: subs[j], serviceTypes: sts });
       }
       if (items.length) { S.scanned = { at: Date.now(), items: [...items] }; await chrome.storage.local.set({ scanned: S.scanned }); }   // keep progress
     }
     if (!items.length) throw new Error("Nothing was scanned.");
-    S.scanned = { at: Date.now(), items }; TAX = items; await chrome.storage.local.set({ scanned: S.scanned });
+    S.scanned = { at: Date.now(), items }; TAX = items; TAXSRC = "scanned"; await chrome.storage.local.set({ scanned: S.scanned });
     $("taxJson").value = JSON.stringify(TAX, null, 1); showScanInfo();
     status(`${S.stopScan ? "Stopped. Saved" : "Done. Saved"} ${items.length} subcategories. Reload the Fiverr page before writing a gig, because the scan changed the dropdowns.`, true);
   } catch (e) {
