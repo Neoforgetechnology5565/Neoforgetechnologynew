@@ -64,7 +64,7 @@ async function openOptions(el) {
   if (el.tagName === "SELECT") return dropdownOptions(el);
   document.querySelectorAll("[data-fgw-opt]").forEach(e => delete e.dataset.fgwOpt);
   if (KNOWN.size) {
-    const targets = [el, el.firstElementChild, el.lastElementChild, el.parentElement].filter((t, i, a) => t && a.indexOf(t) === i);
+    const targets = [el, el.firstElementChild, el.lastElementChild, ...[...el.querySelectorAll("button,[role=button],svg")].slice(0, 3), el.parentElement].filter((t, i, a) => t && a.indexOf(t) === i);
     for (const how of [...targets, "keyboard"]) {
       const before = new Set(knownLeaves());
       if (how === "keyboard") { el.focus?.(); key(el, "ArrowDown", 40); key(el, "Enter", 13); } else click(how);
@@ -168,7 +168,100 @@ function findRole(role) {
 }
 function closeDropdown(el) { key(el, "Escape", 27); document.body.click(); }
 
+// ---- text matching (no AI): used to match the pasted values against the options Fiverr really shows
+const STOP = new Set(["and", "the", "of", "a", "an", "for", "to", "with", "your", "or", "in"]);
+const tokensOf = s => new Set(normK(s).replace(/&/g, " and ").replace(/[^a-z0-9+#. ]/g, " ").split(" ").filter(w => w && !STOP.has(w)).map(w => w.replace(/s$/, "")));
+function bestMatch(target, options, min = 0.6) {      // fuzzy: closest option to a wanted name
+  const t = normK(target).replace(/&/g, "and"); let best = null, top = 0;
+  for (const o of options) {
+    const n = normK(o).replace(/&/g, "and"); if (n === t) return o;
+    const A = tokensOf(target), B = tokensOf(o), inter = [...A].filter(w => B.has(w)).length;
+    const sc = Math.max(inter / (new Set([...A, ...B]).size || 1), (n.includes(t) || t.includes(n)) ? 0.7 : 0);
+    if (sc > top) { top = sc; best = o; }
+  }
+  return top >= min ? best : null;
+}
+function strictMatch(want, text) {                     // for metadata ticks: every word of the smaller side must appear in the other
+  const A = tokensOf(want), B = tokensOf(text); if (!A.size || !B.size) return false;
+  const [s, l] = A.size <= B.size ? [A, B] : [B, A];
+  return [...s].every(w => l.has(w));
+}
+const altsOf = s => { const w = String(s || "").replace(/\(.*?\)/g, "").replace(/\bif available\b/gi, "").replace(/[,;\s]+$/, "").trim(); if (!w) return [];
+  return [w, ...w.split(/\s*(?:\/|;|\|)\s*|\s+or\s+/i).map(x => x.trim()).filter(Boolean)].filter((x, i, a) => a.indexOf(x) === i); };
+const kindOf = label => /sub\s*-?\s*categor/i.test(label) ? "subcategory" : /categor/i.test(label) ? "category" : /service\s*type/i.test(label) ? "serviceType" : "other";
+const clearDone = () => document.querySelectorAll("[data-fgw-done]").forEach(e => delete e.dataset.fgwDone);
+
 const handlers = {
+
+  // ---- Overview: category > subcategory > service type, taken from the paste and matched to Fiverr's real options
+  async FILL_CATEGORIES({ category, subcategory, serviceType }) {
+    clearDone();
+    const want = { category: altsOf(category), subcategory: altsOf(subcategory), serviceType: altsOf(serviceType) };
+    const steps = [];
+    for (let i = 0; i < 6; i++) {
+      const d = await handlers.NEXT_DROPDOWN({});
+      if (!d.found) {
+        if (!steps.length) return { steps, error: "I couldn't open Fiverr's category dropdown (or it is already filled).", probe: await handlers.PROBE_DROPDOWN({ role: "category" }) };
+        break;
+      }
+      const kind = kindOf(d.label);
+      if (kind === "other") { closeMenu(document.querySelector(`[data-fgw-id="${d.id}"]`) || document.body); continue; }
+      let choice = null, hit = "";
+      const eq = s => normK(s).replace(/&/g, "and");
+      for (const w of want[kind]) { const ex = d.options.find(o => eq(o) === eq(w)); if (ex) { choice = ex; hit = w; break; } }      // exact name first
+      if (!choice) for (const w of want[kind]) { choice = bestMatch(w, d.options); if (choice) { hit = w; break; } }                // then the closest
+      if (!choice) {
+        closeMenu(document.querySelector(`[data-fgw-id="${d.id}"]`) || document.body);
+        return { steps, error: want[kind].length
+          ? `Fiverr has no ${kind === "serviceType" ? "service type" : kind} matching "${want[kind][0]}". Choose it yourself on the page (options include: ${d.options.slice(0, 10).join(", ")}), then click Fill again.`
+          : `Your paste has no ${kind === "serviceType" ? "service type" : kind}. Choose it yourself on the page, then click Fill again.` };
+      }
+      await handlers.CHOOSE_OPTION({ id: d.id, text: choice });
+      steps.push({ kind, choice, wanted: hit, exact: normK(choice).replace(/&/g, "and") === normK(hit).replace(/&/g, "and") }); await sleep(700);
+    }
+    return { steps };
+  },
+
+  // ---- Overview: gig metadata ticks, only options that match values written in the paste
+  async FILL_METADATA({ wanted }) {
+    clearDone(); visitedTabs.clear();
+    const W = (wanted || []).filter(Boolean), ticked = [], manual = []; let tab = "", first = true;
+    for (let i = 0; i < 14; i++) {
+      const t = await handlers.NEXT_TAB({});                // open the next metadata tab (none = a single list)
+      if (t.clicked) { tab = t.clicked; await sleep(450); } else if (!first) break;
+      const c = await handlers.NEXT_CHECKS({});
+      if (c.found) {
+        const picks = c.options.filter(o => W.some(w => strictMatch(w, o.text)));
+        if (picks.length) { await handlers.CHOOSE_CHECKS({ ids: picks.map(p => p.id) }); ticked.push(...picks.map(p => p.text)); }
+        else manual.push({ tab: (tab || c.label || "a metadata group").replace(/\s*\*\s*$/, ""), required: /\*/.test(tab) });
+      }
+      first = false;
+      if (!t.clicked) break;
+    }
+    return { ticked, manual };
+  },
+
+  // ---- Scope & Pricing: names, descriptions, prices, delivery, then the feature grid from each package's "Includes"
+  async FILL_SCOPE_PRICING({ packages }) {
+    clearDone();
+    const r = await handlers.FILL_PRICING({ packages });
+    const g = await handlers.PRICING_ROWS({});
+    const mentions = (p, label) => (p.includes || []).some(inc => strictMatch(label, inc));
+    const unmatched = [], apply = [];
+    for (const row of g.rows) {
+      if (row.kind === "check") {
+        const values = packages.map(p => mentions(p, row.label));
+        if (!values.some(Boolean)) unmatched.push(row.label);
+        apply.push({ ...row, values });
+      } else if (/revision/i.test(row.label)) {
+        const values = packages.map(p => p.revisions == null ? null : (p.revisions >= 99 ? /unlimited/i : new RegExp(`^\\s*${p.revisions}\\b`)));
+        apply.push({ ...row, values });
+      }
+    }
+    const a = await handlers.PRICING_APPLY({ rows: apply });
+    return { filled: r.filled, rows: g.rows.length, changes: a.count, unmatched, min: (await handlers.MIN_PRICE({})).min };
+  },
+
   async SET_NAMES({ names }) { KNOWN = new Set((names || []).map(normK)); return { ok: true, count: KNOWN.size }; },
 
   // Diagnostic: try to open a dropdown and report exactly what the page does (to send to the developer if it fails)
@@ -266,7 +359,11 @@ const handlers = {
   async NEXT_DROPDOWN() {
     const txt = e => (e.innerText || e.value || "").trim();
     let el = all(COMBO).find(e => !e.dataset.fgwDone && (e.tagName === "SELECT" ? (!e.value || (e.selectedIndex <= 0 && /^\s*(select|choose|-)/i.test(e.options[0]?.text || ""))) : (!txt(e) || /^\s*(select|choose)\b/i.test(txt(e)))));
-    if (!el) el = leafish().find(e => !e.dataset.fgwDone && !e.closest("[data-fgw-done]") && /^\s*select (a |an )?[a-z]/i.test(e.innerText || ""));
+    if (!el) {
+      const cands = leafish().filter(e => !e.dataset.fgwDone && !e.closest("[data-fgw-done]") && /^\s*select (a |an )?[a-z]/i.test((e.innerText || "").split("\n")[0]));
+      const leaf = innermost(cands)[0];
+      if (leaf) el = boxOf(leaf);
+    }
     if (!el) return { found: false };
     el.dataset.fgwId = el.dataset.fgwId || rnd();
     const label = txt(el) && /^\s*select/i.test(txt(el)) ? txt(el) : rowText(el).split("\n")[0].trim();

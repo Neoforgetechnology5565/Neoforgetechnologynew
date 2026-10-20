@@ -2,119 +2,43 @@
 <html><head><meta charset="utf-8"><style>
 :root{--g:#1dbf73}
 body{font:13px system-ui,sans-serif;margin:0;padding:12px;color:#222}
-header{display:flex;justify-content:space-between;align-items:center}
-h1{font-size:16px;margin:0;color:var(--g)}
-label{display:block;margin:10px 0 3px;font-weight:600}
-select,input,textarea{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px;font:inherit}
-button{margin-top:10px;padding:8px 12px;background:var(--g);color:#fff;border:0;border-radius:5px;cursor:pointer;font-weight:600;width:100%}
-button.secondary{background:#555}button.ghost{background:none;color:#555;width:auto;margin:0;font-size:16px}
-button:disabled{opacity:.5;cursor:not-allowed}
-#tabs{display:flex;flex-wrap:wrap;gap:4px;margin:10px 0}#tabs button{margin:0;padding:6px 2px;font-size:11px;background:#eee;color:#333}#tabs button.on{background:var(--g);color:#fff}
-.row{display:flex;gap:8px}.row>div,.row>button{flex:1}
-.choices label{display:block;border:1px solid #ddd;border-radius:6px;padding:8px;margin:6px 0;font-weight:400;cursor:pointer}
-.choices label:has(input:checked){border-color:var(--g);background:#effaf4}
-.choices input{width:auto;margin-right:6px}
-.choices small{display:block;color:#555;margin-top:4px;white-space:pre-line}
-#thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#thumbs div{position:relative}#thumbs img{width:100px;border-radius:5px;display:block}#thumbs b{position:absolute;top:2px;right:4px;background:#000a;color:#fff;border-radius:9px;padding:0 6px;cursor:pointer}
+h1{font-size:16px;margin:0 0 8px;color:var(--g)}
+h2{font-size:13px;margin:0 0 6px}
+label{display:block;margin:8px 0 3px;font-weight:600}
+textarea,input[type=text]{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px;font:inherit}
+button{margin-top:8px;padding:8px 12px;background:var(--g);color:#fff;border:0;border-radius:5px;cursor:pointer;font-weight:600;width:100%}
+button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px}.row>button{flex:1}
+.card{border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:10px}
+.pv{font-size:12px;white-space:pre-line;color:#333;max-height:150px;overflow:auto}
+.st{margin-top:6px;font-size:12px;color:#b00;white-space:pre-line}.st.ok{color:#117a45}
+.warn{margin-top:8px;font-size:12px;color:#b45309;white-space:pre-line}
 #status{margin-top:10px;color:#b00;min-height:16px}#status.ok{color:#117a45}
-.summary{font-size:12px;margin-top:8px;white-space:pre-line}
-.hint{color:#777;font-size:11px}span{font-weight:400;color:#777}
-
+#thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#thumbs div{position:relative}#thumbs img{width:90px;border-radius:5px;display:block}
+#thumbs b{position:absolute;top:2px;right:4px;background:#000a;color:#fff;border-radius:9px;padding:0 6px;cursor:pointer}
+.hint{color:#777;font-size:11px}
 </style></head>
 <body>
-<header><h1>Fiverr Gig Writer</h1><button id="gear" class="ghost" title="Settings">⚙</button></header>
+<h1>Fiverr Gig Helper</h1>
+<label>Paste your gig text (from ChatGPT)</label>
+<textarea id="paste" rows="7" placeholder="Paste the whole gig document here: title, category, tags, packages, description, requirements, FAQs…"></textarea>
+<div class="row"><button id="read">Read paste</button><button id="clear" class="secondary">Clear</button></div>
+<div id="warn" class="warn"></div>
 
-<section id="settings" hidden>
-  <label>Claude API key (from console.anthropic.com)</label><input id="claudeKey" type="password" placeholder="sk-ant-...">
-  <label>Claude model (blank = fast default)</label><input id="claudeModel" placeholder="claude-haiku-5-5">
-  <button id="saveSettings">Save &amp; test key</button>
-  <div id="saveMsg" style="margin-top:8px;font-weight:600"></div>
-  <label>Category mappings (JSON, editable)</label><textarea id="taxJson" rows="6" style="font-family:monospace;font-size:11px"></textarea>
-  <div class="row"><button id="saveTax" class="secondary">Save mappings</button><button id="resetTax" class="secondary">Reset to defaults</button></div>
-  <p class="hint">Key stays in this browser and goes only to Anthropic. Mappings are suggestions, not a verified list of Fiverr's current categories.</p>
-</section>
+<div class="card"><h2>1 · Overview</h2><div class="pv" id="pv-ov">Nothing read yet.</div><button id="f-ov" disabled>Fill Overview</button><div class="st" id="st-ov"></div></div>
+<div class="card"><h2>2 · Scope &amp; Pricing</h2><div class="pv" id="pv-pr"></div><button id="f-pr" disabled>Fill Scope &amp; Pricing</button><div class="st" id="st-pr"></div></div>
+<div class="card"><h2>3 · Description &amp; FAQ</h2><div class="pv" id="pv-ds"></div><button id="f-ds" disabled>Fill Description &amp; FAQ</button><div class="st" id="st-ds"></div></div>
+<div class="card"><h2>4 · Requirements</h2><div class="pv" id="pv-rq"></div><button id="f-rq" disabled>Fill Requirements</button><div class="st" id="st-rq"></div></div>
+<div class="card"><h2>5 · Gallery</h2>
+  <div class="hint">Your own images (up to 3). Choose files or press Ctrl+V to paste an image. They are saved for next time.</div>
+  <input type="file" id="imgFiles" accept="image/*" multiple><div id="thumbs"></div>
+  <button id="f-gl" disabled>Upload images to Gallery</button><div class="st" id="st-gl"></div></div>
 
-<nav id="tabs">
-  <button data-step="0" class="on">Paste</button><button data-step="1">1 Overview</button><button data-step="2">2 Pricing</button><button data-step="3">3 Description</button><button data-step="4">4 Requirements</button><button data-step="5">5 Gallery</button>
-</nav>
-
-<div id="s0" class="step">
-  <label>Paste everything you have: rough notes, a ChatGPT document, anything</label>
-  <textarea id="paste" rows="12" placeholder="e.g. I build AI video analysis and event detection with Python and YOLO. Packages around $90 / $250 / $600. Buyers are businesses with CCTV or sports footage…"></textarea>
-  <label style="font-weight:400"><input type="checkbox" id="improve" style="width:auto"> Let AI write / improve for me (fill gaps, shorten to Fiverr's limits, raise prices to Fiverr's minimum). <b>Off = use exactly what I pasted.</b></label>
-  <button id="parsePaste">Write gig</button>
-  <div id="pasteSummary" class="summary"></div>
-  <label style="font-weight:400"><input type="checkbox" id="auto" style="width:auto" checked> Auto-fill and continue: after writing, fill this page, click Save &amp; Continue, and repeat (never Publish)</label>
-  <div id="scanBox" class="summary" style="border:1px solid #ddd;border-radius:6px;padding:8px">
-    <b>Fiverr categories</b>
-    <div id="scanInfo" class="hint"></div>
-    <label style="font-weight:400"><input type="checkbox" id="scanST" style="width:auto"> Also read service types live (slower; otherwise Fiverr's own data file is used)</label>
-    <button id="scanTax" class="secondary">Scan Fiverr categories</button>
-    <button id="stopScan" class="secondary" hidden>Stop (keeps what was scanned)</button>
-    <div class="hint">Open a fresh <b>Create a Gig</b> Overview page (nothing selected yet), then click Scan. It opens Fiverr's own dropdowns one by one, takes a few minutes, and never saves or publishes anything.</div>
-  </div>
-  <div id="catBox" hidden>
-    <label>Category <span>(suggested mapping, not a verified live Fiverr list)</span></label>
-    <div id="catWhy" class="summary"></div>
-    <div id="catCands" class="choices"></div>
-    <label>Category</label><select id="catCat"></select>
-    <label>Subcategory</label><select id="catSub"></select>
-    <label>Service type</label><select id="catST"></select>
-    <label>Relevant metadata fields (guidance)</label><input id="catMeta">
-    <div id="catTags" class="summary"></div>
-    <div class="row"><button id="useTags" class="secondary">Use suggested tags</button><button id="reCat" class="secondary">Re-analyze category</button></div>
-  </div>
-  <button id="fillThis" disabled>Fill this Fiverr page again</button>
-  <button id="stopAuto" class="secondary" hidden>Stop</button>
-  <p class="hint">Open a Fiverr gig page (Overview, Pricing, Description or Requirements), click above, check it, then click Fiverr's Next and repeat. Categories and options are picked automatically from your gig.</p>
-</div>
-
-<div id="s1" class="step" hidden>
-  <label>Your 5 keywords (comma separated). They become the gig tags.</label>
-  <input id="keywords" placeholder="logo design, brand identity, minimalist logo, ...">
-  <label>Anything else I should know (optional)</label>
-  <input id="notes" placeholder="e.g. I focus on startups">
-  <button id="genTitles">Suggest 5 titles</button>
-  <div id="titles" class="choices"></div>
-  <button id="fillOverview" disabled>Fill title, tags &amp; categories on page</button>
-</div>
-
-<div id="s2" class="step" hidden>
-  <label>Scope: what you'll deliver</label>
-  <textarea id="scope" rows="3" placeholder="e.g. logo + 3 concepts, source files, social media kit"></textarea>
-  <div class="row"><div><label>Delivery idea</label><input id="days" placeholder="e.g. 2 / 4 / 7 days"></div>
-  <div><label>Budget range</label><input id="budget" placeholder="e.g. $20 - $150"></div></div>
-  <button id="genPricing">Suggest pricing</button>
-  <div id="pricing" class="choices"></div>
-  <button id="fillPricing" disabled>Fill pricing on page</button>
-</div>
-
-<div id="s3" class="step" hidden>
-  <label>How should the description sound? (optional)</label>
-  <input id="style" placeholder="e.g. short, friendly, no jargon, mention fast replies">
-  <button id="genDesc">Write description</button>
-  <label>Description <span id="dlen"></span></label>
-  <textarea id="desc" rows="12"></textarea>
-  <button id="fillDesc" disabled>Fill description on page</button>
-</div>
-
-<div id="s4" class="step" hidden>
-  <button id="genReq">Write requirements</button>
-  <label>Questions for the buyer (one per line)</label>
-  <textarea id="req" rows="8"></textarea>
-  <button id="fillReq" disabled>Fill requirements on page</button>
-</div>
-
-<div id="s5" class="step" hidden>
-  <label>Your gig images (up to 3). Choose files, or press Ctrl+V to paste an image. They're saved for next time.</label>
-  <input type="file" id="imgFiles" accept="image/*" multiple>
-  <div id="thumbs"></div>
-  <button id="uploadImg" disabled>Upload to Fiverr gallery</button>
-</div>
-
+<label style="font-weight:400;margin-top:14px"><input type="checkbox" id="auto"> After filling, click <b>Save &amp; Continue</b> and fill the next page too (never Publish)</label>
+<div class="row"><button id="fillThis" disabled>Fill this page (auto-detect)</button><button id="stopAuto" class="secondary" hidden>Stop</button></div>
 <div id="status"></div>
-<p class="hint">You click Fiverr's Next/Save yourself on every page. Always check what was filled before publishing.</p>
-<button id="scan" class="secondary">Scan page (for troubleshooting)</button>
-<script src="taxonomy.js"></script>
+<p class="hint">Nothing is rewritten: your paste is copied as written. Check each page before you continue.</p>
+<button id="scan" class="secondary">Troubleshooting: copy a page report</button>
+<script src="parse.js"></script>
 <script src="sidepanel.js"></script>
 </body></html>

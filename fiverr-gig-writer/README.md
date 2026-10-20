@@ -1,34 +1,24 @@
-# Fiverr Gig Writer (Chrome extension)
+# Fiverr Gig Helper (Chrome extension, no AI)
 
-A side-panel wizard that follows Fiverr's gig-creation pages. On each page you generate, choose, click **Fill on page**, check it, and press Fiverr's **Next** yourself.
-
-| Step | You give | Extension does |
-|---|---|---|
-| 1 Overview | 5 keywords | Suggests 5 titles; you pick one. Fills title, uses your keywords as the 5 tags, and picks Category / Subcategory / Service type etc. by reading the dropdown options Fiverr shows and choosing the best fit |
-| 2 Pricing | Scope, delivery idea, budget | Suggests 3 pricing schemes (names, descriptions, prices, days); you pick one and it fills all 3 packages |
-| 3 Description | Optional style note | Writes the description (max 1200 chars) in that style; editable before filling |
-| 4 Requirements | – | Writes buyer questions and adds them |
-| 5 Gallery | Your own images (choose files or Ctrl+V, up to 3, saved in the browser) | Uploads them to the Fiverr gallery |
+Paste your gig text once. Each part of the gig has its own card and button; click it on the matching Fiverr page and it fills that page from your paste. Nothing is rewritten, nothing is sent anywhere, no API key, no cost.
 
 ## Install
-1. `chrome://extensions` → Developer mode → **Load unpacked** → this folder.
-2. Click the extension icon (opens the side panel) → ⚙ → paste your **Claude API key** (console.anthropic.com) → Save & test key.
-3. Open Fiverr → Selling → Gigs → Create, keep that tab active, work through steps 1–5.
+1. `chrome://extensions` → turn on **Developer mode** → **Load unpacked** → select this folder.
+2. Pin the extension, open Fiverr → Selling → Gigs → Create, then click the extension icon (side panel).
 
-## Notes
-- **Writing** uses the Claude API (default model `claude-haiku-5-5`, fast and cheap; change it in Settings).
-- Fiverr's page markup changes and isn't documented, so field detection is best-effort. If something is missed the panel says so; fill that field by hand. Report what failed and the selectors can be tuned.
-- It never clicks Next/Save/Publish. Keep it that way: automated submitting can get a seller account flagged.
-- Don't claim fake reviews/results in your gig.
+## Use
+1. Paste your gig document into the box (it is read instantly). Check the previews and any ⚠ warnings.
+2. On each Fiverr page click that page's button: **1 Overview**, **2 Scope & Pricing**, **3 Description & FAQ**, **4 Requirements**, **5 Gallery**.
+3. Or tick *After filling, click Save & Continue* and click **Fill this page (auto-detect)** to go page by page. It never clicks Publish and stops at the Gallery.
 
-## Category analysis
-After **Write gig**, the Paste tab shows a Category section: the gig is analysed (main service, deliverables, tools, industry) and the top 3 category paths are suggested with a confidence score and reason. You can change category / subcategory / service type by hand (changing the category resets the rest). Below 75% confidence it asks you to choose instead of filling. Mappings are **suggestions**, editable in Settings (⚙ > Category mappings); when filling, the extension only selects options Fiverr actually shows and stops rather than substituting a different category.
+## What it reads from the paste
+Sections with headings such as *Gig title*, *Category and gig metadata* (table or `Field: value` lines), *Search tags*, *Packages and pricing* (Basic / Standard / Premium with price, delivery days, revisions, "Package description:", "Includes:" bullets), *Gig description*, *Buyer requirements* (numbered questions, options folded in as text), *FAQ* (`Q1. … answer`). Other sections (portfolio, keywords, checklist, image prompt) are ignored.
 
-## Scan Fiverr categories
-In the Paste tab click **Scan Fiverr categories** on a fresh *Create a Gig* Overview page (nothing selected). The extension opens Fiverr's own dropdowns one by one and saves the real category > subcategory > service type list in this browser. Category analysis then chooses only from that verified list, and filling uses Fiverr's exact names. It never saves or publishes anything; reload the Fiverr page afterwards.
+## How the pages are filled
+- **Overview:** title, tags; category / subcategory / service type are matched to the options Fiverr really shows (exact name first, then closest; a closest match is reported). Metadata is ticked **only** for options that match values written in your paste; anything else is left for you and listed.
+- **Scope & Pricing:** names, descriptions, prices, delivery days, revisions; the feature grid is ticked from each package's *Includes* bullets. Prices are never changed: if one is below Fiverr's minimum, it tells you.
+- **Description & FAQ / Requirements:** copied as written. Over-limit text is warned about, not shortened.
+- **Gallery:** your own images (choose files or Ctrl+V, up to 3, saved in the browser).
 
-## Exact mode (default)
-**Write gig** uses exactly what you pasted: Claude only locates the title, tags, packages, description, FAQs and requirements and guides the category choice. Nothing is rewritten, shortened or invented. Problems (over Fiverr's limits, missing fields, a price below Fiverr's minimum) are shown as warnings, not silently changed. Tick *Let AI write / improve for me* for the old behaviour (fill gaps, shorten, raise prices to the minimum). Fiverr's own "Suggested categories" (when shown) are only a hint for the category choice.
-
-## Real service-type names
-`fiverr-service-types.json` is a snapshot of Fiverr's own data file (subcategory > service types, 211 subcategories). It is used for the default category suggestions and for a fast scan (the scan then only has to read categories and subcategories). Tick *Also read service types live* to read them from the page instead.
+## Troubleshooting
+The bottom button copies a report of the page's form fields; when a dropdown can't be opened the extension also copies a diagnostic report. Paste it to the developer.

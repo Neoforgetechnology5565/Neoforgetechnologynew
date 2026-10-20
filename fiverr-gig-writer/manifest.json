@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Fiverr Gig Writer",
-  "version": "2.0.0",
-  "description": "Step-by-step Fiverr gig builder: suggests titles, picks categories, writes pricing, description, requirements and a gig image, and fills each page for you.",
+  "name": "Fiverr Gig Helper",
+  "version": "3.0.0",
+  "description": "Paste your gig text once, then fill each Fiverr gig page (Overview, Scope & Pricing, Description & FAQ, Requirements, Gallery) with one click. No AI, nothing is rewritten.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -10,11 +10,10 @@
     "storage"
   ],
   "host_permissions": [
-    "https://api.anthropic.com/*",
     "https://*.fiverr.com/*"
   ],
   "action": {
-    "default_title": "Fiverr Gig Writer"
+    "default_title": "Fiverr Gig Helper"
   },
   "side_panel": {
     "default_path": "sidepanel.html"
