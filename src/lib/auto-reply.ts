@@ -41,10 +41,14 @@ export async function greetChat(chatId: string): Promise<void> {
     if (!chat || chat.humanTakeover || chat.mode) return;
     const name = String(chat.name || "");
     if (aiConfigured()) {
-      await post(ref, [{ from: "ai", text: OPTIONS_TEXT(name.split(" ")[0] || "there"), options: ["ai", "developer"] }]);
+      const text = OPTIONS_TEXT(name.split(" ")[0] || "there");
+      await post(ref, [{ from: "ai", text, options: ["ai", "developer"] }]);
       await ref.update({ optionsPending: true });
+      await notifyChatVisitor(chatId, text, { from: "auto", options: true });
     } else {
-      await post(ref, [{ from: "auto", text: CHAT_FALLBACK(name) }]);
+      const text = CHAT_FALLBACK(name);
+      await post(ref, [{ from: "auto", text }]);
+      await notifyChatVisitor(chatId, text, { from: "auto" });
     }
   } catch (e) {
     console.error("[auto-reply:greet]", (e as Error).message?.slice(0, 160));
@@ -76,7 +80,7 @@ export async function autoReplyInChat(chatId: string, opts: { afterChoice?: bool
     if (fresh?.humanTakeover || fresh?.mode === "human") return; // the visitor asked for the Developer, or you replied, while the AI was thinking
     await post(ref, [{ from: "ai", text }]);
     await ref.update({ aiCount: used + 1 });
-    await notifyChatVisitor(chatId, text, { email: false, from: "ai" });
+    await notifyChatVisitor(chatId, text, { from: "ai" });
   } catch (e) {
     console.error("[auto-reply:chat]", (e as Error).message?.slice(0, 160));
   }

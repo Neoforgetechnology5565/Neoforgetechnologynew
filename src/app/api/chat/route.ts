@@ -23,12 +23,15 @@ export async function POST(req: NextRequest) {
     const now = Date.now();
     const token = randomBytes(24).toString("hex");
     const ref = adminDb().collection(C.chats).doc();
-    await ref.set({ name: data.name, email: data.email, token, createdAt: now, updatedAt: now, lastMessage: data.message.slice(0, 120), unreadAdmin: 1, lastNotifiedAt: now });
+    // anti-abuse: an address can start only a few chats a day that email automatic messages to it
+    const dayAgo = now - 24 * 3600_000;
+    const recent = (await adminDb().collection(C.chats).where("email", "==", data.email).limit(10).get()).docs.filter((d) => Number(d.data().createdAt || 0) > dayAgo).length;
+    await ref.set({ emailMuted: recent >= 3, name: data.name, email: data.email, token, createdAt: now, updatedAt: now, lastMessage: data.message.slice(0, 120), unreadAdmin: 1, lastNotifiedAt: now });
     await ref.collection("messages").add({ from: "visitor", text: data.message, file: null, createdAt: now });
     const ai = (await chatAutoReplyActive()) && rateLimit(`aireply:${clientIp(req)}`, 40, 60 * 60_000);
     after(async () => {
       await notifyChat({ name: data.name, email: data.email, text: data.message, isNew: true });
-      await emailChatConfirmation(ref.id); // confirmation to the address the visitor entered
+      if (!ai) await emailChatConfirmation(ref.id); // greeting emails cover this when the assistant is on
     });
     if (ai) after(() => greetChat(ref.id));
     return NextResponse.json({ id: ref.id, token, ai });

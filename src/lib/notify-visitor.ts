@@ -5,22 +5,36 @@ import { emailVisitor, mailConfigured } from "./mail";
 import { pushConfigured, sendPush, type PushSub } from "./push";
 import { siteUrl } from "./utils";
 
-const MAX_EMAIL_COPIES = 30;
+const MAX_EMAIL_COPIES = { you: 150, automated: 60 };
+/** One fixed subject so Gmail and other mail apps keep the whole conversation in one thread. */
+export const CHAT_SUBJECT = "Your conversation with Neo Forge Technology";
+const WHO = { you: "the Neo Forge team", ai: "our AI assistant", auto: "Neo Forge Technology" } as const;
 
-/** Tells a chat visitor about a new message from us: a browser/phone notification (if they opted in) and, for our own replies, an email copy to the address they gave. Never throws. */
-export async function notifyChatVisitor(chatId: string, text: string, opts: { email: boolean; from: "you" | "ai" }): Promise<void> {
+/**
+ * Every message we send into a chat (yours, the AI's, and the automatic ones) is also emailed straight away to the
+ * address the visitor entered, whether or not they are online, and pushed to their phone/browser if they opted in. Never throws.
+ */
+export async function notifyChatVisitor(chatId: string, text: string, opts: { from: "you" | "ai" | "auto"; options?: boolean }): Promise<void> {
   try {
     const ref = adminDb().collection(C.chats).doc(chatId);
     const chat = (await ref.get()).data();
     if (!chat) return;
+    const plain = text.replace(/\*\*/g, "");
     if (pushConfigured() && Array.isArray(chat.pushSubs) && chat.pushSubs.length) {
-      const keep = await sendPush(chat.pushSubs as PushSub[], { title: opts.from === "ai" ? "Neo Forge assistant replied" : "Neo Forge replied to you", body: text, url: "/live-chat", tag: `chat-${chatId}` });
+      const keep = await sendPush(chat.pushSubs as PushSub[], { title: opts.from === "you" ? "Neo Forge replied to you" : "Neo Forge assistant replied", body: plain, url: "/live-chat", tag: `chat-${chatId}` });
       if (keep.length !== chat.pushSubs.length) await ref.update({ pushSubs: keep });
     }
-    if (opts.email && mailConfigured() && chat.email && Number(chat.emailCopies || 0) < MAX_EMAIL_COPIES) {
-      const r = await emailVisitor({ to: String(chat.email), subject: "Neo Forge Technology replied to your message", heading: `Hi ${String(chat.name || "").split(" ")[0] || "there"}, we replied to your chat`, body: text, cta: { href: `${siteUrl()}/live-chat`, label: "Continue the conversation" } });
-      if (r.ok) await ref.update({ emailCopies: Number(chat.emailCopies || 0) + 1 });
-    }
+    const automated = opts.from !== "you";
+    if (!mailConfigured() || !chat.email || (automated && chat.emailMuted)) return;
+    const sent = Number(chat.emailCopies || 0);
+    if (sent >= (automated ? MAX_EMAIL_COPIES.automated : MAX_EMAIL_COPIES.you)) return;
+    const body = opts.options ? plain.replace(/\n*Tap A or B[^\n]*$/i, "") : plain;
+    const r = await emailVisitor({
+      to: String(chat.email), subject: CHAT_SUBJECT,
+      heading: `Hi ${String(chat.name || "").split(" ")[0] || "there"}, a message from ${WHO[opts.from]}`,
+      body, cta: { href: `${siteUrl()}/live-chat`, label: opts.options ? "Choose A or B in the chat" : "Continue the conversation" },
+    });
+    if (r.ok) await ref.update({ emailCopies: sent + 1 });
   } catch (e) {
     console.error("[notify-visitor]", (e as Error).message?.slice(0, 160));
   }

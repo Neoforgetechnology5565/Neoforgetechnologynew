@@ -22,7 +22,8 @@ export const POST = adminRoute<{ id: string }>(async (req, { params }) => {
   await ref.collection("messages").add({ from: "admin", text: data.text, file: data.file, createdAt: now });
   await ref.update({ updatedAt: now, lastMessage: `You: ${data.text}`.slice(0, 120), humanTakeover: true, wantsHuman: false }); // once a person replies, the AI stops
   // every reply you send is also emailed to the address the visitor gave, and pushed to their phone/browser if they opted in
-  if (data.text) after(() => notifyChatVisitor(id, data.text, { email: true, from: "you" }));
+  const mirror = [data.text, data.file ? `Attachment: ${data.file.url}` : ""].filter(Boolean).join("\n");
+  if (mirror) after(() => notifyChatVisitor(id, mirror, { from: "you" }));
   return NextResponse.json({ ok: true });
 });
 

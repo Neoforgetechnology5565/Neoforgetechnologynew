@@ -3,8 +3,8 @@ import { FieldValue } from "firebase-admin/firestore";
 import { autoReplyInChat } from "./auto-reply";
 import { C } from "./db";
 import { adminDb } from "./firebase-admin";
-import { emailVisitor, notifyDeveloperRequested } from "./mail";
-import { siteUrl } from "./utils";
+import { notifyDeveloperRequested } from "./mail";
+import { notifyChatVisitor } from "./notify-visitor";
 
 export type Choice = "ai" | "developer";
 
@@ -32,14 +32,15 @@ export async function applyChoice(chatId: string, choice: Choice, opts: { echo: 
     return { mode: "ai", followUp: () => autoReplyInChat(chatId, { afterChoice: true }) };
   }
 
-  await col.add({ from: "auto", text: "Thank you! I've notified the Developer, who will reply to you here personally. You'll also get the reply by email. Meanwhile, feel free to add any details that will help.", file: null, createdAt: now + 1 });
+  const thanks = "Thank you! I've notified the Developer, who will reply to you here personally. You'll also get the reply by email. Meanwhile, feel free to add any details that will help.";
+  await col.add({ from: "auto", text: thanks, file: null, createdAt: now + 1 });
   await ref.update({ mode: "human", optionsPending: false, humanTakeover: true, wantsHuman: true, unreadAdmin: FieldValue.increment(1), updatedAt: now + 1, lastMessage: "⚠ Wants to talk to the Developer" });
   return {
     mode: "human",
     followUp: async () => {
       const first = await col.where("from", "==", "visitor").orderBy("createdAt").limit(1).get();
       await notifyDeveloperRequested({ name: String(chat.name || "Visitor"), email: String(chat.email || ""), lastMessage: String(first.docs[0]?.data().text || "") });
-      if (chat.email) await emailVisitor({ to: String(chat.email), subject: "We've notified our Developer", heading: `Hi ${String(chat.name || "").split(" ")[0] || "there"}, your request is with our Developer`, body: "Thank you for your message. Our Developer has been notified and will reply to you personally. You'll receive their reply at this email address, and in the chat if you keep it open.", cta: { href: `${siteUrl()}/live-chat`, label: "Open the chat" } });
+      await notifyChatVisitor(chatId, thanks, { from: "auto" }); // mirrored to their email like every other message
     },
   };
 }
