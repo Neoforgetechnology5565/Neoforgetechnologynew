@@ -28,7 +28,12 @@ export async function notifyChatVisitor(chatId: string, text: string, opts: { fr
     if (!mailConfigured() || !chat.email || (automated && chat.emailMuted)) return;
     const sent = Number(chat.emailCopies || 0);
     if (sent >= (automated ? MAX_EMAIL_COPIES.automated : MAX_EMAIL_COPIES.you)) return;
-    const body = opts.options ? plain.replace(/\n*Tap A or B[^\n]*$/i, "") : plain;
+    const latest = opts.options ? plain.replace(/\n*Tap A or B[^\n]*$/i, "") : plain;
+    // the whole conversation so far goes in every email, so their inbox holds every message from both sides
+    const hist = await ref.collection("messages").orderBy("createdAt", "desc").limit(40).get();
+    const label = { visitor: "You", admin: "Neo Forge team", ai: "AI assistant", auto: "Neo Forge" } as const;
+    const lines = hist.docs.reverse().slice(0, -1).map((d) => { const m = d.data(); return `[${new Date(Number(m.createdAt)).toISOString().slice(0, 16).replace("T", " ")} UTC] ${label[m.from as keyof typeof label] ?? "Neo Forge"}: ${String(m.text || (m.file ? "(attachment)" : "")).replace(/\*\*/g, "")}`; });
+    const body = lines.length ? `${latest}\n\n———\nConversation so far\n${lines.join("\n")}` : latest;
     const r = await emailVisitor({
       to: String(chat.email), subject: CHAT_SUBJECT,
       heading: `Hi ${String(chat.name || "").split(" ")[0] || "there"}, a message from ${WHO[opts.from]}`,
