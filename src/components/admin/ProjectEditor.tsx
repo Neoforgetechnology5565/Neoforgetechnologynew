@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import FileDrop from "@/components/FileDrop";
 import { img, isPdf, pdfThumb } from "@/lib/cloudinary";
 import { DIVISION_MAP, DIVISIONS } from "@/lib/divisions";
+import { parseVideo } from "@/lib/video";
 import type { Category, MediaRef, Project } from "@/lib/types";
 import { api } from "./api";
 import { Card, Field, PageTitle, lines, useToast } from "./ui";
@@ -29,6 +30,46 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
   const [saving, setSaving] = useState(false);
   const toast = useToast();
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setF((x) => ({ ...x, [k]: v }));
+
+  // "Auto-fill from a video link": you pick which fields it may fill
+  const VF_FIELDS: [string, string][] = [["title", "Project title"], ["description", "Project description"], ["summary", "Short summary"], ["technologies", "Technologies"], ["features", "Key features"], ["challenge", "Challenge"], ["solution", "Solution"], ["results", "Results"], ["cover", "Cover image (the video's thumbnail)"], ["category", "Division & sub-category"]];
+  const [vfUrl, setVfUrl] = useState("");
+  const [vfPick, setVfPick] = useState<Set<string>>(new Set(["title", "description", "summary"]));
+  const [vfBusy, setVfBusy] = useState(false);
+  const [vfNote, setVfNote] = useState<{ filled: string[]; warnings: string[]; ai: boolean } | null>(null);
+  const togglePick = (k: string) => setVfPick((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+
+  async function scanVideo() {
+    const url = vfUrl.trim() || f.videoLinks[0] || "";
+    if (!parseVideo(url)) { toast.err(new Error("Paste a YouTube or Vimeo link first.")); return; }
+    if (!vfPick.size) { toast.err(new Error("Tick at least one field to fill.")); return; }
+    const current: Record<string, string> = { title: f.title, description: f.description, summary: f.summary, technologies: f.technologies, features: f.features, challenge: f.challenge, solution: f.solution, results: f.results, cover: f.cover.length ? "x" : "", category: f.categoryId };
+    const filled = VF_FIELDS.filter(([k]) => vfPick.has(k) && current[k].trim());
+    if (filled.length && !confirm(`This replaces what is already in: ${filled.map(([, l]) => l).join(", ")}. Continue?`)) return;
+    setVfBusy(true); setVfNote(null);
+    try {
+      const { item } = await api<{ item: { project: { title: string; summary: string; description: string; challenge: string; solution: string; results: string; technologies: string[]; features: string[]; division: string }; category: string; cover: MediaRef | null; ai: boolean; warnings: string[] } }>("/api/admin/projects/from-video", "POST", { url, cover: vfPick.has("cover") });
+      const p = item.project; const did: string[] = [];
+      setF((x) => {
+        const n = { ...x };
+        const put = (k: string, label: string, apply: () => void, ok: boolean) => { if (vfPick.has(k) && ok) { apply(); did.push(label); } };
+        put("title", "Project title", () => { n.title = p.title; }, !!p.title);
+        put("description", "Project description", () => { n.description = p.description; }, !!p.description);
+        put("summary", "Short summary", () => { n.summary = p.summary; }, !!p.summary);
+        put("technologies", "Technologies", () => { n.technologies = p.technologies.join("\n"); }, p.technologies.length > 0);
+        put("features", "Key features", () => { n.features = p.features.join("\n"); }, p.features.length > 0);
+        put("challenge", "Challenge", () => { n.challenge = p.challenge; }, !!p.challenge);
+        put("solution", "Solution", () => { n.solution = p.solution; }, !!p.solution);
+        put("results", "Results", () => { n.results = p.results; }, !!p.results);
+        put("cover", "Cover image", () => { n.cover = [item.cover!]; }, !!item.cover);
+        put("category", "Division & sub-category", () => { n.division = p.division; const c = cats.find((c) => c.division === p.division && c.slug === item.category); n.categoryId = c?.id ?? ""; n.pipeline = ""; }, !!p.division);
+        if (!n.videoLinks.some((l) => parseVideo(l)?.watchUrl === parseVideo(url)?.watchUrl) && n.videoLinks.length < 6) n.videoLinks = [...n.videoLinks, url];
+        return n;
+      });
+      setVfNote({ filled: did, warnings: item.warnings, ai: item.ai });
+    } catch (e) { toast.err(e); }
+    setVfBusy(false);
+  }
 
   useEffect(() => {
     api<{ items: Category[] }>("/api/admin/categories").then((r) => setCats(r.items)).catch(toast.err);
@@ -76,6 +117,28 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
             <Field label="Solution flow" hint={`Up to 6 steps, comma separated. Default: ${DIVISION_MAP[f.division].pipeline.join(" → ")}`}><input className="field" value={f.pipeline} onChange={(e) => set("pipeline", e.target.value)} /></Field>
             <div className="sm:col-span-2"><Field label="Short summary" hint="Shown on cards and in search results (max 400 chars)"><textarea className="field" rows={2} maxLength={400} value={f.summary} onChange={(e) => set("summary", e.target.value)} /></Field></div>
             <div className="sm:col-span-2"><Field label="Overview / description"><textarea className="field" rows={6} value={f.description} onChange={(e) => set("description", e.target.value)} /></Field></div>
+          </Card>
+          <Card className="space-y-4" data-testid="video-autofill">
+            <div>
+              <h2 className="font-semibold">Auto-fill from a video link</h2>
+              <p className="mt-1 text-sm text-paper/65">Paste a YouTube or Vimeo link, choose what it may fill in, and we read the video&apos;s title, description and captions and write those fields for you. You can edit everything afterwards. Nothing is saved until you click Save.</p>
+            </div>
+            <Field label="Video link"><input className="field" value={vfUrl} onChange={(e) => setVfUrl(e.target.value)} placeholder={f.videoLinks[0] || "https://www.youtube.com/watch?v=…"} aria-label="Video link to scan" /></Field>
+            <div>
+              <span className="label">Fill these fields</span>
+              <div className="mt-1 grid gap-x-6 gap-y-1.5 sm:grid-cols-2">{VF_FIELDS.map(([k, l]) => <label key={k} className="flex items-center gap-2 text-sm"><input type="checkbox" checked={vfPick.has(k)} onChange={() => togglePick(k)} /> {l}</label>)}</div>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="button" className="btn-primary !py-2" onClick={scanVideo} disabled={vfBusy}>{vfBusy ? "Reading the video…" : "Scan video and fill"}</button>
+              {vfBusy && <span className="text-xs text-paper/60" role="status">This takes a few seconds.</span>}
+            </div>
+            {vfNote && (
+              <div className="border border-forge/40 bg-blue-50 p-3 text-sm" data-testid="video-autofill-note">
+                <p className="font-semibold">{vfNote.filled.length ? `Filled: ${vfNote.filled.join(", ")}.` : "Nothing could be filled from this video."}</p>
+                <p className="mt-1 text-paper/70">Please read it through and correct anything that isn&apos;t right before you publish.{vfNote.ai ? " Written by AI from the video's own information; it only uses what the video says." : ""}</p>
+                {vfNote.warnings.length > 0 && <ul className="mt-1 list-disc pl-5 text-paper/70">{vfNote.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
+              </div>
+            )}
           </Card>
 
           <Card className="grid gap-4">

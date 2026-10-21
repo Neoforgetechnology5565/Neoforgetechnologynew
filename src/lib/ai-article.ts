@@ -26,7 +26,7 @@ function client() {
   return new Anthropic({ apiKey: apiKey(), timeout: 55_000, maxRetries: 1 });
 }
 
-async function ask<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens: number, model?: string): Promise<T> {
+export async function ask<T>(system: string, user: string, schema: Record<string, unknown>, maxTokens: number, model?: string): Promise<T> {
   try {
     const res = await client().messages.create({
       model: MODEL(model),

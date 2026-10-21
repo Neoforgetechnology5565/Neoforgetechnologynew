@@ -10,12 +10,12 @@ const ACCENT: Record<string, string> = { "computer-vision": "#34821d", "crm-hrm-
 const LABEL: Record<string, string> = { "computer-vision": "AI · COMPUTER VISION", "crm-hrm-erp": "CRM · HRM · ERP", "cad-bim": "CAD · BIM · AUTOMATION", "": "NEO FORGE TECHNOLOGY" };
 
 /** Uploads a generated image straight to our Cloudinary (server-side, signed). */
-export async function uploadPng(buf: Buffer | Uint8Array, folder: string, name: string): Promise<MediaRef> {
+export async function uploadPng(buf: Buffer | Uint8Array, folder: string, name: string, format: "png" | "jpg" = "png"): Promise<MediaRef> {
   const problem = cloudinaryConfigProblem();
   if (problem) throw new HttpError(503, problem);
   cloudinary.config({ cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME, api_key: process.env.CLOUDINARY_API_KEY, api_secret: process.env.CLOUDINARY_API_SECRET, secure: true, upload_prefix: process.env.CLOUDINARY_UPLOAD_PREFIX || undefined });
   const r = await new Promise<{ secure_url: string; public_id: string; format: string; bytes: number; width: number; height: number }>((resolve, reject) => {
-    cloudinary.uploader.upload_stream({ folder: `neoforge/${folder}`, resource_type: "image", format: "png" }, (err, res) => (err || !res ? reject(err ?? new Error("upload failed")) : resolve(res as never))).end(Buffer.from(buf));
+    cloudinary.uploader.upload_stream({ folder: `neoforge/${folder}`, resource_type: "image", format }, (err, res) => (err || !res ? reject(err ?? new Error("upload failed")) : resolve(res as never))).end(Buffer.from(buf));
   }).catch(() => { throw new HttpError(502, "Could not upload the generated image to Cloudinary."); });
   return { url: r.secure_url, publicId: r.public_id, resourceType: "image", format: r.format, bytes: r.bytes, width: r.width, height: r.height, name };
 }
