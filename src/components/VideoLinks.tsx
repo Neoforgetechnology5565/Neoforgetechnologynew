@@ -3,13 +3,20 @@ import { useEffect, useState } from "react";
 import type { VideoItem } from "@/lib/video-server";
 
 function Thumb({ v, big }: { v: VideoItem; big?: boolean }) {
-  const [src, setSrc] = useState(v.thumbnail);
+  // YouTube serves a grey placeholder (tiny, status 200) when a size doesn't exist, so step down through the sizes.
+  const chain = (v.thumbnail && v.thumbnail.includes("i.ytimg.com/vi/"))
+    ? ["maxresdefault", "sddefault", "hqdefault", "mqdefault"].map((n) => v.thumbnail!.replace(/\/[a-z]+default\.jpg/, `/${n}.jpg`))
+    : [v.thumbnail, v.thumbFallback].filter(Boolean) as string[];
+  const [i, setI] = useState(0);
+  const src = chain[i] ?? null;
+  const next = () => setI((n) => n + 1);
   return (
     <span className="relative block aspect-video w-full overflow-hidden bg-slate-900">
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={`${v.title} — video thumbnail`} loading="lazy" decoding="async"
-          onError={() => (src !== v.thumbFallback && v.thumbFallback ? setSrc(v.thumbFallback) : setSrc(null))}
+          onError={next}
+          onLoad={(e) => { const im = e.currentTarget; if (im.naturalWidth && im.naturalWidth <= 130) next(); }}
           className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
       ) : (
         <span className="flex h-full items-center justify-center text-sm font-medium capitalize text-slate-300">{v.provider} video</span>
