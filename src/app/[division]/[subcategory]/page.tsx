@@ -7,7 +7,6 @@ import { breadcrumbLd } from "@/lib/jsonld";
 import ProjectCard from "@/components/ProjectCard";
 import { getCategories, getPublishedProjects } from "@/lib/db";
 import { DIVISION_MAP, isDivisionSlug } from "@/lib/divisions";
-import { SERVICE_FOR_CATEGORY, SERVICE_MAP } from "@/lib/services";
 
 type Params = { params: Promise<{ division: string; subcategory: string }> };
 
@@ -31,7 +30,6 @@ export default async function SubcategoryPage({ params }: Params) {
   if (!r) notFound();
   const d = DIVISION_MAP[division];
   const projects = (await getPublishedProjects()).filter((p) => p.categoryId === r.category.id);
-  const service = SERVICE_MAP[SERVICE_FOR_CATEGORY[subcategory] ?? ""];
   return (
     <>
       <JsonLd data={breadcrumbLd([{ name: "Home", path: "/" }, { name: d.short, path: `/${division}` }, { name: r.category.name, path: `/${division}/${subcategory}` }])} />
@@ -45,14 +43,13 @@ export default async function SubcategoryPage({ params }: Params) {
           <h1 className="mt-4 font-display text-4xl font-semibold sm:text-5xl">{r.category.name}</h1>
           {r.category.description && <p className="mt-4 max-w-2xl text-slate-300">{r.category.description}</p>}
           {r.category.capabilities.length > 0 && <div className="mt-6"><Chips items={r.category.capabilities} dark /></div>}
-          {service && <p className="mt-6"><Link href={`/services/${service.slug}`} className="inline-block rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-blue-400">About our {service.name.toLowerCase()} service →</Link></p>}
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         {projects.length ? (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{projects.map((p, i) => <ProjectCard key={p.id} p={p} priority={i < 3} />)}</div>
         ) : (
-          <div className="rounded-2xl border border-dashed border-stone-300 p-12 text-center"><p className="font-display text-xl text-stone-500">Projects in this area are being added.</p>{service && <p className="mt-3 text-stone-600">Meanwhile, see <Link href={`/services/${service.slug}`} className="font-medium text-blue-700 hover:underline">what we build in {service.name.toLowerCase()}</Link> or <Link href="/contact" className="font-medium text-blue-700 hover:underline">tell us about your project</Link>.</p>}</div>
+          <div className="rounded-2xl border border-dashed border-stone-300 p-12 text-center"><p className="font-display text-xl text-stone-500">Projects in this area are being added.</p><p className="mt-3 text-stone-600"><Link href="/contact" className="font-medium text-blue-700 hover:underline">Tell us about your project</Link>.</p></div>
         )}
         {r.siblings.length > 0 && (
           <div className="mt-16 border-t border-stone-200 pt-8">
