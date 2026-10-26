@@ -225,10 +225,10 @@ Keep the stack lean: Next.js + Firebase + Cloudinary + Vercel + GitHub only.
 
 ## 18. Navigation, Services, Pricing and Booking
 
-- Header: **Home · Services ▾ · Portfolio ▾ · Pricing · About · Blog · Contact**, plus buttons **Book a Consultation** (`/book`) and **Start a Project** (`/contact`). Services opens a menu of every sub-category grouped by the three areas (CMS categories, so admin edits appear automatically); Portfolio opens the three areas (`/portfolio/<division>`). Mobile menu has the same two expandable groups.
+- Header: **Home · Services ▾ · Portfolio ▾ · Pricing · About · Blog · Contact**, plus a **Start a Project** button (`/contact`). Services opens a menu of every sub-category grouped by the three areas (CMS categories, so admin edits appear automatically); Portfolio opens the three areas (`/portfolio/<division>`). Mobile menu has the same two expandable groups.
 - `/services`: three sections (one per area) with a card per sub-category: description and capability chips from the CMS, "Ask about this" (contact form with the area preselected) and "See related work". Projects are NOT shown here; they live under `/portfolio` (three sections, one per area, each with all its projects).
 - `/pricing`: no prices. Explains that every project is quoted to its scope, the four cost factors and the three steps to a quote. Edit the wording in `src/app/pricing/page.tsx` if you want to publish real price ranges.
-- `/book`: same enquiry form as `/contact` with the message prefilled for a consultation (no calendar integration). Enquiries arrive in the Admin inbox and by email like any other.
-- Footer and `sitemap.xml` include Services, Pricing and Book.
+- The "Book a Consultation" button and `/book` page were removed on request.
+- Footer and `sitemap.xml` include Services and Pricing.
 - **Service detail pages** (restored, 24): each card on `/services` opens `/services/<slug>` with the service's features ("what you get"), good-fit list, typical uses, 4-step process, technologies, FAQs, related services/articles and a contact CTA (content in `src/lib/services.ts` + `services-extra.ts`; categories map to pages through `SERVICE_FOR_CATEGORY`; a category without a page links to the contact form). Services pages carry no portfolio or "related work" links — all projects live only under **Portfolio**, whose menu lists just the three areas (each opens `/portfolio/<division>` with its projects). Service pages are in the sitemap.
 - Division pages (`/computer-vision` etc.) show each sub-category card with "Features, what we can do and ask about this →" linking to its service page. The header **Contact** item opens a hover menu with **Live chat** (`/live-chat`) and **Send an enquiry** (`/contact`); the mobile menu lists both.

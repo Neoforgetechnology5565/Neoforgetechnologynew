@@ -30,8 +30,7 @@ export default function Pricing() {
           <p className="mt-4 max-w-2xl text-slate-300">We build custom software, so there is no one-size price list. You get a written quote after we understand what you need.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/contact" className="rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-blue-400">Request a quote</Link>
-            <Link href="/book" className="rounded-full border border-slate-600 px-6 py-3 text-sm font-medium hover:border-blue-400">Book a consultation</Link>
-          </div>
+                      </div>
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">

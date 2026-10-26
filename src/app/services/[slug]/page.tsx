@@ -46,8 +46,7 @@ export default async function ServicePage({ params }: Params) {
           <p className="mt-6 max-w-2xl text-lg text-slate-300">{s.intro}</p>
           <div className="mt-8 flex flex-wrap gap-4">
             <Link href={`/contact?division=${s.division}`} className="rounded-full bg-blue-500 px-7 py-3.5 text-sm font-semibold text-slate-950 transition hover:bg-blue-400">Ask about this service</Link>
-            <Link href="/book" className="rounded-full border border-slate-600 px-7 py-3.5 text-sm font-semibold text-white transition hover:border-blue-400">Book a consultation</Link>
-          </div>
+                      </div>
         </div>
       </section>
 
