@@ -93,3 +93,16 @@ export const articleLd = (p: Post) =>
     keywords: p.tags.join(", "),
   });
 
+
+/** Service page. Describes what is offered; no ratings or reviews. */
+export function serviceLandingLd(s: { name: string; slug: string; metaDescription: string }) {
+  return clean({
+    "@context": "https://schema.org",
+    "@type": "Service",
+    name: s.name,
+    serviceType: s.name,
+    description: s.metaDescription,
+    url: abs(`/services/${s.slug}`),
+    provider: { "@id": abs("/#organization") },
+  });
+}

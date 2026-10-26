@@ -5,6 +5,7 @@ import JsonLd from "@/components/JsonLd";
 import { getCategories } from "@/lib/db";
 import { DIVISIONS } from "@/lib/divisions";
 import { breadcrumbLd } from "@/lib/jsonld";
+import { SERVICE_FOR_CATEGORY } from "@/lib/services";
 
 export const metadata: Metadata = {
   title: "Services",
@@ -21,7 +22,7 @@ export default async function Services() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">Services</p>
           <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">What we build, explained.</h1>
-          <p className="mt-4 max-w-2xl text-slate-300">Three areas of software engineering. Each service below says what it is and what it is for. To see finished work, visit the portfolio.</p>
+          <p className="mt-4 max-w-2xl text-slate-300">Three areas of software engineering. Each service below says what it is and what it is for. Open a service to see its features and what we can do for you. Finished work is in the portfolio.</p>
           <nav aria-label="Service areas" className="mt-8 flex flex-wrap gap-2">
             {DIVISIONS.map((d) => <a key={d.slug} href={`#${d.slug}`} className="rounded-full border border-slate-600 px-4 py-1.5 text-sm font-medium hover:border-blue-400 hover:text-blue-300">{d.short}</a>)}
           </nav>
@@ -37,14 +38,12 @@ export default async function Services() {
                   <h3 className="font-display text-xl font-semibold text-stone-900">{c.name}</h3>
                   {c.description && <p className="mt-2 text-sm leading-relaxed text-stone-600">{c.description}</p>}
                   {c.capabilities.length > 0 && <div className="mt-4"><Chips items={c.capabilities} /></div>}
-                  <p className="mt-5 flex flex-wrap gap-x-5 gap-y-1 pt-1 text-sm font-medium">
-                    <Link href={`/contact?division=${d.slug}`} className="text-blue-700 hover:underline">Ask about this →</Link>
-                    <Link href={`/${d.slug}/${c.slug}`} className="text-stone-600 hover:text-blue-700">See related work</Link>
+                  <p className="mt-5 pt-1 text-sm font-medium">
+                    <Link href={SERVICE_FOR_CATEGORY[c.slug] ? `/services/${SERVICE_FOR_CATEGORY[c.slug]}` : `/contact?division=${d.slug}`} className="text-blue-700 hover:underline">Features, what we can do and ask about this →</Link>
                   </p>
                 </article>
               ))}
             </div>
-            <p className="mt-8 text-sm"><Link href={`/${d.slug}`} className="font-medium text-stone-700 hover:text-blue-700">More about {d.short} →</Link></p>
           </div>
         </section>
       ))}

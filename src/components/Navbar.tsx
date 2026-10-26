@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { DIVISIONS } from "@/lib/divisions";
+import { SERVICE_FOR_CATEGORY } from "@/lib/services";
 import type { Branding, Category } from "@/lib/types";
 import Logo from "./Logo";
 import { cn } from "@/lib/utils";
@@ -59,18 +60,25 @@ export default function Navbar({ categories, branding }: { categories: Category[
                 <div key={d.slug}>
                   <Link href={`/services#${d.slug}`} className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-600 hover:underline">{d.short}</Link>
                   <ul className="mt-2 space-y-0.5">
-                    {subsOf(d.slug).map((s) => <li key={s.id}><Link href={`/services#${s.slug}`} className="block rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50 hover:text-blue-700">{s.name}</Link></li>)}
+                    {subsOf(d.slug).map((s) => <li key={s.id}><Link href={SERVICE_FOR_CATEGORY[s.slug] ? `/services/${SERVICE_FOR_CATEGORY[s.slug]}` : `/services#${s.slug}`} className="block rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50 hover:text-blue-700">{s.name}</Link></li>)}
                   </ul>
                 </div>
               ))}
             </div>
             <Link href="/services" className="block border-t border-stone-100 px-5 py-3 text-sm font-medium text-blue-600 hover:bg-stone-50">All services explained →</Link>
           </Menu>
-          <Menu label="Portfolio" href="/portfolio" on={path.startsWith("/portfolio")}>
-            <div className="p-2">
-              {DIVISIONS.map((d) => <Link key={d.slug} href={`/portfolio/${d.slug}`} className="block rounded-xl px-3 py-2.5 hover:bg-stone-50"><span className="block text-sm font-semibold text-stone-900">{d.short}</span><span className="mt-0.5 block text-xs leading-snug text-stone-500">{d.tagline}</span></Link>)}
+          <Menu label="Portfolio" href="/portfolio" on={path.startsWith("/portfolio")} wide>
+            <div className="grid max-h-[28rem] gap-6 overflow-y-auto p-5 md:grid-cols-3">
+              {DIVISIONS.map((d) => (
+                <div key={d.slug}>
+                  <Link href={`/portfolio/${d.slug}`} className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-600 hover:underline">{d.short}</Link>
+                  <ul className="mt-2 space-y-0.5">
+                    {subsOf(d.slug).map((s) => <li key={s.id}><Link href={`/${d.slug}/${s.slug}`} className="block rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50 hover:text-blue-700">{s.name}</Link></li>)}
+                  </ul>
+                </div>
+              ))}
             </div>
-            <Link href="/portfolio" className="block border-t border-stone-100 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-stone-50">All projects →</Link>
+            <Link href="/portfolio" className="block border-t border-stone-100 px-5 py-3 text-sm font-medium text-blue-600 hover:bg-stone-50">All projects →</Link>
           </Menu>
           {LINKS.map((l) => link(l.href, l.label))}
         </nav>
@@ -91,8 +99,8 @@ export default function Navbar({ categories, branding }: { categories: Category[
               {expanded === key && (
                 <div className="ml-3 flex flex-col gap-1 border-l border-stone-200 pl-3">
                   {key === "portfolio"
-                    ? DIVISIONS.map((d) => <Link key={d.slug} href={`/portfolio/${d.slug}`} className="rounded-md px-2 py-2 text-sm text-stone-500">{d.short}</Link>)
-                    : DIVISIONS.flatMap((d) => [<Link key={d.slug} href={`/services#${d.slug}`} className="rounded-md px-2 pt-2 text-xs font-semibold uppercase tracking-wider text-blue-600">{d.short}</Link>, ...subsOf(d.slug).map((s) => <Link key={s.id} href={`${base}${s.slug}`} className="rounded-md px-2 py-1.5 text-sm text-stone-500">{s.name}</Link>)])}
+                    ? DIVISIONS.flatMap((d) => [<Link key={d.slug} href={`/portfolio/${d.slug}`} className="rounded-md px-2 pt-2 text-xs font-semibold uppercase tracking-wider text-blue-600">{d.short}</Link>, ...subsOf(d.slug).map((s) => <Link key={s.id} href={`/${d.slug}/${s.slug}`} className="rounded-md px-2 py-1.5 text-sm text-stone-500">{s.name}</Link>)])
+                    : DIVISIONS.flatMap((d) => [<Link key={d.slug} href={`/services#${d.slug}`} className="rounded-md px-2 pt-2 text-xs font-semibold uppercase tracking-wider text-blue-600">{d.short}</Link>, ...subsOf(d.slug).map((s) => <Link key={s.id} href={SERVICE_FOR_CATEGORY[s.slug] ? `/services/${SERVICE_FOR_CATEGORY[s.slug]}` : `${base}${s.slug}`} className="rounded-md px-2 py-1.5 text-sm text-stone-500">{s.name}</Link>)])}
                 </div>
               )}
             </div>
