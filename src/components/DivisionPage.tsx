@@ -1,3 +1,4 @@
+import { SERVICE_FOR_CATEGORY } from "@/lib/services";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CapabilityGroups, Chips, CtaBand, SectionHead } from "@/components/Blocks";
@@ -57,7 +58,7 @@ export default async function DivisionPage({ slug }: { slug: DivisionSlug }) {
                     </div>
                   )}
                 </div>
-                <Link href={`/${slug}/${s.slug}`} className="mt-6 inline-block text-sm font-semibold text-stone-900 hover:text-blue-600">Explore {s.name} →</Link>
+                <Link href={SERVICE_FOR_CATEGORY[s.slug] ? `/services/${SERVICE_FOR_CATEGORY[s.slug]}` : `/contact?division=${slug}`} className="mt-6 inline-block text-sm font-semibold text-stone-900 hover:text-blue-600">Features, what we can do and ask about this →</Link>
               </div>
             ))}
           </div>

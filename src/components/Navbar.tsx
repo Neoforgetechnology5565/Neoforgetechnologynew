@@ -12,7 +12,6 @@ const LINKS = [
   { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
   { href: "/blog", label: "Blog" },
-  { href: "/contact", label: "Contact" },
 ];
 
 /** Hover menu. Services lists every sub-category by area; Portfolio lists the three areas. */
@@ -81,6 +80,12 @@ export default function Navbar({ categories, branding }: { categories: Category[
             <Link href="/portfolio" className="block border-t border-stone-100 px-5 py-3 text-sm font-medium text-blue-600 hover:bg-stone-50">All projects →</Link>
           </Menu>
           {LINKS.map((l) => link(l.href, l.label))}
+          <Menu label="Contact" href="/contact" on={path.startsWith("/contact") || path.startsWith("/live-chat")}>
+            <div className="p-2">
+              <Link href="/live-chat" className="block rounded-xl px-3 py-2.5 hover:bg-stone-50"><span className="block text-sm font-semibold text-stone-900">Live chat</span><span className="mt-0.5 block text-xs leading-snug text-stone-500">Talk to us now and get replies right away.</span></Link>
+              <Link href="/contact" className="block rounded-xl px-3 py-2.5 hover:bg-stone-50"><span className="block text-sm font-semibold text-stone-900">Send an enquiry</span><span className="mt-0.5 block text-xs leading-snug text-stone-500">Describe your project and we reply by email.</span></Link>
+            </div>
+          </Menu>
         </nav>
         <div className="hidden items-center gap-2 lg:flex"><Link href="/book" className="rounded-full border border-stone-300 px-4 py-2.5 text-sm font-medium text-stone-800 transition hover:border-blue-600 hover:text-blue-600">Book a Consultation</Link><Link href="/contact" className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600">Start a Project</Link></div>
         <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="mobile-nav" aria-label="Toggle menu" className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-200 lg:hidden">
@@ -106,6 +111,8 @@ export default function Navbar({ categories, branding }: { categories: Category[
             </div>
           ))}
           {LINKS.map((l) => <Link key={l.href} href={l.href} className="block rounded-md px-2 py-2.5 text-sm font-medium text-stone-700">{l.label}</Link>)}
+          <Link href="/contact" className="block rounded-md px-2 py-2.5 text-sm font-medium text-stone-700">Contact: send an enquiry</Link>
+          <Link href="/live-chat" className="block rounded-md px-2 py-2.5 text-sm font-medium text-stone-700">Contact: live chat</Link>
           <Link href="/book" className="mt-3 block rounded-full border border-stone-300 px-5 py-2.5 text-center text-sm font-medium text-stone-800">Book a Consultation</Link>
           <Link href="/contact" className="mt-2 block rounded-full bg-stone-900 px-5 py-2.5 text-center text-sm font-medium text-white">Start a Project</Link>
         </nav>
