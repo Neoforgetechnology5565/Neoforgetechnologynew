@@ -5,7 +5,7 @@ import { DEMO_DISCLAIMER } from "@/lib/demos";
 /** Shared chrome for every interactive demo: title bar with a way back, demo badge, reset slot and the sample-data disclaimer. */
 export default function DemoShell({ title, subtitle, actions, children }: { title: string; subtitle: string; actions?: ReactNode; children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 font-sans text-slate-200">
+    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-200" style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif" }}>
       <header className="flex flex-wrap items-center gap-3 border-b border-slate-800 bg-slate-900 px-4 py-2.5">
         <Link href="/demos" className="rounded-md border border-slate-700 px-3 py-1.5 text-xs font-medium text-slate-300 hover:border-sky-500 hover:text-white">← All demos</Link>
         <div className="min-w-0">
