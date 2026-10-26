@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CtaBand, SectionHead } from "@/components/Blocks";
-import { PROCESS, SERVICES } from "@/lib/services";
+import { PROCESS } from "@/lib/services";
 import { DEMOS, DEMO_DISCLAIMER } from "@/lib/demos";
 
 /** CAD/BIM portfolio: the interactive demo cards. Shown at /portfolio/cad-bim (and /demos). */
@@ -16,18 +16,6 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
         </div>
       </section>
       <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
-        <SectionHead eyebrow="What we offer" title="CAD and BIM software, built around your workflow">We turn repetitive modelling, drafting and data work into tools your team can run. Each service has its own page with features and what we can do.</SectionHead>
-        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {SERVICES.filter((x) => x.division === "cad-bim").map((x) => (
-            <li key={x.slug} className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
-              <h3 className="font-display text-base font-semibold text-stone-900">{x.name}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-stone-600">{x.intro.split(". ")[0].replace(/\.$/, "")}.</p>
-              <Link href={`/services/${x.slug}`} className="mt-3 inline-block text-sm font-medium text-blue-700 hover:underline">Features and what we can do →</Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className="mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8">
         <SectionHead eyebrow="Sample works" title="Interactive demonstrations">Ten working samples of the kinds of tools we can build. They run in your browser on invented sample data, so you can test them without installing anything.</SectionHead>
       </section>
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
