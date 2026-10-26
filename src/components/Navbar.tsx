@@ -2,41 +2,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DIVISIONS, type Division } from "@/lib/divisions";
+import { DIVISIONS } from "@/lib/divisions";
 import type { Branding, Category } from "@/lib/types";
 import Logo from "./Logo";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
-  { href: "/blog", label: "Blog" },
-  { href: "/live-chat", label: "Live Chat" },
+  { href: "/pricing", label: "Pricing" },
   { href: "/about", label: "About" },
+  { href: "/blog", label: "Blog" },
   { href: "/contact", label: "Contact" },
 ];
 
-function Dropdown({ d, subs, path }: { d: Division; subs: Category[]; path: string }) {
+/** Hover menu. Services lists every sub-category by area; Portfolio lists the three areas. */
+function Menu({ label, href, on, wide, children }: { label: string; href: string; on: boolean; wide?: boolean; children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const href = `/${d.slug}`;
-  const on = path === href || path.startsWith(href + "/");
   return (
     <div className="relative" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}>
-      <Link href={href} aria-haspopup="true" aria-expanded={open} onFocus={() => setOpen(true)}
-        className={cn("text-sm font-medium transition-colors hover:text-blue-600", on ? "text-blue-600" : "text-stone-700")}>{d.navLabel}</Link>
+      <Link href={href} aria-haspopup="true" aria-expanded={open} onFocus={() => setOpen(true)} onClick={() => setOpen(false)}
+        className={cn("text-sm font-medium transition-colors hover:text-blue-600", on ? "text-blue-600" : "text-stone-700")}>{label} <span aria-hidden className="text-[10px] text-stone-400">▾</span></Link>
       {open && (
-        <div className="absolute left-1/2 top-full w-80 -translate-x-1/2 pt-3">
-          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl">
-            <p className="border-b border-stone-100 px-4 py-3 text-xs font-semibold uppercase tracking-[0.2em] text-stone-400">{d.short}</p>
-            <div className="max-h-[22rem] overflow-y-auto p-2">
-              {subs.map((s) => (
-                <Link key={s.id} href={`${href}/${s.slug}`} className="block rounded-xl px-3 py-2.5 transition hover:bg-stone-50">
-                  <span className="block text-sm font-semibold text-stone-900">{s.name}</span>
-                  {s.description && <span className="mt-0.5 block text-xs leading-snug text-stone-500">{s.description}</span>}
-                </Link>
-              ))}
-              {subs.length === 0 && <p className="px-3 py-2 text-sm text-stone-500">{d.tagline}</p>}
-            </div>
-            <Link href={href} className="block border-t border-stone-100 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-stone-50">View all {d.short} →</Link>
-          </div>
+        <div className={cn("absolute left-1/2 top-full -translate-x-1/2 pt-3", wide ? "w-[52rem] max-w-[calc(100vw-2rem)]" : "w-72")} onClick={() => setOpen(false)}>
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-xl">{children}</div>
         </div>
       )}
     </div>
@@ -66,10 +53,28 @@ export default function Navbar({ categories, branding }: { categories: Category[
         </Link>
         <nav className="hidden items-center gap-6 xl:gap-7 lg:flex" aria-label="Primary">
           {link("/", "Home")}
-          {DIVISIONS.map((d) => <Dropdown key={d.slug} d={d} subs={subsOf(d.slug)} path={path} />)}
+          <Menu label="Services" href="/services" on={path.startsWith("/services")} wide>
+            <div className="grid max-h-[28rem] gap-6 overflow-y-auto p-5 md:grid-cols-3">
+              {DIVISIONS.map((d) => (
+                <div key={d.slug}>
+                  <Link href={`/services#${d.slug}`} className="text-xs font-semibold uppercase tracking-[0.15em] text-blue-600 hover:underline">{d.short}</Link>
+                  <ul className="mt-2 space-y-0.5">
+                    {subsOf(d.slug).map((s) => <li key={s.id}><Link href={`/services#${s.slug}`} className="block rounded-lg px-2 py-1.5 text-sm text-stone-700 hover:bg-stone-50 hover:text-blue-700">{s.name}</Link></li>)}
+                  </ul>
+                </div>
+              ))}
+            </div>
+            <Link href="/services" className="block border-t border-stone-100 px-5 py-3 text-sm font-medium text-blue-600 hover:bg-stone-50">All services explained →</Link>
+          </Menu>
+          <Menu label="Portfolio" href="/portfolio" on={path.startsWith("/portfolio")}>
+            <div className="p-2">
+              {DIVISIONS.map((d) => <Link key={d.slug} href={`/portfolio/${d.slug}`} className="block rounded-xl px-3 py-2.5 hover:bg-stone-50"><span className="block text-sm font-semibold text-stone-900">{d.short}</span><span className="mt-0.5 block text-xs leading-snug text-stone-500">{d.tagline}</span></Link>)}
+            </div>
+            <Link href="/portfolio" className="block border-t border-stone-100 px-4 py-2.5 text-sm font-medium text-blue-600 hover:bg-stone-50">All projects →</Link>
+          </Menu>
           {LINKS.map((l) => link(l.href, l.label))}
         </nav>
-        <div className="hidden lg:block"><Link href="/contact" className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600">Start a Project</Link></div>
+        <div className="hidden items-center gap-2 lg:flex"><Link href="/book" className="rounded-full border border-stone-300 px-4 py-2.5 text-sm font-medium text-stone-800 transition hover:border-blue-600 hover:text-blue-600">Book a Consultation</Link><Link href="/contact" className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-600">Start a Project</Link></div>
         <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} aria-controls="mobile-nav" aria-label="Toggle menu" className="flex h-9 w-9 items-center justify-center rounded-md border border-stone-200 lg:hidden">
           <div className="space-y-1"><span className="block h-0.5 w-5 bg-stone-900" /><span className="block h-0.5 w-5 bg-stone-900" /><span className="block h-0.5 w-5 bg-stone-900" /></div>
         </button>
@@ -77,21 +82,24 @@ export default function Navbar({ categories, branding }: { categories: Category[
       {open && (
         <nav id="mobile-nav" aria-label="Mobile" className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-stone-200 bg-white px-4 pb-6 pt-2 lg:hidden">
           <Link href="/" className="block rounded-md px-2 py-2.5 text-sm font-medium text-stone-700">Home</Link>
-          {DIVISIONS.map((d) => (
-            <div key={d.slug}>
+          {[["services", "Services", "/services#"], ["portfolio", "Portfolio", "/portfolio/"]].map(([key, label, base]) => (
+            <div key={key}>
               <div className="flex items-center justify-between">
-                <Link href={`/${d.slug}`} className="flex-1 rounded-md px-2 py-2.5 text-sm font-medium text-stone-700">{d.navLabel}</Link>
-                <button type="button" aria-label={`Toggle ${d.short}`} aria-expanded={expanded === d.slug} onClick={() => setExpanded(expanded === d.slug ? null : d.slug)} className="flex h-8 w-8 items-center justify-center text-stone-400">{expanded === d.slug ? "−" : "+"}</button>
+                <Link href={`/${key}`} className="flex-1 rounded-md px-2 py-2.5 text-sm font-medium text-stone-700">{label}</Link>
+                <button type="button" aria-label={`Toggle ${label}`} aria-expanded={expanded === key} onClick={() => setExpanded(expanded === key ? null : key)} className="flex h-8 w-8 items-center justify-center text-stone-400">{expanded === key ? "−" : "+"}</button>
               </div>
-              {expanded === d.slug && (
+              {expanded === key && (
                 <div className="ml-3 flex flex-col gap-1 border-l border-stone-200 pl-3">
-                  {subsOf(d.slug).map((s) => <Link key={s.id} href={`/${d.slug}/${s.slug}`} className="rounded-md px-2 py-2 text-sm text-stone-500">{s.name}</Link>)}
+                  {key === "portfolio"
+                    ? DIVISIONS.map((d) => <Link key={d.slug} href={`/portfolio/${d.slug}`} className="rounded-md px-2 py-2 text-sm text-stone-500">{d.short}</Link>)
+                    : DIVISIONS.flatMap((d) => [<Link key={d.slug} href={`/services#${d.slug}`} className="rounded-md px-2 pt-2 text-xs font-semibold uppercase tracking-wider text-blue-600">{d.short}</Link>, ...subsOf(d.slug).map((s) => <Link key={s.id} href={`${base}${s.slug}`} className="rounded-md px-2 py-1.5 text-sm text-stone-500">{s.name}</Link>)])}
                 </div>
               )}
             </div>
           ))}
           {LINKS.map((l) => <Link key={l.href} href={l.href} className="block rounded-md px-2 py-2.5 text-sm font-medium text-stone-700">{l.label}</Link>)}
-          <Link href="/contact" className="mt-3 block rounded-full bg-stone-900 px-5 py-2.5 text-center text-sm font-medium text-white">Start a Project</Link>
+          <Link href="/book" className="mt-3 block rounded-full border border-stone-300 px-5 py-2.5 text-center text-sm font-medium text-stone-800">Book a Consultation</Link>
+          <Link href="/contact" className="mt-2 block rounded-full bg-stone-900 px-5 py-2.5 text-center text-sm font-medium text-white">Start a Project</Link>
         </nav>
       )}
     </header>

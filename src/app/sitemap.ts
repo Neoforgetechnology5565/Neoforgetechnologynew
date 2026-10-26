@@ -8,7 +8,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const [projects, cats, posts] = await Promise.all([getPublishedProjects(), getCategories(), getPublishedPosts()]);
   return [
-    ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms"].map((p) => ({ url: `${base}${p}` })),
+    ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing", "/book"].map((p) => ({ url: `${base}${p}` })),
     ...DIVISIONS.flatMap((d) => [{ url: `${base}/${d.slug}` }, { url: `${base}/portfolio/${d.slug}` }]),
     ...posts.map((p) => ({ url: `${base}/blog/${p.slug}`, lastModified: new Date(p.updatedAt || p.publishedAt) })),
     ...cats.map((c) => ({ url: `${base}/${c.division}/${c.slug}` })),

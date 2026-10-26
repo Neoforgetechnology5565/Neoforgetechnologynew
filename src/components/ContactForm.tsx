@@ -11,7 +11,7 @@ const L = "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-ston
 const BUDGETS = ["Under $5k", "$5k – $15k", "$15k – $50k", "$50k – $150k", "$150k+", "Not sure yet"];
 const TIMELINES = ["ASAP", "1–3 months", "3–6 months", "6+ months", "Flexible"];
 
-export default function ContactForm({ initialDivision = "" }: { initialDivision?: string }) {
+export default function ContactForm({ initialDivision = "", defaultMessage = "" }: { initialDivision?: string; defaultMessage?: string }) {
   const [files, setFiles] = useState<MediaRef[]>([]);
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState("");
@@ -73,7 +73,7 @@ export default function ContactForm({ initialDivision = "" }: { initialDivision?
       </div>
       <div><label className={L} htmlFor="budget">Budget</label><select id="budget" name="budget" className={F} defaultValue=""><option value="">Prefer to discuss</option>{BUDGETS.map((b) => <option key={b}>{b}</option>)}</select></div>
       <div><label className={L} htmlFor="timeline">Timeline</label><select id="timeline" name="timeline" className={F} defaultValue=""><option value="">Flexible</option>{TIMELINES.map((b) => <option key={b}>{b}</option>)}</select></div>
-      <div className="sm:col-span-2"><label className={L} htmlFor="message">Project description *</label><textarea id="message" name="message" required minLength={10} maxLength={5000} rows={6} className={F} placeholder="What are you trying to build or automate? What systems are involved?" /></div>
+      <div className="sm:col-span-2"><label className={L} htmlFor="message">Project description *</label><textarea id="message" name="message" required minLength={10} maxLength={5000} rows={6} defaultValue={defaultMessage} className={F} placeholder="What are you trying to build or automate? What systems are involved?" /></div>
       <div className="sm:col-span-2">
         <FileDrop light label="Attachments (optional)" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple max={3} endpoint="/api/upload-sign" value={files} onChange={setFiles} hint="JPG, PNG, WEBP or PDF · up to 15 MB each" />
       </div>
