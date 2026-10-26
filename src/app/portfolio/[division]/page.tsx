@@ -1,3 +1,4 @@
+import DemoCenter from "@/components/demos/DemoCenter";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -21,6 +22,21 @@ export default async function DivisionPortfolio({ params }: { params: Promise<{ 
   if (!isDivisionSlug(division)) notFound();
   const d = DIVISION_MAP[division];
   const [all, cats] = await Promise.all([getPublishedProjects(), getCategories()]);
+  if (division === "cad-bim") {
+    const real = all.filter((p) => p.division === division);
+    return (
+      <>
+        <DemoCenter>
+          {real.length > 0 && (
+            <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+              <h2 className="font-display text-2xl font-semibold text-stone-900">Project case studies</h2>
+              <div className="mt-6"><PortfolioFilter projects={real} categories={cats.filter((c) => c.division === division).map((c) => ({ id: c.id, name: c.name }))} /></div>
+            </section>
+          )}
+        </DemoCenter>
+      </>
+    );
+  }
   return (
     <>
       <section className="bg-slate-950 py-16 text-white sm:py-20">
@@ -33,14 +49,6 @@ export default async function DivisionPortfolio({ params }: { params: Promise<{ 
           </div>
         </div>
       </section>
-      {division === "cad-bim" && (
-        <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-6">
-            <div><p className="font-display text-xl font-semibold text-stone-900">CAD/BIM Interactive Demo Center</p><p className="mt-1 text-sm text-stone-600">Try working demonstrations of CAD and BIM software we can build. Sample data only.</p></div>
-            <Link href="/demos" className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-600">Open the demos →</Link>
-          </div>
-        </section>
-      )}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <PortfolioFilter projects={all.filter((p) => p.division === division)} categories={cats.filter((c) => c.division === division).map((c) => ({ id: c.id, name: c.name }))} />
       </section>
