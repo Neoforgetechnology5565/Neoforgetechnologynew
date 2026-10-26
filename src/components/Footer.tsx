@@ -7,7 +7,8 @@ import Logo from "./Logo";
 
 /** Hidden inside /admin. Contains no link to the admin area. */
 export default function Footer({ contact, categories, branding }: { contact: ContactSettings; categories: Category[]; branding: Branding }) {
-  if (usePathname().startsWith("/admin")) return null;
+  const path = usePathname();
+  if (path.startsWith("/admin") || /^\/demos\/[^/]+\/app/.test(path)) return null;
   const socials = [["LinkedIn", contact.linkedin], ["GitHub", contact.github], ["X", contact.x], ["YouTube", contact.youtube]].filter(([, u]) => u);
   return (
     <footer className="border-t border-slate-800 bg-slate-950 text-slate-400">

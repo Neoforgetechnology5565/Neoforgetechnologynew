@@ -9,7 +9,7 @@ export default function ContactWidget({ enabled, greeting, whatsapp, email }: { 
   const [menu, setMenu] = useState(false);
   const [chat, setChat] = useState(false);
   const [unseen, setUnseen] = useState(0);
-  if (path.startsWith("/admin") || path === "/live-chat") return null;
+  if (path.startsWith("/admin") || path === "/live-chat" || /^\/demos\/[^/]+\/app/.test(path)) return null;
   const wa = whatsapp ? `https://wa.me/${whatsapp}?text=${encodeURIComponent("Hello Neo Forge Technology, I'd like to discuss a project.")}` : "";
   if (!enabled && !wa && !email) return null;
 

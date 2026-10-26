@@ -33,6 +33,14 @@ export default async function DivisionPortfolio({ params }: { params: Promise<{ 
           </div>
         </div>
       </section>
+      {division === "cad-bim" && (
+        <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-stone-50 p-6">
+            <div><p className="font-display text-xl font-semibold text-stone-900">CAD/BIM Interactive Demo Center</p><p className="mt-1 text-sm text-stone-600">Try working demonstrations of CAD and BIM software we can build. Sample data only.</p></div>
+            <Link href="/demos" className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-600">Open the demos →</Link>
+          </div>
+        </section>
+      )}
       <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <PortfolioFilter projects={all.filter((p) => p.division === division)} categories={cats.filter((c) => c.division === division).map((c) => ({ id: c.id, name: c.name }))} />
       </section>

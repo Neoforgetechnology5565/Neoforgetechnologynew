@@ -39,7 +39,7 @@ export default function Navbar({ categories, branding }: { categories: Category[
     document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
-  if (path.startsWith("/admin")) return null;
+  if (path.startsWith("/admin") || /^\/demos\/[^/]+\/app/.test(path)) return null;
   const subsOf = (slug: string) => categories.filter((c) => c.division === slug && c.enabled).sort((a, b) => a.order - b.order);
   const link = (href: string, label: string) => (
     <Link key={href} href={href} className={cn("text-sm font-medium transition-colors hover:text-blue-600", (href === "/" ? path === "/" : path.startsWith(href)) ? "text-blue-600" : "text-stone-700")}>{label}</Link>

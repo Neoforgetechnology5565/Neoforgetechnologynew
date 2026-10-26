@@ -1,4 +1,5 @@
 import { SERVICES } from "@/lib/services";
+import { DEMOS } from "@/lib/demos";
 import type { MetadataRoute } from "next";
 import { getCategories, getPublishedPosts, getPublishedProjects } from "@/lib/db";
 import { DIVISIONS } from "@/lib/divisions";
@@ -9,7 +10,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const [projects, cats, posts] = await Promise.all([getPublishedProjects(), getCategories(), getPublishedPosts()]);
   return [
-    ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing"].map((p) => ({ url: `${base}${p}` })),
+    ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing", "/demos"].map((p) => ({ url: `${base}${p}` })),
+    ...DEMOS.map((d) => ({ url: `${base}/demos/${d.slug}` })),
     ...SERVICES.map((s) => ({ url: `${base}/services/${s.slug}` })),
     ...DIVISIONS.flatMap((d) => [{ url: `${base}/${d.slug}` }, { url: `${base}/portfolio/${d.slug}` }]),
     ...posts.map((p) => ({ url: `${base}/blog/${p.slug}`, lastModified: new Date(p.updatedAt || p.publishedAt) })),
