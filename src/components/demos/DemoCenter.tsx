@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CtaBand } from "@/components/Blocks";
+import { CtaBand, SectionHead } from "@/components/Blocks";
+import { PROCESS, SERVICES } from "@/lib/services";
 import { DEMOS, DEMO_DISCLAIMER } from "@/lib/demos";
 
 /** CAD/BIM portfolio: the interactive demo cards. Shown at /portfolio/cad-bim (and /demos). */
@@ -8,13 +9,28 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
     <>
       <section className="bg-slate-950 py-16 text-white sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">CAD / BIM · Interactive demos</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Try the software, don&apos;t just look at it.</h1>
-          <p className="mt-4 max-w-2xl text-slate-300">Working demonstrations of the engineering tools we can build for CAD and BIM teams. Open one, click around, change values and see what happens.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">CAD / BIM · Sample works and services</p>
+          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Sample works and what we offer.</h1>
+          <p className="mt-4 max-w-2xl text-slate-300">We build software for CAD and BIM teams: plugins, automation and engineering tools. Below is what we offer, and working sample demonstrations you can open, click around in and test with your own inputs. Try the software, don&apos;t just look at it.</p>
           <p className="mt-4 max-w-2xl rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">{DEMO_DISCLAIMER}</p>
         </div>
       </section>
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+      <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
+        <SectionHead eyebrow="What we offer" title="CAD and BIM software, built around your workflow">We turn repetitive modelling, drafting and data work into tools your team can run. Each service has its own page with features and what we can do.</SectionHead>
+        <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {SERVICES.filter((x) => x.division === "cad-bim").map((x) => (
+            <li key={x.slug} className="rounded-2xl border border-stone-200 bg-stone-50 p-5">
+              <h3 className="font-display text-base font-semibold text-stone-900">{x.name}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-stone-600">{x.intro.split(". ")[0].replace(/\.$/, "")}.</p>
+              <Link href={`/services/${x.slug}`} className="mt-3 inline-block text-sm font-medium text-blue-700 hover:underline">Features and what we can do →</Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+      <section className="mx-auto max-w-7xl px-4 pt-20 sm:px-6 lg:px-8">
+        <SectionHead eyebrow="Sample works" title="Interactive demonstrations">Ten working samples of the kinds of tools we can build. They run in your browser on invented sample data, so you can test them without installing anything.</SectionHead>
+      </section>
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {DEMOS.map((d) => (
             <li key={d.slug} className="flex flex-col rounded-2xl border border-stone-200 bg-white p-6">
@@ -33,6 +49,15 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
             </li>
           ))}
         </ul>
+      </section>
+      <section className="border-y border-stone-200 bg-stone-50 py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHead eyebrow="How it works" title="From your idea to working software" />
+          <ol className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {PROCESS.map((x, i) => <li key={x.title}><span className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-semibold text-white">{i + 1}</span><h3 className="mt-3 font-display text-lg font-semibold text-stone-900">{x.title}</h3><p className="mt-1 text-sm leading-relaxed text-stone-600">{x.text}</p></li>)}
+          </ol>
+          <p className="mt-8 max-w-3xl text-sm text-stone-500">The demos above are samples to show what is possible. Your tool is built around your own standards, files and software versions, and we agree scope, timeline and price in writing before any work starts.</p>
+        </div>
       </section>
       {children}
       <CtaBand division="cad-bim" title="Need something like this for your team?" sub="Tell us the workflow you want to automate. We will reply with an honest view of what is feasible." />
