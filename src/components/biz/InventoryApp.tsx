@@ -92,7 +92,7 @@ function BinMap({ wid, highlight, compact, onBin, active }: { wid: string; highl
 
 /* ───────── Stock desk: list + contextual detail ───────── */
 function StockDesk({ wh, q, sel, setSel, openOp }: { wh: string; q: string; sel: string | null; setSel(id: string | null): void; openOp(k: "receive" | "transfer" | "adjust"): void }) {
-  const { inv, map, avg, total } = useInv(); const [cat, setCat] = useState(""); const [level, setLevel] = useState(""); const [edit, setEdit] = useState(false);
+  const { inv, map, avg, total } = useInv(); const [cat, setCat] = useState(""); const [level, setLevel] = useState(""); const [edit, setEdit] = useState(false); const [cats, setCats] = useState(false);
   const qtyOf = (p: Product) => (wh ? qtyAt(map, p.id, wh) : total(p.id));
   const rows = inv.products.filter((p) => (!cat || p.categoryId === cat) && (!level || stockLevel(total(p.id), p.reorder) === level) && (!q || `${p.name} ${p.sku}`.toLowerCase().includes(q.toLowerCase())) && (!wh || qtyAt(map, p.id, wh) !== 0 || !!q));
   const cols: Col<Product>[] = [{ key: "sku", label: "SKU", render: (p) => <span className="whitespace-nowrap font-mono text-sm">{p.sku}</span> }, { key: "name", label: "Product", render: (p) => <span className="font-medium text-slate-900">{p.name}</span> }, ...(wh ? [{ key: "bin", label: "Bin", value: (p: Product) => binOf(inv.bins, p.id, wh), render: (p: Product) => <span className="whitespace-nowrap font-mono text-sm">{binOf(inv.bins, p.id, wh)}</span> } as Col<Product>] : []),
@@ -101,14 +101,14 @@ function StockDesk({ wh, q, sel, setSel, openOp }: { wh: string; q: string; sel:
   const p = sel ? inv.products.find((x) => x.id === sel) : undefined;
   return (<div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(420px,1fr)]">
     <section aria-label="Stock list" className="min-w-0 rounded-xl border border-slate-400 bg-white p-3 shadow-sm">
-      <h2 className="mb-2 font-display text-2xl font-semibold text-slate-900">Stock{wh ? ` · ${inv.warehouses.find((w) => w.id === wh)?.name}` : " · all warehouses"}</h2>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><h2 className="font-display text-2xl font-semibold text-slate-900">Stock{wh ? ` · ${inv.warehouses.find((w) => w.id === wh)?.name}` : " · all warehouses"}</h2><Btn small onClick={() => setCats(true)} testid="manage-categories">Categories</Btn></div>
       <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} onRow={(r) => setSel(r.id)} exportName="inventory-products" pageSize={12} search={false} testid="product-table" dense rowClass={(r) => (r.id === sel ? "!bg-amber-100" : "")}
         toolbar={<><FilterSelect label="Category" value={cat} onChange={setCat} options={inv.categories.map((c) => ({ value: c.id, label: c.name }))} /><FilterSelect label="Level" value={level} onChange={setLevel} options={["OK", "Low", "Out of stock"]} /></>} />
     </section>
     <section aria-label="Selected product" className="min-w-0 rounded-xl border border-slate-400 bg-white p-4 shadow-sm xl:sticky xl:top-3 xl:self-start">
       {p ? <DetailPane key={p.id} p={p} wh={wh} openOp={openOp} onEdit={() => setEdit(true)} onGone={() => setSel(null)} /> : <div className="py-12 text-center"><p className="font-display text-xl text-slate-700">No product selected</p><p className="mt-1 text-[15px] text-slate-600">Scan or search a SKU above, or select a row. Its stock by warehouse, bin location and history appear here.</p></div>}
     </section>
-    {edit && p && <EditProduct p={p} onClose={() => setEdit(false)} />}
+    {edit && p && <EditProduct p={p} onClose={() => setEdit(false)} />}{cats && <CategoriesModal onClose={() => setCats(false)} />}
   </div>);
 }
 function EditProduct({ p, onClose }: { p: Product; onClose(): void }) {
@@ -131,7 +131,7 @@ function DetailPane({ p, wh, openOp, onEdit, onGone }: { p: Product; wh: string;
     <ul className="mt-1 divide-y divide-slate-200 text-[15px]">{inv.warehouses.map((w) => <li key={w.id}><button type="button" onClick={() => { setMapWh(w.id); setBin(binOf(inv.bins, id, w.id)); }} aria-pressed={mapWh === w.id} className={`flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left ${mapWh === w.id ? "bg-amber-50" : "hover:bg-slate-50"}`}><span>{w.name}</span><span className="flex items-center gap-3"><span className="font-mono text-sm text-slate-600">{qtyAt(map, id, w.id) > 0 ? binOf(inv.bins, id, w.id) : "no bin"}</span><span className="font-medium tabular-nums" data-testid={`pd-wh-${w.id}`}>{num(qtyAt(map, id, w.id))}</span></span></button></li>)}</ul>
     <div className="mt-3 flex flex-wrap items-start gap-4"><BinMap wid={mapWh} highlight={id} compact onBin={setBinCell} active={binCell} />
       <div className="min-w-[200px] flex-1"><p className="text-sm text-slate-600">Bin in {wName(mapWh)}: <strong className="font-mono text-slate-900" data-testid="pd-bin">{cur}</strong></p>
-        <div className="mt-2 grid grid-cols-3 gap-2"><SelectIn label="Aisle" value={ba} onChange={(e) => setPart(0, e.target.value)} options={AISLES} /><SelectIn label="Rack" value={br} onChange={(e) => setPart(1, e.target.value)} options={RACKS.map((r) => String(r).padStart(2, "0"))} /><SelectIn label="Level" value={bl} onChange={(e) => setPart(2, e.target.value)} options={["1", "2", "3"]} /></div>
+        <div className="mt-2 grid grid-cols-3 gap-2"><SelectIn label="Bin aisle" value={ba} onChange={(e) => setPart(0, e.target.value)} options={AISLES} /><SelectIn label="Bin rack" value={br} onChange={(e) => setPart(1, e.target.value)} options={RACKS.map((r) => String(r).padStart(2, "0"))} /><SelectIn label="Bin level" value={bl} onChange={(e) => setPart(2, e.target.value)} options={["1", "2", "3"]} /></div>
         <Btn small className="mt-2" testid="save-bin" onClick={() => { setInv((s) => ({ ...s, bins: { ...(s.bins ?? {}), [`${id}|${mapWh}`]: bin } })); toast(`Bin set to ${bin}`); }}>Move to this bin</Btn>
         {binCell && <p className="mt-2 text-sm text-slate-700">Rack {binCell} holds: {inv.products.filter((x) => qtyAt(map, x.id, mapWh) > 0 && binOf(inv.bins, x.id, mapWh).startsWith(binCell)).map((x) => x.sku).join(", ") || "nothing"}</p>}
         <p className="mt-2 text-sm text-slate-500">Bin locations are demonstration data assigned automatically; changes are saved in this browser.</p></div></div>
