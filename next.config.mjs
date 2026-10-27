@@ -12,7 +12,9 @@ import path from "node:path";
 const nextConfig = {
   poweredByHeader: false,
   // Keep the Firebase Admin SDK and its gRPC stack out of the bundle (bundling them breaks on Vercel).
-  serverExternalPackages: ["firebase-admin", "google-gax", "@grpc/grpc-js", "@google-cloud/firestore"],
+  serverExternalPackages: ["web-ifc", "firebase-admin", "google-gax", "@grpc/grpc-js", "@google-cloud/firestore"],
+  // web-ifc loads its .wasm from node_modules at run time; file tracing cannot see that, so ship it with every route that reads IFC (otherwise ENOENT on Vercel).
+  outputFileTracingIncludes: { "/api/bim/**/*": ["./node_modules/web-ifc/*.wasm"], "/api/bim/projects/[id]/*": ["./node_modules/web-ifc/*.wasm"] },
   // @vladmandic/human exposes its Node build to the server compile pass; the in-browser detector must always use the ESM build.
   webpack: (config) => {
     config.resolve.alias = { ...config.resolve.alias, "@vladmandic/human$": path.resolve("node_modules/@vladmandic/human/dist/human.esm.js") };
