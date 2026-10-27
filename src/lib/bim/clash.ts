@@ -55,8 +55,8 @@ export function archItems(b: Building): Item[] {
 }
 
 const POINTY = ["equipment", "air-terminal", "light", "fitting"];
-export function detectClashes(b: Building | null, els: MepElement[], st: Pick<Settings, "clearance" | "clashTolerance">): { clashes: Clash[]; tested: number; method: string[] } {
-  const items = [...mepItems(els), ...(b ? archItems(b) : [])]; const cl = st.clearance, tol = st.clashTolerance; const best = new Map<string, Clash>(); let tested = 0;
+export function detectClashes(b: Building | null, els: MepElement[], st: Pick<Settings, "clearance" | "clashTolerance">, extra?: { arch?: Item[]; mep?: Item[] }): { clashes: Clash[]; tested: number; method: string[] } {
+  const items = [...mepItems(els), ...(b ? archItems(b) : []), ...(extra?.arch ?? []), ...(extra?.mep ?? [])]; const cl = st.clearance, tol = st.clashTolerance; const best = new Map<string, Clash>(); let tested = 0;
   const rank = { high: 4, medium: 3, low: 2, warning: 1 } as const; const order = items.map((_, i) => i).sort((p, q) => items[p].aabb.min.x - items[q].aabb.min.x);
   for (let oi = 0; oi < order.length; oi++) {
     const A = items[order[oi]];
