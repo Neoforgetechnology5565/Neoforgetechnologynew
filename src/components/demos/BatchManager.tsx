@@ -71,7 +71,7 @@ export default function BatchManager({ branding }: { branding: Branding }) {
     if (!file) return;
     if (file.size > 5_000_000) { setMsg("File too large for the demo (5 MB limit)."); return; }
     const ext = file.name.split(".").pop()?.toLowerCase();
-    if (ext === "dxf") { const r = parseDxf(await file.text(), file.name, file.size); if ("error" in r) { setMsg(r.error); return; } commit((js) => [...js, r]); setFocus(r.id); setMsg(`Added ${file.name}: ${r.note ?? ""}`); blog(`Uploaded ${file.name} (parsed ${r.objects} entities).`); }
+    if (ext === "dxf") { const r = parseDxf(await file.text(), file.name, file.size); if (!("id" in r)) { setMsg(r.error); return; } commit((js) => [...js, r]); setFocus(r.id); setMsg(`Added ${file.name}: ${r.note ?? ""}`); blog(`Uploaded ${file.name} (parsed ${r.objects} entities).`); }
     else if (ext === "dwg") { const j: Job = { id: `U-${Date.now() % 100000}`, file: file.name, category: "Details", rev: "", format: "DWG", sizeMB: Math.round(file.size / 1e4) / 100, modified: new Date().toISOString().slice(0, 10), objects: 0, layers: [], units: "Unspecified", geom: { dups: 0, gaps: 0, tiny: 0 }, header: "ok", source: "upload", status: "pending", step: 0, stepStatus: {}, logs: [], findings: [], runs: 0, unparsed: true, note: "Uploaded DWG. Binary DWG cannot be parsed in this demo." }; commit((js) => [...js, j]); setFocus(j.id); setMsg("Added. DWG files are queued but will report that they cannot be parsed; upload ASCII DXF for real inspection."); blog(`Uploaded ${file.name} (DWG, not parsable).`); }
     else setMsg("Only .dxf and .dwg files can be added.");
   };
