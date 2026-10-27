@@ -84,7 +84,7 @@ export function buildDrawing(): Ent[] {
   // Grid lines
   for (const [x, l] of [[0, "A"], [6, "B"], [14, "C"], [20, "D"]] as const) mk({ type: "grid", layer: "A-GRID", x1: x, y1: -0.9, x2: x, y2: 13.1, text: l });
   // Title block
-  mk({ type: "ttlb", layer: "A-ANNO-TTLB", x1: 0, y1: 15, w: 20, h: 3, text: `${DRAWING.title}|Drawing ${DRAWING.name}|Scale ${DRAWING.scale}|Sample data, not a real project` });
+  mk({ type: "ttlb", layer: "A-ANNO-TTLB", x1: 0, y1: 14.8, w: 20, h: 2.6, text: `${DRAWING.title}|Drawing ${DRAWING.name}|Scale ${DRAWING.scale}|Sample data, not a real project` });
   // A stray, near-zero-length line left on a default layer
   mk({ type: "wall", layer: "Layer1", x1: 18.4, y1: 9.4, x2: 18.405, y2: 9.4, t: 0.15 });
   return out;

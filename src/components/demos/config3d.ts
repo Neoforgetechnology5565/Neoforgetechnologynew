@@ -147,7 +147,7 @@ export function buildHouse(cfg: Cfg): House {
 /** Lawn, path, trees and sky. Not part of the exported model. */
 export function buildSurroundings(scene: THREE.Scene, W: number, L: number) {
   const g = new THREE.Group();
-  const lawn = new THREE.Mesh(new THREE.CircleGeometry(60, 48), std({ color: 0x7ea766, roughness: 1 })); lawn.rotation.x = -Math.PI / 2; lawn.position.y = -0.21; lawn.receiveShadow = true; g.add(lawn);
+  const lawn = new THREE.Mesh(new THREE.CircleGeometry(400, 48), std({ color: 0x7ea766, roughness: 1 })); lawn.rotation.x = -Math.PI / 2; lawn.position.y = -0.21; lawn.receiveShadow = true; g.add(lawn);
   const path = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.04, 9), std({ color: 0xb8b7b0 })); path.position.set(0, -0.19, L / 2 + 4.5); path.receiveShadow = true; g.add(path);
   const tree = (x: number, z: number, s: number) => { const t = new THREE.Group(); const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16 * s, 0.22 * s, 2 * s, 8), std({ color: 0x6b4a2a })); trunk.position.y = s; trunk.castShadow = true; t.add(trunk); const c1 = new THREE.Mesh(new THREE.IcosahedronGeometry(1.3 * s, 1), std({ color: 0x3f7a3a })); c1.position.y = 2.6 * s; c1.castShadow = true; t.add(c1); const c2 = new THREE.Mesh(new THREE.IcosahedronGeometry(0.9 * s, 1), std({ color: 0x4f8f46 })); c2.position.set(0.7 * s, 3.3 * s, 0.2 * s); c2.castShadow = true; t.add(c2); t.position.set(x, -0.2, z); g.add(t); };
   tree(W / 2 + 4, L / 2 + 3, 1.1); tree(-W / 2 - 5, -L / 4, 1.4); tree(W / 2 + 6, -L / 2 - 2, 1); tree(-W / 2 - 3.5, L / 2 + 5, 0.9);

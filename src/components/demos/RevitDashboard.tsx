@@ -158,11 +158,9 @@ export default function RevitDashboard({ branding }: { branding: Branding }) {
           <Stage3D className="h-[46vh] min-h-[300px] lg:h-[54vh]" home={VIEWS.Iso} onReady={onReady} onPick={onPick} shadows label="3D view of the sample office building. Click an element to select it."
             toolbar={<>
               <span className="flex gap-0.5 rounded-md border border-slate-700 p-0.5">{Object.keys(VIEWS).map((v) => <button key={v} type="button" onClick={() => goView(v)} className={pill(view === v)}>{v}</button>)}</span>
+              <span className="flex gap-0.5 rounded-md border border-slate-700 p-0.5" role="group" aria-label="Level">{(["All", ...LEVELS] as const).map((l) => <button key={l} type="button" onClick={() => setLevelF(l)} className={pill(levelF === l)}>{l === "All" ? "All levels" : l}</button>)}</span>
               <span className="flex gap-0.5 rounded-md border border-slate-700 p-0.5">{([["shaded", "Shaded"], ["xray", "X-ray"], ["wire", "Wireframe"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setMode(k)} className={pill(mode === k)}>{l}</button>)}</span>
             </>}>
-            <div className="absolute right-2 top-2 z-10 flex gap-0.5 rounded-md border border-slate-700 bg-slate-900/90 p-0.5" role="group" aria-label="Level">
-              {(["All", ...LEVELS] as const).map((l) => <button key={l} type="button" onClick={() => setLevelF(l)} className={pill(levelF === l)}>{l === "All" ? "All levels" : l}</button>)}
-            </div>
             {selected && <div className="absolute bottom-2 right-2 z-10 rounded bg-slate-950/85 px-3 py-1.5 text-xs"><span className="font-mono text-blue-300">{selected.id}</span> · {selected.cat} · {selected.type}</div>}
           </Stage3D>
 

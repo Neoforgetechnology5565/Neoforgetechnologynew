@@ -76,7 +76,7 @@ export default function Stage3D({ home, onReady, onPick, shadows, className = ""
     const size = () => {
       const w = el.clientWidth || 1, h = el.clientHeight || 1;
       renderer.setSize(w, h, false);
-      camera.aspect = w / h; camera.updateProjectionMatrix(); invalidate();
+      camera.aspect = w / h; camera.fov = camera.aspect < 1.2 ? Math.min(78, 40 * Math.pow(1.2 / camera.aspect, 0.75)) : 40; camera.updateProjectionMatrix(); invalidate();
     };
     const ro = new ResizeObserver(size);
     ro.observe(el); size();

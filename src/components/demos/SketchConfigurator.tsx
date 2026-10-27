@@ -47,7 +47,7 @@ export default function SketchConfigurator({ branding }: { branding: Branding })
   const choose = (k: string) => { setCfg(PRESETS[k].cfg); setPreset(k); setSel(null); setChanges(0); ctx?.reset(); };
 
   const onReady = (c: StageCtx) => {
-    c.scene.background = new THREE.Color(0xcfe3ee);
+    c.scene.background = new THREE.Color(0xcfe3ee); c.scene.fog = new THREE.Fog(0xcfe3ee, 70, 190);
     c.scene.add(new THREE.HemisphereLight(0xeaf4ff, 0x7a8a6a, 0.85));
     const sun = new THREE.DirectionalLight(0xfff3e0, 1.5); sun.position.set(22, 34, 26); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 140 }); sun.shadow.bias = -0.0004;

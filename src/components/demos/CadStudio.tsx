@@ -5,7 +5,7 @@ import { CHECKS, DRAWING, EXPECTED, LAYERS, LAYER_RE, applyFix, area, bbox, buil
 import type { Branding } from "@/lib/types";
 
 type VB = { x: number; y: number; w: number; h: number };
-const FIT: VB = { x: -3, y: -3.5, w: 26, h: 23.5 };
+const FIT: VB = { x: -2.6, y: -3.3, w: 25.2, h: 21 };
 const BRAND = "#55b52b", AMBER = "#f59e0b";
 const field = "w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-blue-500";
 const lbl = "mb-1 block text-[10px] font-semibold uppercase tracking-wider text-slate-500";
@@ -78,12 +78,12 @@ export default function CadStudio({ branding }: { branding: Branding }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const zoomTo = (e: Ent) => { const b = bbox(e), s = svg.current!, a = (s.clientWidth || 1) / (s.clientHeight || 1); const w = Math.max(b.w * 2.2, 5), h = Math.max(b.h * 2.2, 5 / a); const W = Math.max(w, h * a), H = W / a; setVb({ x: b.x + b.w / 2 - W / 2, y: b.y + b.h / 2 - H / 2, w: W, h: H }); };
-  const onDown = (e: React.PointerEvent) => { drag.current = { x: e.clientX, y: e.clientY }; moved.current = false; (e.currentTarget as Element).setPointerCapture(e.pointerId); };
+  const onDown = (e: React.PointerEvent) => { drag.current = { x: e.clientX, y: e.clientY }; moved.current = false; };
   const onMove = (e: React.PointerEvent) => {
     const p = toSvg(e.clientX, e.clientY); setCursor([p.x, 12 - p.y]);
     if (!drag.current) return;
     const dx = e.clientX - drag.current.x, dy = e.clientY - drag.current.y;
-    if (Math.hypot(dx, dy) > 3) moved.current = true;
+    if (!moved.current && Math.hypot(dx, dy) > 3) { moved.current = true; (e.currentTarget as Element).setPointerCapture(e.pointerId); }
     if (moved.current && (tool === "pan" || e.buttons === 4 || e.shiftKey)) { const k = svg.current!.getScreenCTM()!.a; setVb((v) => ({ ...v, x: v.x - dx / k, y: v.y - dy / k })); drag.current = { x: e.clientX, y: e.clientY }; }
   };
   const onUp = () => { drag.current = null; };
