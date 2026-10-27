@@ -54,7 +54,9 @@ export default function BimExplorer({ branding }: { branding: Branding }) {
     const b = buildBuilding(els.filter((e) => e.src).map((e) => e.src!));
     ctx.pick.add(b.group);
     const extra = new Map<string, THREE.Mesh[]>();
-    ctx.scene.traverse((o) => { if (o.userData.id === "RF-1" && (o as THREE.Mesh).isMesh) { const m = o as THREE.Mesh; m.material = (m.material as THREE.Material).clone(); extra.set("RF-1", [m]); ctx.pick.attach(m); } });
+    const roofs: THREE.Mesh[] = [];
+    ctx.scene.traverse((o) => { if (o.userData.id === "RF-1" && (o as THREE.Mesh).isMesh) roofs.push(o as THREE.Mesh); });
+    roofs.forEach((m) => { m.material = (m.material as THREE.Material).clone(); extra.set("RF-1", [m]); ctx.pick.attach(m); });
     const rg = new THREE.Group();
     for (const r of ROOMS) { const w = r.x1 - r.x0 - 0.3, d = r.y1 - r.y0 - 0.3; const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshBasicMaterial({ color: BRAND, transparent: true, opacity: 0.07, side: THREE.DoubleSide, depthWrite: false })); m.rotation.x = -Math.PI / 2; m.position.set((r.x0 + r.x1) / 2, (r.level === "Level 1" ? 0 : 3.2) + 0.05, (r.y0 + r.y1) / 2); m.userData.id = r.id; rg.add(m); extra.set(r.id, [m]); }
     ctx.pick.add(rg);
