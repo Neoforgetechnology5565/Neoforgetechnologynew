@@ -1,51 +1,109 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { logActivity, resetDb, setDb, useSlice } from "@/lib/biz/db";
+import { qtyAt, stockMap } from "@/lib/biz/inv-calc";
 import type { PurchaseOrder, ReqLine, Requisition, Supplier } from "@/lib/biz/seed-proc";
 import { DEMO_TODAY, addDays, daysBetween, downloadCsv, downloadJson, emailOk, fmtDate, groupBy, lastNMonths, money, moneyK, monthKey, monthLabel, pct, round2, sum, uid } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { AreaIn, Badge, BarChart, Btn, DataTable, Donut, Drawer, Empty, ErpShell, FilterSelect, HBars, Kpi, KpiRow, Modal, Notice, PageHead, Panel, PrintSheet, SelectIn, Tabs, TextIn, Timeline, printNow, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, AreaIn, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Drawer, Empty, FilterSelect, HBars, Kpi, KpiRow, Modal, Notice, PageHead, Panel, PrintSheet, ResetButton, SelectIn, Tabs, TextIn, Timeline, printNow, useConfirm, useToast, type Col } from "./kit";
 
+/* Procurement workflow workspace: a stage funnel runs under the header on every screen; the home screen is one unified work queue, and each purchase order opens as a document page with its lifecycle and stock impact. */
 const TAX = 0.08;
-const NAV = [{ id: "dash", label: "Procurement dashboard", group: "Overview" }, { id: "approvals", label: "Approval queue", group: "Overview" }, { id: "suppliers", label: "Supplier directory", group: "Suppliers" }, { id: "reqs", label: "Purchase requisitions", group: "Purchasing" }, { id: "orders", label: "Purchase orders", group: "Purchasing" }, { id: "receipts", label: "Goods receipts", group: "Purchasing" }, { id: "reports", label: "Procurement reports", group: "Insight" }];
+const SECTIONS = [{ id: "pipeline", label: "Pipeline" }, { id: "reqs", label: "Requisitions" }, { id: "orders", label: "Purchase orders" }, { id: "receipts", label: "Deliveries" }, { id: "approvals", label: "Approvals" }, { id: "suppliers", label: "Suppliers" }, { id: "reports", label: "Reports" }];
+const STAGES = ["Requisition", "Pending Approval", "Approved", "Ordered", "Partially Received", "Completed"] as const; type Stage = (typeof STAGES)[number];
+const STAGE_TONE: Record<Stage, "slate" | "amber" | "blue" | "violet" | "green"> = { Requisition: "slate", "Pending Approval": "amber", Approved: "blue", Ordered: "violet", "Partially Received": "amber", Completed: "green" };
 const M = (n: number) => money(n);
 const poTone = (s: string) => (s === "Received" ? "green" : s === "Partially received" ? "amber" : s === "Sent" ? "blue" : s === "Cancelled" ? "red" : "slate") as "green" | "amber" | "blue" | "red" | "slate";
 const rqTone = (s: string) => (s === "Approved" || s === "Converted" ? "green" : s === "Rejected" ? "red" : s === "Submitted" ? "amber" : "slate") as "green" | "red" | "amber" | "slate";
 const linesTotal = (l: { qty: number; price: number }[]) => { const subtotal = round2(sum(l, (x) => x.qty * x.price)), tax = round2(subtotal * TAX); return { subtotal, tax, total: round2(subtotal + tax) }; };
 
+type Item = { key: string; kind: "Requisition" | "Purchase order"; id: string; number: string; party: string; amount: number; stage: Stage; date: string; next: string; late: boolean };
+function useItems(): Item[] {
+  const { proc, sName, eName } = useP(); const items: Item[] = [];
+  for (const r of proc.requisitions) { const stage: Stage | null = r.status === "Draft" ? "Requisition" : r.status === "Submitted" ? "Pending Approval" : r.status === "Approved" ? "Approved" : null; if (stage) items.push({ key: r.id, kind: "Requisition", id: r.id, number: r.number, party: `${eName(r.requesterId)} · ${r.dept}`, amount: linesTotal(r.lines).total, stage, date: r.date, next: r.status === "Draft" ? "Submit for approval" : r.status === "Submitted" ? "Approve or reject" : "Convert to purchase order", late: false }); }
+  for (const o of proc.orders) { const stage: Stage | null = o.status === "Draft" ? "Approved" : o.status === "Sent" ? "Ordered" : o.status === "Partially received" ? "Partially Received" : o.status === "Received" ? "Completed" : null; if (stage) items.push({ key: o.id, kind: "Purchase order", id: o.id, number: o.number, party: sName(o.supplierId), amount: linesTotal(o.lines).total, stage, date: o.expected, next: o.status === "Draft" ? "Send to supplier" : o.status === "Sent" ? "Record delivery" : o.status === "Partially received" ? "Record remaining delivery" : "None", late: live(o) && o.expected < DEMO_TODAY }); }
+  return items;
+}
+
 export default function ProcurementApp({ branding }: { branding: Branding }) {
-  const [screen, setScreen] = useState("dash"); const [sup, setSup] = useState<string | null>(null); const [po, setPo] = useState<string | null>(null); const [proc] = useSlice("proc");
-  const pending = proc.requisitions.filter((r) => r.status === "Submitted").length;
   return (
-    <ErpShell branding={branding} title="NorthPeak Procurement" subtitle="Suppliers, requisitions & purchase orders · simulated approvals" nav={NAV.map((n) => (n.id === "approvals" ? { ...n, badge: pending || undefined } : n))} active={screen === "supplier" ? "suppliers" : screen === "po" ? "orders" : screen} onNav={(s) => { setScreen(s); setSup(null); setPo(null); }} onReset={() => resetDb(["proc", "inv"])} resetLabel="Reset orders & stock"
-      note="Demonstration procurement software. Approvals, orders and deliveries are simulated: nothing is sent to suppliers. A goods receipt adds stock to the Inventory demo (shared local data). Stored only in this browser (localStorage); no server.">
-      {screen === "dash" && <Dash go={setScreen} openPo={(id) => { setPo(id); setScreen("po"); }} />}
-      {screen === "approvals" && <Approvals />}
-      {screen === "suppliers" && <Suppliers open={(id) => { setSup(id); setScreen("supplier"); }} />}
-      {screen === "supplier" && sup && <SupplierProfile id={sup} back={() => setScreen("suppliers")} openPo={(id) => { setPo(id); setScreen("po"); }} />}
-      {screen === "reqs" && <Requisitions openPo={(id) => { setPo(id); setScreen("po"); }} />}
-      {screen === "orders" && <Orders open={(id) => { setPo(id); setScreen("po"); }} />}
-      {screen === "po" && po && <PoDetail id={po} back={() => setScreen("orders")} />}
-      {screen === "receipts" && <Receipts openPo={(id) => { setPo(id); setScreen("po"); }} />}
-      {screen === "reports" && <Reports />}
-    </ErpShell>
+    <AppProviders className="bg-stone-100 text-slate-800" note="Demonstration procurement software. Approvals, orders and deliveries are simulated: nothing is sent to suppliers. A goods receipt adds stock to the Inventory demo (shared local data). Stored only in this browser (localStorage); no server.">
+      <Workspace branding={branding} />
+    </AppProviders>
   );
 }
+function Workspace({ branding }: { branding: Branding }) {
+  const [screen, setScreen] = useState("pipeline"); const [sup, setSup] = useState<string | null>(null); const [po, setPo] = useState<string | null>(null); const [req, setReq] = useState<string | null>(null); const [stage, setStage] = useState<Stage | "">("");
+  const { proc } = useP(); const items = useItems(); const pending = proc.requisitions.filter((r) => r.status === "Submitted").length;
+  const openPo = (id: string) => { setPo(id); setScreen("po"); }; const openReq = (id: string) => { setReq(id); setScreen("reqs"); };
+  const nav = (s: string) => { setScreen(s); setSup(null); setPo(null); setReq(null); };
+  const active = screen === "supplier" ? "suppliers" : screen === "po" ? "orders" : screen;
+  return (<>
+    <header className="no-print border-b border-stone-300 bg-white">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
+        <BrandLogo branding={branding} dark={false} height={28} />
+        <div className="border-l border-stone-300 pl-5"><h1 className="font-display text-xl font-semibold leading-tight text-slate-900">NorthPeak Procurement</h1><p className="text-sm text-slate-600">Requisition to delivery · simulated approvals</p></div>
+        <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge /><ResetButton onReset={() => resetDb(["proc", "inv"])} label="Reset orders & stock" className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-blue-500" /><span className="flex gap-2 text-slate-700 [&_a]:border-slate-300"><DemoLinks compact /></span></div>
+      </div>
+      <nav aria-label="Procurement sections" className="flex flex-wrap gap-1 px-4">
+        {SECTIONS.map((s) => <button key={s.id} type="button" data-nav={s.id} aria-current={active === s.id ? "page" : undefined} onClick={() => nav(s.id)} className={`-mb-px rounded-t-md border-x border-t px-4 py-2 text-[15px] font-medium ${active === s.id ? "border-stone-300 bg-stone-100 text-slate-900" : "border-transparent text-slate-600 hover:text-slate-900"}`}>{s.label}{s.id === "approvals" && pending > 0 && <span className="ml-2 rounded-full bg-amber-200 px-2 text-[13px] text-amber-900">{pending}</span>}</button>)}
+      </nav>
+    </header>
+    <section aria-label="Procurement stages" className="no-print border-b border-stone-300 bg-stone-50 px-4 py-3">
+      <ol className="flex gap-1 overflow-x-auto pb-1">
+        {STAGES.map((st, i) => { const its = items.filter((x) => x.stage === st); const on = stage === st && screen === "pipeline"; return (
+          <li key={st} className="min-w-[170px] flex-1"><button type="button" aria-pressed={on} data-testid={`stage-${st.toLowerCase().replace(/ /g, "-")}`} onClick={() => { setStage(on ? "" : st); setScreen("pipeline"); setPo(null); setReq(null); }}
+            className={`relative block w-full border-2 px-4 py-2 text-left ${on ? "border-slate-900 bg-white shadow" : "border-stone-300 bg-white hover:border-slate-500"}`} style={{ clipPath: i === STAGES.length - 1 ? undefined : "polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%)", borderRadius: 6 }}>
+            <span className="flex items-center gap-1.5 text-[15px] font-semibold text-slate-900"><span className={`inline-block h-2.5 w-2.5 rounded-full ${st === "Completed" ? "bg-emerald-500" : st === "Pending Approval" || st === "Partially Received" ? "bg-amber-500" : st === "Ordered" ? "bg-violet-500" : st === "Approved" ? "bg-sky-500" : "bg-slate-400"}`} />{st}</span>
+            <span className="mt-0.5 flex items-baseline gap-2"><span className="font-display text-2xl font-semibold tabular-nums" data-testid={`stage-count-${st.toLowerCase().replace(/ /g, "-")}`}>{its.length}</span><span className="text-sm text-slate-600 tabular-nums">{moneyK(sum(its, (x) => x.amount))}</span></span></button></li>); })}
+      </ol>
+    </section>
+    <main className="min-w-0 flex-1 p-4 sm:p-6" id="app-main">
+      {screen === "pipeline" && <Pipeline items={items} stage={stage} setStage={setStage} openPo={openPo} openReq={openReq} />}
+      {screen === "reqs" && <Requisitions openPo={openPo} focus={req} />}
+      {screen === "orders" && <Orders open={openPo} />}
+      {screen === "po" && po && <PoPage id={po} back={() => nav("orders")} />}
+      {screen === "receipts" && <Receipts openPo={openPo} />}
+      {screen === "approvals" && <Approvals />}
+      {screen === "suppliers" && <Suppliers open={(id) => { setSup(id); setScreen("supplier"); }} />}
+      {screen === "supplier" && sup && <SupplierProfile id={sup} back={() => nav("suppliers")} openPo={openPo} />}
+      {screen === "reports" && <Reports />}
+    </main>
+  </>);
+}
+
+/* ───────── Pipeline: one queue for everything in flight ───────── */
+function Pipeline({ items, stage, setStage, openPo, openReq }: { items: Item[]; stage: Stage | ""; setStage(s: Stage | ""): void; openPo(id: string): void; openReq(id: string): void }) {
+  const [kind, setKind] = useState(""); const rows = items.filter((i) => (!stage || i.stage === stage) && (!kind || i.kind === kind));
+  const cols: Col<Item>[] = [{ key: "kind", label: "Type", render: (i) => <Badge tone={i.kind === "Purchase order" ? "violet" : "slate"}>{i.kind}</Badge> }, { key: "number", label: "Number", render: (i) => <span className="font-medium text-slate-900">{i.number}</span> }, { key: "party", label: "Supplier / requester" },
+    { key: "amount", label: "Value incl. tax", align: "right", render: (i) => M(i.amount) }, { key: "stage", label: "Stage", render: (i) => <Badge tone={STAGE_TONE[i.stage]}>{i.stage}</Badge> }, { key: "date", label: "Date / expected", render: (i) => <span className={i.late ? "font-semibold text-red-700" : ""}>{fmtDate(i.date)}{i.late ? " · late" : ""}</span> }, { key: "next", label: "Next action", render: (i) => <span className="text-blue-700">{i.next}</span> }];
+  return (<>
+    <PageHead title={stage ? `${stage} (${rows.length})` : "Everything in flight"} sub={stage ? "Showing one stage. Select the stage again, or choose All, to clear the filter." : "Requisitions and purchase orders in a single queue, ordered by where they are in the process. Open one to take its next action."} actions={<><FilterSelect label="Type" value={kind} onChange={setKind} options={["Requisition", "Purchase order"]} />{stage && <Btn onClick={() => setStage("")}>All stages</Btn>}</>} />
+    <DataTable rows={rows} columns={cols} rowKey={(i) => i.key} onRow={(i) => (i.kind === "Purchase order" ? openPo(i.id) : openReq(i.id))} exportName="procurement-pipeline" testid="pipeline-table" defaultSort={{ key: "stage", dir: 1 }} pageSize={12} searchPlaceholder="Search number or supplier…" />
+  </>);
+}
+
+/* ───────── Purchase order page: lifecycle + document + stock impact ───────── */
+const LIFE = ["Draft", "Sent", "Partially received", "Received"] as const;
+function PoPage({ id, back }: { id: string; back(): void }) {
+  const { proc, inv, pName, pSku } = useP(); const po = proc.orders.find((o) => o.id === id); const map = stockMap(inv.movements);
+  if (!po) return <Empty>Purchase order not found. <Btn small onClick={back}>Back</Btn></Empty>;
+  const idx = LIFE.indexOf(po.status as (typeof LIFE)[number]);
+  return (<>
+    <ol className="no-print mb-4 flex flex-wrap items-center gap-2" aria-label="Purchase order lifecycle">{po.status === "Cancelled" ? <li className="rounded-full bg-red-100 px-4 py-1.5 text-[15px] font-semibold text-red-700">Cancelled</li> : LIFE.map((s, i) => <li key={s} aria-current={i === idx ? "step" : undefined} className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-[15px] font-medium ${i === idx ? "bg-slate-900 text-white" : i < idx ? "bg-emerald-100 text-emerald-900" : "bg-stone-200 text-slate-600"}`}>{i < idx ? "✓" : i + 1}<span>{s === "Sent" ? "Ordered (sent)" : s}</span></li>)}</ol>
+    <PoDetail id={id} back={back} />
+    <Panel title="Stock impact in Inventory" className="mt-4" pad={false}>
+      <table className="w-full text-[15px]" data-testid="po-stock-impact"><thead className="bg-stone-50 text-left text-sm text-slate-600"><tr><th className="p-2.5">Product</th><th className="p-2.5 text-right">Ordered</th><th className="p-2.5 text-right">Received</th><th className="p-2.5 text-right">Still due</th><th className="p-2.5 text-right">On hand now</th><th className="p-2.5 text-right">Reorder at</th></tr></thead>
+        <tbody>{po.lines.map((l, i) => { const p = inv.products.find((x) => x.id === l.productId); const onHand = sum(inv.warehouses, (w) => qtyAt(map, l.productId, w.id)); return <tr key={i} className="border-t border-stone-200"><td className="p-2.5">{pSku(l.productId)} · {pName(l.productId)}</td><td className="p-2.5 text-right tabular-nums">{l.qty}</td><td className="p-2.5 text-right tabular-nums">{l.received}</td><td className="p-2.5 text-right tabular-nums">{Math.max(0, l.qty - l.received)}</td><td className={`p-2.5 text-right tabular-nums ${p && onHand <= p.reorder ? "font-semibold text-amber-700" : ""}`}>{onHand}</td><td className="p-2.5 text-right tabular-nums">{p?.reorder ?? "—"}</td></tr>; })}</tbody></table>
+      <p className="border-t border-stone-200 px-3 py-2 text-sm text-slate-600">Recording a delivery adds stock movements to the shared Inventory data. <Link href="/erp-demos/inventory-warehouse-management/app" className="font-medium text-blue-700 underline">Open the Inventory demo</Link></p></Panel>
+  </>);
+}
+
 const useP = () => { const [proc, setProc] = useSlice("proc"); const [inv] = useSlice("inv"); const [hrm] = useSlice("hrm"); const sName = (id: string) => proc.suppliers.find((s) => s.id === id)?.name ?? "?"; const pName = (id: string) => inv.products.find((p) => p.id === id)?.name ?? "?"; const pSku = (id: string) => inv.products.find((p) => p.id === id)?.sku ?? "?"; const eName = (id?: string) => hrm.employees.find((e) => e.id === id)?.name ?? "—"; return { proc, setProc, inv, hrm, sName, pName, pSku, eName }; };
 const outstanding = (po: PurchaseOrder) => round2(sum(po.lines, (l) => Math.max(0, l.qty - l.received) * l.price));
 const live = (po: PurchaseOrder) => po.status !== "Cancelled" && po.status !== "Draft" && po.status !== "Received";
 
-function Dash({ go, openPo }: { go(s: string): void; openPo(id: string): void }) {
-  const { proc, sName } = useP(); const open = proc.orders.filter(live); const overdue = open.filter((o) => o.expected < DEMO_TODAY); const pend = proc.requisitions.filter((r) => r.status === "Submitted");
-  const spend = proc.orders.filter((o) => o.status !== "Cancelled" && o.status !== "Draft"); const bySup = Object.entries(groupBy(spend, (o) => o.supplierId)).map(([id, v]) => ({ label: sName(id), value: round2(sum(v, (o) => linesTotal(o.lines).total)) })).sort((a, b) => b.value - a.value);
-  const st = Object.entries(groupBy(proc.orders, (o) => o.status)).map(([label, v]) => ({ label, value: v.length }));
-  return (<><PageHead title="Procurement dashboard" sub={`${proc.orders.length} purchase orders · ${proc.suppliers.length} suppliers. Demo date ${fmtDate(DEMO_TODAY)}.`} />
-    <KpiRow><Kpi label="Open order value" value={moneyK(sum(open, outstanding))} sub="not yet received" testid="kpi-open" /><Kpi label="Open orders" value={open.length} onClick={() => go("orders")} /><Kpi label="Overdue deliveries" value={overdue.length} tone={overdue.length ? "red" : undefined} testid="kpi-overdue" /><Kpi label="Awaiting approval" value={pend.length} tone={pend.length ? "amber" : undefined} onClick={() => go("approvals")} testid="kpi-pending" /><Kpi label="Total committed" value={moneyK(sum(spend, (o) => linesTotal(o.lines).total))} sub="incl. 8% tax (demo)" /><Kpi label="Active suppliers" value={proc.suppliers.filter((s) => s.status === "Active").length} /></KpiRow>
-    <div className="mt-4 grid gap-4 lg:grid-cols-3"><Panel title="Order value by supplier" className="lg:col-span-2"><HBars items={bySup} fmt={moneyK} /></Panel><Panel title="Orders by status"><Donut slices={st} center={<>{proc.orders.length}<br />orders</>} /></Panel>
-      <Panel title="Deliveries due" className="lg:col-span-3" pad={false}><ul className="divide-y divide-slate-100">{open.sort((a, b) => a.expected.localeCompare(b.expected)).map((o) => <li key={o.id}><button className="flex w-full items-center gap-3 px-4 py-2 text-left text-sm hover:bg-slate-50" onClick={() => openPo(o.id)}><span className="font-medium">{o.number}</span><span className="flex-1 text-slate-600">{sName(o.supplierId)}</span><Badge tone={poTone(o.status)}>{o.status}</Badge><span className={`text-xs ${o.expected < DEMO_TODAY ? "font-semibold text-red-700" : "text-slate-500"}`}>due {fmtDate(o.expected)}{o.expected < DEMO_TODAY ? " · overdue" : ""}</span><span className="tabular-nums">{M(outstanding(o))}</span></button></li>)}{open.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-400">No open orders.</li>}</ul></Panel></div></>);
-}
-
-/* ───────── Suppliers ───────── */
 function SupplierForm({ existing, onSave, onClose }: { existing?: Supplier; onSave(s: Omit<Supplier, "id">): void; onClose(): void }) {
   const [f, setF] = useState({ name: existing?.name ?? "", contact: existing?.contact ?? "", email: existing?.email ?? "", phone: existing?.phone ?? "", country: existing?.country ?? "", category: existing?.category ?? "", rating: String(existing?.rating ?? 3), terms: existing?.terms ?? "Net 30", status: existing?.status ?? ("Active" as Supplier["status"]), notes: existing?.notes ?? "" }); const [err, setErr] = useState<Record<string, string>>({});
   return (<Modal title={existing ? `Edit ${existing.name}` : "New supplier"} wide onClose={onClose} footer={<><Btn onClick={onClose}>Cancel</Btn><Btn kind="primary" testid="save-supplier" onClick={() => { const e: Record<string, string> = {}; if (f.name.trim().length < 2) e.name = "Enter the supplier name"; if (!f.contact.trim()) e.contact = "Enter a contact person"; if (!emailOk(f.email)) e.email = "Enter a valid email"; if (!f.category.trim()) e.category = "Enter a category"; setErr(e); if (!Object.keys(e).length) onSave({ ...f, name: f.name.trim(), rating: Number(f.rating) }); }}>Save supplier</Btn></>}>
@@ -88,8 +146,8 @@ function ReqForm({ existing, onClose }: { existing?: Requisition; onClose(): voi
     <div className="mt-4"><LineEditor lines={lines} setLines={setLines} /></div><p className="mt-3 text-right text-sm">Subtotal <b data-testid="req-subtotal">{M(t.subtotal)}</b> · Tax (8%, demo) {M(t.tax)} · Total <b className="font-display text-lg" data-testid="req-total">{M(t.total)}</b></p>{err && <p role="alert" className="mt-2 text-sm text-red-600">{err}</p>}</Modal>);
 }
 function decide(r: Requisition, status: "Approved" | "Rejected", note: string) { setDb((d) => ({ ...d, proc: { ...d.proc, requisitions: d.proc.requisitions.map((x) => (x.id === r.id ? { ...x, status, approverId: "e20", decidedAt: DEMO_TODAY, decisionNote: note } : x)) } })); logActivity("Procurement", `${r.number} ${status.toLowerCase()} (simulated)`); }
-function Requisitions({ openPo }: { openPo(id: string): void }) {
-  const { proc, setProc, inv, eName, pName } = useP(); const toast = useToast(); const confirm = useConfirm(); const [form, setForm] = useState<Requisition | "new" | null>(null); const [status, setStatus] = useState(""); const [view, setView] = useState<string | null>(null);
+function Requisitions({ openPo, focus }: { openPo(id: string): void; focus?: string | null }) {
+  const { proc, setProc, inv, eName, pName } = useP(); const toast = useToast(); const confirm = useConfirm(); const [form, setForm] = useState<Requisition | "new" | null>(null); const [status, setStatus] = useState(""); const [view, setView] = useState<string | null>(focus ?? null);
   const rows = proc.requisitions.filter((r) => !status || r.status === status); const r = proc.requisitions.find((x) => x.id === view);
   const convert = (rq: Requisition) => { const groups = groupBy(rq.lines, (l) => inv.products.find((p) => p.id === l.productId)?.supplierId ?? "s1"); let n = proc.nextNo.po; const made: PurchaseOrder[] = Object.entries(groups).map(([supplierId, ls]) => ({ id: uid("po"), number: `PO-${n++}`, supplierId, date: DEMO_TODAY, expected: addDays(DEMO_TODAY, 14), status: "Draft", lines: ls.map((l) => ({ productId: l.productId, qty: l.qty, price: l.price, received: 0 })), terms: proc.suppliers.find((s) => s.id === supplierId)?.terms ?? "Net 30", whId: "w1", reqId: rq.id, notes: `Created from ${rq.number}`, receipts: [] }));
     setProc((s) => ({ ...s, nextNo: { ...s.nextNo, po: n }, orders: [...made, ...s.orders], requisitions: s.requisitions.map((x) => (x.id === rq.id ? { ...x, status: "Converted", poId: made[0].id } : x)) })); logActivity("Procurement", `${rq.number} converted to ${made.map((m) => m.number).join(", ")}`); toast(`Converted to ${made.map((m) => m.number).join(" and ")}`); setView(null); openPo(made[0].id); };
@@ -177,3 +235,4 @@ function Reports() {
     <Tabs value={tab} onChange={setTab} tabs={[{ id: "supplier", label: "By supplier" }, { id: "month", label: "Spend by month" }]} />
     <div className="mt-3">{tab === "supplier" ? <Panel pad={false}><table className="w-full text-sm"><thead className="bg-slate-50 text-left text-[11px] uppercase text-slate-500"><tr><th className="p-2">Supplier</th><th className="p-2 text-right">Orders</th><th className="p-2 text-right">Order value</th><th className="p-2 text-right">On-time rate</th></tr></thead><tbody>{bySup.map((x) => <tr key={x.s.id} className="border-t"><td className="p-2 font-medium">{x.s.name}</td><td className="p-2 text-right">{x.n}</td><td className="p-2 text-right tabular-nums">{M(x.value)}</td><td className="p-2 text-right">{x.onTime == null ? "n/a" : pct(x.onTime)}</td></tr>)}</tbody><tfoot className="border-t-2 bg-slate-50 font-semibold"><tr><td className="p-2">Total</td><td className="p-2 text-right">{sum(bySup, (x) => x.n)}</td><td className="p-2 text-right tabular-nums" data-testid="report-total">{M(sum(bySup, (x) => x.value))}</td><td /></tr></tfoot></table></Panel> : <Panel title="Committed order value by month"><BarChart ariaLabel="Spend by month" data={byMonth} series={[{ key: "value", label: "Order value" }]} fmt={moneyK} /></Panel>}</div><p className="mt-2 text-xs text-slate-500">{void daysBetween}Orders in draft or cancelled status are excluded. Tax is a demo assumption (8%).</p></>);
 }
+
