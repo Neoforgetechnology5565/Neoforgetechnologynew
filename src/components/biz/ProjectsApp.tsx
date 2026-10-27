@@ -25,7 +25,8 @@ export default function ProjectsApp({ branding }: { branding: Branding }) {
   );
 }
 function Workspace({ branding }: { branding: Branding }) {
-  const { proj, setProj, stats } = usePj(); const toast = useToast(); const [view, setView] = useState("board"); const [scope, setScope] = useState(""); const [detail, setDetail] = useState<string | null>(null); const [newProj, setNewProj] = useState(false); const [newTask, setNewTask] = useState(false);
+  const { proj, setProj, stats } = usePj(); const toast = useToast(); const [view, setView] = useState("board"); const [scope0, setScope] = useState(""); const [detail, setDetail] = useState<string | null>(null); const [newProj, setNewProj] = useState(false); const [newTask, setNewTask] = useState(false);
+  const scope = proj.projects.some((x) => x.id === scope0) ? scope0 : "";
   const od = proj.tasks.filter(taskOverdue).length;
   return (<>
     <header className="no-print border-b border-sky-200 bg-white">
