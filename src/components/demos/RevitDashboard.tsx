@@ -12,7 +12,7 @@ import type { Branding } from "@/lib/types";
 
 type Section = "overview" | "explorer" | "elements" | "automation" | "validation" | "schedule" | "reports";
 const NAV: [Section, string][] = [["overview", "Project Overview"], ["explorer", "BIM Model Explorer"], ["elements", "Elements & Categories"], ["automation", "Automation Tools"], ["validation", "Model Validation"], ["schedule", "Quantities & Schedules"], ["reports", "Reports & Export"]];
-const VIEWS: Record<string, View> = { Iso: { pos: [36, 22, 38], target: [12, 3, 7] }, Top: { pos: [12, 48, 7.01], target: [12, 0, 7] }, Front: { pos: [12, 5, 46], target: [12, 3, 7] }, Right: { pos: [50, 5, 7], target: [12, 3, 7] } };
+const VIEWS: Record<string, View> = { Iso: { pos: [31, 17, 33], target: [12, 3, 7] }, Top: { pos: [12, 48, 7.01], target: [12, 0, 7] }, Front: { pos: [12, 5, 46], target: [12, 3, 7] }, Right: { pos: [50, 5, 7], target: [12, 3, 7] } };
 const stamp = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 const field = "w-full rounded border border-slate-700 bg-slate-950 px-2 py-1.5 text-xs text-slate-100 outline-none focus:border-blue-500";
 const card = "rounded-lg border border-slate-800 bg-slate-900 p-4";
@@ -154,7 +154,7 @@ export default function RevitDashboard({ branding }: { branding: Branding }) {
           </dl>
         </nav>
 
-        <main className="min-w-0 space-y-3 p-3 sm:p-4">
+        <div className="min-w-0 space-y-3 p-3 sm:p-4">
           <Stage3D className="h-[46vh] min-h-[300px] lg:h-[54vh]" home={VIEWS.Iso} onReady={onReady} onPick={onPick} shadows label="3D view of the sample office building. Click an element to select it."
             toolbar={<>
               <span className="flex gap-0.5 rounded-md border border-slate-700 p-0.5">{Object.keys(VIEWS).map((v) => <button key={v} type="button" onClick={() => goView(v)} className={pill(view === v)}>{v}</button>)}</span>
@@ -329,7 +329,7 @@ foreach (Element e in new FilteredElementCollector(doc).WhereElementIsNotElement
               <ul className="space-y-1 text-xs">{history.map((h, i) => <li key={i} className="flex gap-3"><span className="font-mono text-slate-500">{h.t}</span><span>{h.text}</span></li>)}{!history.length && <li className="text-slate-500">Nothing yet.</li>}</ul>
             </section>
           )}
-        </main>
+        </div>
 
         <aside aria-label="Element inspector" className="border-t border-slate-800 bg-slate-900/60 p-4 lg:border-l lg:border-t-0">
           <h2 className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Element inspector</h2>
