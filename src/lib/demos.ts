@@ -52,10 +52,10 @@ export const DEMOS: Demo[] = [
     problem: "Estimators retype quantities from models into cost spreadsheets.",
     tags: ["BIM Data", "Quantity Takeoff"],
     features: ["Interactive 3D building linked to a 120-line quantity takeoff table with search, filters, sorting and pagination", "Quantity inspection shows exactly how each quantity was derived, including opening deductions", "Edit unit rates and units, waste per cost category and contingency; every subtotal and the total update", "Validation of missing rates, unit mismatches and invalid allowances; takeoff, cost breakdown, schedule and summary exports"] },
-  { slug: "cad-to-bim-conversion-validation-studio", no: "10", phase: 3, status: "soon", title: "CAD-to-BIM Conversion & Validation Studio",
+  { slug: "cad-to-bim-conversion-validation-studio", no: "10", phase: 3, status: "live", title: "CAD-to-BIM Conversion & Validation Studio",
     problem: "Turning legacy CAD drawings into BIM objects needs mapping and checking.",
     tags: ["CAD/BIM Interoperability"],
-    features: ["Explore sample CAD geometry", "Map elements to BIM categories", "Review validation warnings", "Inspect a proposed conversion"] },
+    features: ["Eight-stage workflow with real status tracking: source, units and scale, layer classification, geometry inspection, element mapping, BIM generation, validation and export", "Editable layer-to-category mappings that change the generated elements", "Source-to-target traceability between the 2D drawing and the generated 3D model", "JSON / CSV / TXT exports; clearly a browser simulation, not IFC or Revit output"] },
 ];
 DEMOS.sort((a, b) => a.no.localeCompare(b.no));
 
