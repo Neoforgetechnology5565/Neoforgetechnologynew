@@ -32,7 +32,7 @@ function Plot({ x0, x1, ys, label, unit, color, y: [top, h], w = 600, flip = fal
       <path d={d} fill="none" stroke={color} strokeWidth="1.8" />
       <circle cx={sx(iMax)} cy={sy(ys[iMax])} r="3.5" fill={color} />
       <text x={sx(iMax) + (iMax > ys.length * 0.7 ? -8 : 8)} y={sy(ys[iMax]) + (ys[iMax] >= 0 ? -6 : 14)} fontSize="11" fill={color} textAnchor={iMax > ys.length * 0.7 ? "end" : "start"}>{f(ys[iMax], 2)} {unit}</text>
-      <text x={8} y={top + 12} fontSize="11" fill={C.dim}>{label}</text>
+      <text x={pad} y={top - 4} fontSize="11" fill={C.dim}>{label}</text>
     </g>
   );
 }
@@ -100,9 +100,9 @@ const beamMod: Mod = {
         <text x={bx + bw / 2} y="144" fontSize="12" fill={C.ink} textAnchor="middle">L = {f(L, 3)} m</text>
         {!cant && <><text x={bx} y="162" fontSize="11" fill={C.brand} textAnchor="middle">RA = {f(r.RA, 2)} kN</text><text x={bx + bw} y="162" fontSize="11" fill={C.brand} textAnchor="middle">RB = {f(r.RB, 2)} kN</text></>}
         {cant && <text x={bx} y="162" fontSize="11" fill={C.brand}>R = {f(r.RA, 2)} kN · M = {f(r.MA, 2)} kN·m</text>}
-        <Plot x0={0} x1={L} ys={r.V} label="Shear force V (kN)" unit="kN" color={C.blue} y={[176, 110]} w={W} />
-        <Plot x0={0} x1={L} ys={r.M} label={cant ? "Bending moment M (kN·m, hogging negative)" : "Bending moment M (kN·m)"} unit="kN·m" color={C.brand} y={[300, 110]} w={W} flip />
-        <Plot x0={0} x1={L} ys={r.y} label="Deflection (mm, exaggerated vertical scale)" unit="mm" color={C.amber} y={[424, 110]} w={W} flip fill={false} />
+        <Plot x0={0} x1={L} ys={r.V} label="Shear force V (kN)" unit="kN" color={C.blue} y={[190, 100]} w={W} />
+        <Plot x0={0} x1={L} ys={r.M} label={cant ? "Bending moment M (kN·m, hogging negative)" : "Bending moment M (kN·m)"} unit="kN·m" color={C.brand} y={[322, 100]} w={W} flip />
+        <Plot x0={0} x1={L} ys={r.y} label="Deflection (mm, exaggerated vertical scale)" unit="mm" color={C.amber} y={[454, 100]} w={W} flip fill={false} />
       </svg>
     );
     return { rows, steps, status: { ok: r.ok, text: r.ok ? `Indicative checks pass: utilisation ${f(r.util * 100, 0)}% and span/deflection ${f(r.ratio, 0)} ≥ 360.` : `Indicative check not met: ${r.sigma > n.fy ? "stress exceeds the reference strength" : `span/deflection ${f(r.ratio, 0)} is below 360`}. Increase the section or reduce the load.` }, diag };

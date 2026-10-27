@@ -39,6 +39,8 @@ export default function C2bStudio({ branding }: { branding: Branding }) {
   const [ctx, setCtx] = useState<StageCtx | null>(null);
   const [model, setModel] = useState<C2b | null>(null);
   const timers = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const doneRef = useRef<Partial<Record<number, St>>>({});
+  const convRef = useRef<Conv | null>(null);
   const cv = useCadView(FIT, 12);
   const say = (text: string) => setLog((l) => [{ t: stamp(), text }, ...l].slice(0, 80));
   useEffect(() => () => timers.current.forEach(clearTimeout), []);
@@ -48,13 +50,13 @@ export default function C2bStudio({ branding }: { branding: Branding }) {
   const ext = useMemo(() => extents(ents, cfg), [ents, cfg]);
   const layers = useMemo(() => { const m = new Map<string, { n: number; types: Map<string, number> }>(); for (const e of ents) { const r = m.get(e.layer) ?? m.set(e.layer, { n: 0, types: new Map() }).get(e.layer)!; r.n++; r.types.set(e.type, (r.types.get(e.type) ?? 0) + 1); } return [...m.entries()]; }, [ents]);
   const bimMap = useMemo(() => new Map((conv?.bim ?? []).map((b) => [b.id, b])), [conv]);
-  const invalidate = (from: number) => { timers.current.forEach(clearTimeout); timers.current = []; setRunning(null); setSteps(null); setDone((d) => { const n = { ...d }; for (let i = from; i <= 8; i++) delete n[i]; return n; }); if (from <= 4) setInspection(null); if (from <= 5) setPlan(null); if (from <= 6) { setConv(null); setSelBim(null); } if (from <= 7) setValidation(null); };
+  const invalidate = (from: number) => { timers.current.forEach(clearTimeout); timers.current = []; setRunning(null); setSteps(null); setDone((d) => { const n = { ...d }; for (let i = from; i <= 8; i++) delete n[i]; doneRef.current = n; return n; }); if (from <= 6) convRef.current = null; if (from <= 4) setInspection(null); if (from <= 5) setPlan(null); if (from <= 6) { setConv(null); setSelBim(null); } if (from <= 7) setValidation(null); };
   const changeCfg = (p: Partial<Cfg>, from: number) => { setCfg((c) => ({ ...c, ...p })); if (done[from] || Object.keys(done).some((k) => +k >= from)) { invalidate(from); say("Settings changed: later stages were reset and must be run again."); } };
 
   // ---- stage actions ----
   const act = (n: number, immediate = false): Promise<St | "blocked"> => new Promise((resolve) => {
-    const finish = (st: St, text: string) => { setDone((d) => ({ ...d, [n]: st })); setRunning(null); say(`${STAGES[n - 1]}: ${text}`); resolve(st); };
-    const prev = n === 1 || done[n - 1] === "completed" || done[n - 1] === "attention";
+    const finish = (st: St, text: string) => { doneRef.current = { ...doneRef.current, [n]: st }; setDone(doneRef.current); setRunning(null); say(`${STAGES[n - 1]}: ${text}`); resolve(st); };
+    const dn = doneRef.current; const prev = n === 1 || dn[n - 1] === "completed" || dn[n - 1] === "attention" || (n === 8 && dn[7] === "failed");
     if (!prev) { setMsg([`Complete “${STAGES[n - 2]}” first.`]); return resolve("blocked"); }
     setMsg([]); setRunning(n); setActive(n);
     const delay = immediate ? 60 : 380;
@@ -68,14 +70,14 @@ export default function C2bStudio({ branding }: { branding: Branding }) {
       const c = convert(ents, cfg), k = c.skipped.filter((s) => s.kind !== "annotation").length;
       const lines = [`Validated units (${cfg.srcUnits} × ${cfg.scale} → ${cfg.tgtUnits})`, `Read ${ents.length} source objects`, `Applied ${Object.values(cfg.map).filter((t) => t !== "Not mapped").length} layer mapping rules`, `Classified supported objects into BIM categories`, `Generated ${c.bim.length} BIM elements (including the slab)`, "Preserved dimensions and source identifiers", `Recorded ${k} unsupported, unmapped or invalid object${k === 1 ? "" : "s"}`, "Produced the conversion summary"];
       setSteps({ lines, i: 0 }); let i = 0;
-      const tick = () => { i++; if (i < lines.length) { setSteps({ lines, i }); go(tick, immediate ? 40 : 260); } else { setConv(c); setSteps(null); finish(k ? "attention" : "completed", `${c.bim.length} BIM elements generated, ${k} object(s) not converted`); } };
+      const tick = () => { i++; if (i < lines.length) { setSteps({ lines, i }); go(tick, immediate ? 40 : 260); } else { setConv(c); convRef.current = c; setSteps(null); finish(k ? "attention" : "completed", `${c.bim.length} BIM elements generated, ${k} object(s) not converted`); } };
       go(tick, immediate ? 40 : 260);
     }
-    else if (n === 7) go(() => { if (!conv) { setRunning(null); setMsg(["Generate the BIM model first."]); return resolve("blocked"); } const f = validateModel(conv, ents, cfg); setValidation(f); finish(f.some((x) => x.severity === "error") ? "failed" : f.length ? "attention" : "completed", `${f.length} validation finding(s)`); });
+    else if (n === 7) go(() => { const cc = convRef.current; if (!cc) { setRunning(null); setMsg(["Generate the BIM model first."]); return resolve("blocked"); } const f = validateModel(cc, ents, cfg); setValidation(f); finish(f.some((x) => x.severity === "error") ? "failed" : f.length ? "attention" : "completed", `${f.length} validation finding(s)`); });
     else go(() => finish("completed", "report compiled; exports are ready"));
   });
-  const runAll = async () => { for (let n = 1; n <= 8; n++) { if (done[n] === "completed" || (done[n] && n < 8)) continue; const r = await act(n, true); if (r === "failed" || r === "blocked") break; await new Promise((r2) => setTimeout(r2, 90)); } };
-  const reset = () => { timers.current.forEach(clearTimeout); timers.current = []; setCfg(DEFAULT_CFG); setDone({}); setRunning(null); setActive(1); setInspection(null); setPlan(null); setConv(null); setValidation(null); setLog([]); setSteps(null); setMsg([]); setSelSrc(null); setSelBim(null); setHidden(new Set()); cv.fit(); };
+  const runAll = async () => { for (let n = 1; n <= 8; n++) { if (doneRef.current[n] === "completed" || (doneRef.current[n] && n < 8)) continue; const r = await act(n, true); if ((r === "failed" && n !== 7) || r === "blocked") break; await new Promise((r2) => setTimeout(r2, 90)); } };
+  const reset = () => { timers.current.forEach(clearTimeout); timers.current = []; doneRef.current = {}; convRef.current = null; setCfg(DEFAULT_CFG); setDone({}); setRunning(null); setActive(1); setInspection(null); setPlan(null); setConv(null); setValidation(null); setLog([]); setSteps(null); setMsg([]); setSelSrc(null); setSelBim(null); setHidden(new Set()); cv.fit(); };
 
   // ---- 3D ----
   const onReady = (c: StageCtx) => {
