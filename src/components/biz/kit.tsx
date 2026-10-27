@@ -100,9 +100,12 @@ export const SelectIn = ({ label, error, options, className, ...p }: { label: st
 );
 export const AreaIn = ({ label, error, className, ...p }: { label: string; error?: string } & React.TextareaHTMLAttributes<HTMLTextAreaElement>) => <Field label={label} error={error} className={className}><textarea rows={3} {...p} className={`${INPUT} ${error ? "!border-red-400" : ""}`} /></Field>;
 
+/** Escape closes only the top-most dialog or drawer. */
+const layers: symbol[] = [];
+function useEscape(onClose: () => void) { const ref = useRef(onClose); ref.current = onClose; useEffect(() => { const me = Symbol("layer"); layers.push(me); const k = (e: KeyboardEvent) => e.key === "Escape" && layers[layers.length - 1] === me && ref.current(); window.addEventListener("keydown", k); return () => { window.removeEventListener("keydown", k); layers.splice(layers.indexOf(me), 1); }; }, []); }
 export function Modal({ title, onClose, children, footer, small, wide }: { title: string; onClose(): void; children: ReactNode; footer?: ReactNode; small?: boolean; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => { const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k); ref.current?.querySelector<HTMLElement>("input,select,textarea,button")?.focus(); return () => window.removeEventListener("keydown", k); }, [onClose]);
+  useEscape(onClose); useEffect(() => { ref.current?.querySelector<HTMLElement>("input,select,textarea,button")?.focus(); }, []);
   return (
     <div className="no-print fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-950/60 p-3 sm:p-8" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={ref} role="dialog" aria-modal="true" aria-label={title} className={`w-full rounded-xl bg-white shadow-2xl ${small ? "max-w-md" : wide ? "max-w-4xl" : "max-w-2xl"}`}>
@@ -115,7 +118,7 @@ export function Modal({ title, onClose, children, footer, small, wide }: { title
 }
 /** Slide-over drawer for record details. */
 export function Drawer({ title, onClose, children, footer, wide }: { title: ReactNode; onClose(): void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
-  useEffect(() => { const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
+  useEscape(onClose);
   return (
     <div className="no-print fixed inset-0 z-[55] flex justify-end bg-slate-950/40" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <aside role="dialog" aria-label="Details" className={`flex h-full w-full flex-col bg-white shadow-2xl ${wide ? "max-w-4xl" : "max-w-lg"}`}>

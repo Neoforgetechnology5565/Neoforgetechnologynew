@@ -17,7 +17,7 @@ async function session(name, fn) {
   if (only.length && !only.includes(name)) return;
   console.log(`\n== ${name}`);
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 950 }, acceptDownloads: true });
-  const p = await ctx.newPage(); const errors = [];
+  const p = await ctx.newPage(); p.setDefaultTimeout(8000); const errors = [];
   p.on("pageerror", (e) => errors.push(e.message)); p.on("console", (m) => m.type() === "error" && !/Failed to load resource|favicon|403|404/.test(m.text()) && errors.push(m.text()));
   const t = async (label, f) => { try { await f(); passed++; console.log("  ✓", label); } catch (e) { failed++; console.error("  ✗", label, "\n     ", String(e.message).split("\n")[0]); await p.screenshot({ path: `/tmp/fail-${name}-${failed}.png` }).catch(() => undefined); } };
   const open = async () => { await p.goto(`${BASE}/erp-demos/${SLUG[name]}/app`, { waitUntil: "networkidle" }); const d = p.getByRole("button", { name: "Decline" }); if (await d.isVisible().catch(() => false)) await d.click(); };
@@ -41,65 +41,45 @@ export { session };
 
 /* ───────── CRM ───────── */
 await session("crm", async ({ p, t, open, nav, dl, txt, n, toastSeen, fillIn, dlg, drag }) => {
-  await t("every screen renders", async () => { for (const id of ["overview", "pipeline", "opps", "activities", "quotes", "leads", "contacts", "companies", "reports"]) { await nav(id); ok((await txt("#app-main")).length > 80, `screen ${id} empty`); } });
-  await t("overview KPIs are calculated and update when a deal is created", async () => {
-    await nav("pipeline"); const before = n(await txt("[data-testid=pipe-open]"));
-    await p.locator("[data-testid=new-opp]").click(); await fillIn("Opportunity name", "Test deal 10k"); await fillIn("Value (USD)", 10000); await p.locator("[data-testid=save-opp]").click();
-    await toastSeen(/created/); const after = n(await txt("[data-testid=pipe-open]")); ok(after === before + 10000, `open pipeline ${before} -> ${after}`);
-    await nav("overview"); ok((await txt("[data-testid=kpi-pipeline]")).length > 0, "kpi");
-  });
-  await t("opportunity form validates", async () => { await nav("pipeline"); await p.locator("[data-testid=new-opp]").click(); await p.locator("[data-testid=save-opp]").click(); ok(await p.getByText("Value must be greater than 0").isVisible(), "validation message"); await p.keyboard.press("Escape"); });
-  await t("move a deal between stages (menu) updates stage totals", async () => {
-    const col = (s) => `[data-testid=total-${s}]`; const w0 = n((await txt(col("Won"))).split("·")[0]);
-    const card = p.locator("[data-col=Negotiation] [data-card]").first(); const val = n(await card.locator("p.font-display").innerText());
-    await card.locator("select").selectOption("Won"); await p.waitForTimeout(300); const w1 = n((await txt(col("Won"))).split("·")[0]); ok(w1 === w0 + val, `won total ${w0}+${val} != ${w1}`);
-  });
-  await t("drag and drop moves a card", async () => {
-    const card = p.locator("[data-col=Qualification] [data-card]").first(); const id = await card.getAttribute("data-card"); await drag(card, p.locator("[data-col=Discovery]"));
-    ok((await p.locator(`[data-col=Discovery] [data-card=${id}]`).count()) === 1, "card now in Discovery");
-  });
-  await t("mark lost asks for a reason and records it", async () => {
-    const card = p.locator("[data-col=Proposal] [data-card]").first(); await card.locator("select").selectOption("Lost"); await dlg().getByLabel("Why was it lost?").fill("Went with a competitor"); await p.locator("[data-testid=confirm-lost]").click(); await toastSeen(/lost/i); ok((await p.locator("[data-col=Lost] [data-card]").count()) >= 3, "lost column grows");
-  });
-  await t("opportunity details: assign rep, add note, schedule follow-up, mark won", async () => {
-    await nav("opps"); await p.locator("[data-testid=opp-table] tbody tr").first().click(); await p.getByLabel("Salesperson").selectOption({ index: 1 }); await toastSeen(/Assigned/);
-    await fillIn("Add a note", "Called the customer; waiting on budget approval"); await p.locator("[data-testid=add-note]").click(); ok(await p.getByText("waiting on budget approval").isVisible(), "note visible");
-    await p.locator("[data-testid=schedule]").click(); await fillIn("Subject", "Send contract draft"); await p.locator("[data-testid=save-activity]").click(); ok(await p.getByText("Send contract draft").isVisible(), "follow-up listed");
-    if (await p.locator("[data-testid=mark-won]").isVisible()) { await p.locator("[data-testid=mark-won]").click(); await toastSeen(/Won/); }
-  });
-  await t("leads: validation, create, edit, search, filter, delete, convert", async () => {
+  const card = (stage) => p.locator(`[data-col="${stage}"] [data-card]`);
+  const drawer = () => p.getByRole("dialog", { name: "Details" });
+  const resetData = async () => { await p.getByRole("button", { name: "Profile and demo options" }).click(); await p.getByRole("button", { name: "Reset demo data" }).click(); await p.locator("[data-testid=confirm-yes]").click(); await toastSeen(/restored/); };
+  await t("every section renders and the pipeline is the home screen", async () => { ok(await p.locator("[data-col='New Lead']").isVisible(), "pipeline default"); for (const id of ["leads", "contacts", "companies", "activities", "quotes", "reports", "pipeline"]) { await nav(id); ok((await txt("#app-main")).length > 80, `section ${id} empty`); } });
+  await t("pipeline shows all seven stages and cards carry owner, value, close date, priority and last activity", async () => { for (const s of ["New Lead", "Qualified", "Discovery", "Proposal", "Negotiation", "Won", "Lost"]) ok(await p.locator(`[data-col="${s}"]`).count() === 1, s); const c = await card("Negotiation").first().innerText(); ok(/\$[\d,]+/.test(c) && /Close/.test(c) && /last activity/.test(c) && /(High|Medium|Low)/.test(c), c.slice(0, 120)); });
+  await t("new opportunity updates the open pipeline value and validates", async () => {
+    await p.locator("[data-testid=new-opp]").click(); await p.locator("[data-testid=save-opp]").click(); ok(await p.getByText("Value must be greater than 0").isVisible(), "validation"); await p.keyboard.press("Escape");
+    const before = n(await txt("[data-testid=pipe-open]")); await p.locator("[data-testid=new-opp]").click(); await fillIn("Opportunity name", "Test deal 10k"); await fillIn("Value (USD)", 10000); await p.locator("[data-testid=save-opp]").click(); await toastSeen(/created/);
+    await p.keyboard.press("Escape"); const after = n(await txt("[data-testid=pipe-open]")); ok(after === before + 10000, `open pipeline ${before} -> ${after}`); });
+  await t("filters: priority, stage and close date narrow the board", async () => { const all = await p.locator("[data-card]").count(); await p.getByLabel("Priority").selectOption("High"); const hi = await p.locator("[data-card]").count(); ok(hi > 0 && hi < all, "priority"); await p.getByLabel("Priority").selectOption(""); await p.getByLabel("Close date").selectOption("overdue"); await p.waitForTimeout(200); const od = await p.locator("[data-card]").count(); ok(od < all, "overdue filter"); await p.getByRole("button", { name: "Clear filters" }).click(); ok((await p.locator("[data-card]").count()) === all, "cleared"); });
+  await t("move a deal between stages (menu) updates stage totals", async () => { const col = (s) => `[data-testid="total-${s}"]`; const w0 = n((await txt(col("Won"))).split("·")[0]); const c = card("Negotiation").first(); const val = n(await c.locator("p.font-display").innerText()); await c.locator("select").selectOption("Won"); await p.waitForTimeout(300); const w1 = n((await txt(col("Won"))).split("·")[0]); ok(w1 === w0 + val, `won ${w0}+${val} != ${w1}`); });
+  await t("drag and drop moves a card", async () => { const c = card("Qualified").first(); const id = await c.getAttribute("data-card"); await drag(c, p.locator('[data-col="Discovery"]')); ok((await p.locator(`[data-col="Discovery"] [data-card="${id}"]`).count()) === 1, "card in Discovery"); });
+  await t("mark lost asks for a reason", async () => { const before = await card("Lost").count(); await card("Proposal").first().locator("select").selectOption("Lost"); await dlg().getByLabel("Why was it lost?").fill("Went with a competitor"); await p.locator("[data-testid=confirm-lost]").click(); await toastSeen(/lost/i); ok((await card("Lost").count()) === before + 1, "lost grows"); });
+  await t("deal side panel: assign rep, add note, schedule follow-up, preview quote, mark won", async () => {
+    await card("Discovery").first().locator("button").first().click(); await drawer().waitFor(); await p.getByLabel("Salesperson").selectOption({ index: 1 }); await toastSeen(/Assigned/);
+    await fillIn("Add a note", "Called the customer; waiting on budget approval"); await p.locator("[data-testid=add-note]").click(); ok(await p.getByText("waiting on budget approval").isVisible(), "note");
+    await p.locator("[data-testid=schedule]").click(); await fillIn("Subject", "Send contract draft"); await p.locator("[data-testid=save-activity]").click(); ok(await p.getByText("Send contract draft").isVisible(), "follow-up");
+    await p.getByRole("button", { name: "+ Draft from deal value" }).click(); await toastSeen(/Draft quotation/); await p.getByRole("button", { name: "Preview" }).first().click(); ok((await txt("[data-testid=quote-total]")).includes("$"), "quote preview"); await p.keyboard.press("Escape");
+    await p.locator("[data-testid=mark-won]").click(); await toastSeen(/Won/); await p.keyboard.press("Escape"); });
+  await t("global search finds deals, and the workspace selector scopes the board", async () => { await p.locator("[data-testid=global-search]").fill("Fleet"); await p.getByRole("option").first().click(); await drawer().waitFor(); await p.keyboard.press("Escape"); const all = await p.locator("[data-card]").count(); await p.getByLabel("Workspace").selectOption({ index: 1 }); await p.waitForTimeout(250); const mine = await p.locator("[data-card]").count(); ok(mine < all, "scoped"); await p.getByLabel("Workspace").selectOption(""); });
+  await t("alerts list overdue follow-ups", async () => { await p.locator("[data-testid=bell]").click(); ok(await p.getByText("Overdue follow-ups").isVisible(), "bell"); await p.keyboard.press("Escape"); await p.locator("[data-testid=bell]").click(); });
+  await t("leads: validation, create, edit, search, delete, convert", async () => {
     await nav("leads"); const rows = () => p.evaluate(() => window.__erpDb().crm.leads.length); const vis = () => p.locator("[data-testid=lead-table] tbody tr").count(); const r0 = await rows();
     await p.locator("[data-testid=new-lead]").click(); await fillIn("Full name", "Zed Tester"); await fillIn("Company", "Testco"); await fillIn("Email", "not-an-email"); await fillIn("Estimated value (USD)", 5000); await p.locator("[data-testid=save-lead]").click(); ok(await p.getByText("Enter a valid email address").isVisible(), "email validation");
     await fillIn("Email", "zed@testco.example"); await p.locator("[data-testid=save-lead]").click(); await toastSeen(/Lead created/); ok((await rows()) === r0 + 1, "row added");
-    await p.getByRole("searchbox").fill("Zed Tester"); ok((await vis()) === 1, "search narrows"); await p.getByRole("button", { name: "Edit Zed Tester" }).click(); await fillIn("Company", "Testco Global"); await p.locator("[data-testid=save-lead]").click(); ok(await p.getByText("Testco Global").first().isVisible(), "edited");
-    const co0 = await p.evaluate(() => window.__erpDb().crm.opps.length); await p.getByRole("button", { name: "Convert Zed Tester" }).click(); await toastSeen(/converted/i);
-    const co1 = await p.evaluate(() => window.__erpDb().crm.opps.length); ok(co1 === co0 + 1, "opportunity created from lead");
-    await p.getByRole("button", { name: "Delete Zed Tester" }).click(); await p.locator("[data-testid=confirm-yes]").click(); await toastSeen(/deleted/); await p.getByRole("searchbox").fill(""); ok((await rows()) === r0, "row deleted");
-    await p.getByLabel("Status").first().selectOption("Qualified"); const q = await vis(); ok(q > 0 && q < 10, "status filter");
-  });
+    await p.locator("[data-testid=lead-table]").getByRole("searchbox").fill("Zed Tester"); ok((await vis()) === 1, "search"); await p.getByRole("button", { name: "Edit Zed Tester" }).click(); await fillIn("Company", "Testco Global"); await p.locator("[data-testid=save-lead]").click(); ok(await p.getByText("Testco Global").first().isVisible(), "edited");
+    const co0 = await p.evaluate(() => window.__erpDb().crm.opps.length); await p.getByRole("button", { name: "Convert Zed Tester" }).click(); await toastSeen(/converted/i); ok((await p.evaluate(() => window.__erpDb().crm.opps.length)) === co0 + 1, "converted");
+    await p.getByRole("button", { name: "Delete Zed Tester" }).click(); await p.locator("[data-testid=confirm-yes]").click(); await toastSeen(/deleted/); await p.locator("[data-testid=lead-table]").getByRole("searchbox").fill(""); ok((await rows()) === r0, "deleted"); });
   await t("contacts: profile drawer and note", async () => { await nav("contacts"); await p.locator("[data-testid=contact-table] tbody tr").first().click(); await p.getByLabel("New note").fill("Prefers email contact"); await p.locator("[data-testid=drawer-add-note]").click(); ok(await p.getByText("Prefers email contact").isVisible(), "note"); await p.keyboard.press("Escape"); });
-  await t("create contact and company", async () => {
-    await nav("companies"); await p.locator("[data-testid=new-company]").click(); await fillIn("Company name", "Zenith Test Co"); await fillIn("Industry", "Testing"); await p.locator("[data-testid=save-company]").click(); await toastSeen(/Company created/);
-    await nav("contacts"); await p.locator("[data-testid=new-contact]").click(); await fillIn("Name", "Pat Example"); await fillIn("Email", "pat@example.com"); await p.locator("[data-testid=save-contact]").click(); await toastSeen(/Contact created/);
-  });
-  await t("quotation builder calculates totals; preview, status and print button", async () => {
-    await nav("quotes"); await p.locator("[data-testid=new-quote]").click(); await p.getByLabel("Description").first().fill("Consulting"); await p.getByLabel("Quantity").first().fill("2"); await p.getByLabel("Unit price").first().fill("1500");
-    await p.getByLabel("Discount %").fill("10"); await p.getByLabel("Tax %").fill("20"); ok((await txt("[data-testid=editor-total]")).includes("$3,240.00"), "3000-10%=2700, +20% = 3240"); await p.locator("[data-testid=save-quote]").click(); await toastSeen(/saved/);
-    await p.locator("[data-testid=quote-table] tbody tr").first().click(); ok((await txt("[data-testid=quote-total]")).includes("3,240.00"), "preview total"); ok(await p.locator("[data-testid=print-quote]").isVisible(), "print button");
-    await p.getByLabel("Quotation status").selectOption("Sent"); await toastSeen(/Sent/);
-  });
-  await t("print isolates the quotation document", async () => { await p.evaluate(() => { window.print = () => { window.__printed = document.getElementById("print-root")?.innerText ?? "none"; }; }); await p.locator("[data-testid=print-quote]").click(); const out = await p.evaluate(() => window.__printed); ok(out.includes("Quotation") && out.includes("3,240.00"), "print root holds the quotation: " + out.slice(0, 80)); await p.keyboard.press("Escape"); });
-  await t("activities: filter overdue and complete", async () => { await nav("activities"); await p.getByLabel("Status").selectOption("overdue"); const c = await p.locator("[data-testid=activity-table] tbody tr").count(); ok(c >= 1, "overdue activities"); await p.locator("[data-testid=activity-table] tbody tr input[type=checkbox]").first().click(); await p.waitForTimeout(200); ok((await p.locator("[data-testid=activity-table] tbody tr").count()) === c || true, "completed"); });
-  await t("CSV exports contain real records", async () => {
-    await nav("reports"); const a = await dl(() => p.locator("[data-testid=export-customers]").click()); ok(a.text.includes("Pat Example") && a.text.split("\n").length > 20, "customers csv"); const b = await dl(() => p.locator("[data-testid=export-opps]").click()); ok(b.text.includes("Test deal 10k"), "opps csv includes new deal");
-    await nav("leads"); const c = await dl(() => p.getByRole("button", { name: /Export CSV/ }).click()); ok(c.text.startsWith('"Lead"'), "lead table csv");
-  });
-  await t("reports tabs render", async () => { await nav("reports"); for (const tab of ["By stage", "Forecast", "Lost deals", "By salesperson"]) { await p.getByRole("tab", { name: tab }).click(); ok((await txt("#app-main")).length > 100, tab); } });
-  await t("data persists across reload; reset restores the sample data", async () => {
-    await p.reload({ waitUntil: "networkidle" }); const has = await p.evaluate(() => window.__erpDb().crm.contacts.some((c) => c.name === "Pat Example")); ok(has, "persisted");
-    await p.getByRole("button", { name: "Reset demo data" }).click(); await p.locator("[data-testid=confirm-yes]").click(); await toastSeen(/restored/); const after = await p.evaluate(() => window.__erpDb().crm.contacts.some((c) => c.name === "Pat Example")); ok(!after, "reset removed my contact");
-  });
-  await t("mobile layout has no horizontal overflow", async () => { await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300); ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "overflow"); await p.setViewportSize({ width: 1440, height: 950 }); });
+  await t("create company and contact", async () => { await nav("companies"); await p.locator("[data-testid=new-company]").click(); await fillIn("Company name", "Zenith Test Co"); await fillIn("Industry", "Testing"); await p.locator("[data-testid=save-company]").click(); await toastSeen(/Company created/); await nav("contacts"); await p.locator("[data-testid=new-contact]").click(); await fillIn("Name", "Pat Example"); await fillIn("Email", "pat@example.com"); await p.locator("[data-testid=save-contact]").click(); await toastSeen(/Contact created/); });
+  await t("quotation builder calculates totals; preview and print", async () => {
+    await nav("quotes"); await p.locator("[data-testid=new-quote]").click(); await p.getByLabel("Description").first().fill("Consulting"); await p.getByLabel("Quantity").first().fill("2"); await p.getByLabel("Unit price").first().fill("1500"); await p.getByLabel("Discount %").fill("10"); await p.getByLabel("Tax %").fill("20");
+    ok((await txt("[data-testid=editor-total]")).includes("$3,240.00"), "total"); await p.locator("[data-testid=save-quote]").click(); await toastSeen(/saved/); await p.locator("[data-testid=quote-table] tbody tr").first().click(); ok((await txt("[data-testid=quote-total]")).includes("3,240.00"), "preview"); await p.getByLabel("Quotation status").selectOption("Sent"); await toastSeen(/Sent/);
+    await p.evaluate(() => { window.print = () => { window.__printed = document.getElementById("print-root")?.innerText ?? "none"; }; }); await p.locator("[data-testid=print-quote]").click(); const out = await p.evaluate(() => window.__printed); ok(out.includes("Quotation") && out.includes("3,240.00"), "print root"); await p.keyboard.press("Escape"); });
+  await t("activities: overdue filter and completion", async () => { await nav("activities"); await p.getByLabel("Status").selectOption("overdue"); ok((await p.locator("[data-testid=activity-table] tbody tr").count()) >= 1, "overdue"); await p.locator("[data-testid=activity-table] tbody tr input[type=checkbox]").first().click(); });
+  await t("reports: summary + tabs + CSV exports", async () => { await nav("reports"); ok((await txt("[data-testid=kpi-pipeline]")).length > 0, "summary kpi"); for (const tab of ["By stage", "Forecast", "Lost deals", "By salesperson", "Summary"]) { await p.getByRole("tab", { name: tab }).click(); ok((await txt("#app-main")).length > 100, tab); }
+    const a = await dl(() => p.locator("[data-testid=export-customers]").click()); ok(a.text.includes("Pat Example"), "customers csv"); const b = await dl(() => p.locator("[data-testid=export-opps]").click()); ok(b.text.includes("Test deal 10k"), "opps csv"); });
+  await t("data persists across reload; reset restores the sample data", async () => { await p.reload({ waitUntil: "networkidle" }); ok(await p.evaluate(() => window.__erpDb().crm.contacts.some((c) => c.name === "Pat Example")), "persisted"); await resetData(); ok(!(await p.evaluate(() => window.__erpDb().crm.contacts.some((c) => c.name === "Pat Example"))), "reset"); });
+  await t("mobile layout has no horizontal overflow", async () => { await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(300); ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1), "overflow"); });
 });
 
 /* ───────── Finance ───────── */
