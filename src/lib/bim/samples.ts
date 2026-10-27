@@ -78,3 +78,28 @@ export function houseMepDxf(): string {
   e.push({ t: "CIRCLE", layer: "E-LIGHT", c: { x: mm(2.5), y: mm(2.5) }, r: mm(0.2) }, { t: "CIRCLE", layer: "E-LIGHT", c: { x: mm(2.5), y: mm(6.5) }, r: mm(0.2) }, { t: "CIRCLE", layer: "E-LIGHT", c: { x: mm(7.5), y: mm(6.0) }, r: mm(0.2) });
   return writeDxf({ layers: HOUSE_MEP_CONFIG.map((c, i) => ({ name: c.layer, color: 1 + (i % 7) })), entities: e, insunits: 4 });
 }
+
+/* ───────── SVG / raster variants of the same house (for the SVG and image-interpretation paths) ───────── */
+const WALL_RECTS: [number, number, number, number][] = (() => {
+  const E = 0.15, I = 0.075, r: [number, number, number, number][] = [];
+  const rect = (x0: number, y0: number, x1: number, y1: number) => r.push([x0, y0, x1, y1]);
+  // exterior: south wall split by the entrance gap 2.0..3.0
+  rect(-E, -E, 2.0, E); rect(3.0, -E, 10 + E, E); rect(-E, 8 - E, 10 + E, 8 + E); rect(-E, -E, E, 8 + E); rect(10 - E, -E, 10 + E, 8 + E);
+  // wall A (x=5) with door gaps 1.55..2.45 and 5.55..6.45; walls B and C with their door gaps
+  rect(5 - I, E, 5 + I, 1.55); rect(5 - I, 2.45, 5 + I, 5.55); rect(5 - I, 6.45, 5 + I, 8 - E);
+  rect(5 + I, 4 - I, 7.05, 4 + I); rect(7.95, 4 - I, 10 - E, 4 + I); rect(E, 5 - I, 2.05, 5 + I); rect(2.95, 5 - I, 5 - I, 5 + I);
+  return r;
+})();
+/** SVG with wall FACE lines in group "A-WALL" (user units = millimetres, y down), window rectangles in "A-GLAZ" and room labels. */
+export function houseSvg(): string {
+  const f = (v: number) => Math.round(v * 1000 * 1000) / 1000; const lines: string[] = [];
+  for (const [x0, y0, x1, y1] of WALL_RECTS) { const w = x1 - x0, h = y1 - y0; if (w >= h) { lines.push(`<line x1="${f(x0)}" y1="${f(-y0)}" x2="${f(x1)}" y2="${f(-y0)}"/>`, `<line x1="${f(x0)}" y1="${f(-y1)}" x2="${f(x1)}" y2="${f(-y1)}"/>`); } else { lines.push(`<line x1="${f(x0)}" y1="${f(-y0)}" x2="${f(x0)}" y2="${f(-y1)}"/>`, `<line x1="${f(x1)}" y1="${f(-y0)}" x2="${f(x1)}" y2="${f(-y1)}"/>`); } }
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-500 -9000 11000 10000"><g id="A-WALL" stroke="black">${lines.join("")}</g></svg>`;
+}
+/** Filled-wall rendering as an SVG string for rasterisation: 100 px per metre, y down. */
+export function houseFilledSvg(pxPerM = 100, withNoise = true): { svg: string; width: number; height: number; origin: { x: number; y: number } } {
+  const pad = 1; const x0 = -0.15 - pad, y1 = 8.15 + pad; const w = (10.3 + 2 * pad) * pxPerM, h = (8.3 + 2 * pad) * pxPerM; const X = (x: number) => ((x - x0) * pxPerM).toFixed(2), Y = (y: number) => ((y1 - y) * pxPerM).toFixed(2);
+  const rects = WALL_RECTS.map(([a, b, c, d]) => `<rect x="${X(a)}" y="${Y(d)}" width="${((c - a) * pxPerM).toFixed(2)}" height="${((d - b) * pxPerM).toFixed(2)}" fill="#111"/>`).join("");
+  const noise = withNoise ? `<text x="${X(1)}" y="${Y(2)}" font-size="16" fill="#555">Living room</text><line x1="${X(0.3)}" y1="${Y(-0.6)}" x2="${X(9.8)}" y2="${Y(-0.6)}" stroke="#777" stroke-width="1"/><text x="${X(4)}" y="${Y(-0.5)}" font-size="12" fill="#777">10000</text>` : "";
+  return { svg: `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="white"/>${rects}${noise}</svg>`, width: w, height: h, origin: { x: x0, y: y1 } };
+}
