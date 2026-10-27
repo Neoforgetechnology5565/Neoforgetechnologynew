@@ -1,35 +1,51 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { logActivity, resetDb, useSlice } from "@/lib/biz/db";
-import { LEAVE_ENTITLEMENT, ONBOARD_TEMPLATE, type Department, type Employee, type LeaveReq, type Onboarding, type Position, type Review } from "@/lib/biz/seed-hrm";
+import { LEAVE_ENTITLEMENT, ONBOARD_TEMPLATE, type Department, type EmpDoc, type Employee, type LeaveReq, type Onboarding, type Position, type Review } from "@/lib/biz/seed-hrm";
 import { DEMO_TODAY, addDays, downloadCsv, emailOk, fmtDate, groupBy, money, moneyK, monthLabel, sum, tenureYears, uid, workingDays } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { AreaIn, Avatar, Badge, BarChart, Btn, DataTable, Donut, Empty, ErpShell, FilterSelect, HBars, Kpi, KpiRow, Modal, PageHead, Panel, Progress, SearchBox, SelectIn, Segmented, Tabs, TextIn, Timeline, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, AreaIn, Avatar, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Empty, FilterSelect, HBars, Kpi, KpiRow, Modal, PageHead, Panel, Progress, ResetButton, SelectIn, Segmented, Tabs, TextIn, Timeline, useConfirm, useToast, type Col } from "./kit";
 
-const NAV = [{ id: "dash", label: "HR dashboard", group: "Overview" }, { id: "directory", label: "Employee directory", group: "People" }, { id: "departments", label: "Departments", group: "People" }, { id: "positions", label: "Job positions", group: "People" },
-  { id: "onboarding", label: "Onboarding", group: "Lifecycle" }, { id: "leave", label: "Leave management", group: "Lifecycle" }, { id: "performance", label: "Performance reviews", group: "Lifecycle" }, { id: "reports", label: "HR reports", group: "Insight" }];
+/* People operations: a warm, centred workspace. Sections run along a header band; People is a faceted directory (cards, table or org tree) and every employee opens as a full profile page. */
+const SECTIONS = [{ id: "people", label: "People" }, { id: "departments", label: "Departments" }, { id: "onboarding", label: "Onboarding" }, { id: "leave", label: "Leave" }, { id: "performance", label: "Performance" }, { id: "organization", label: "Organization" }];
 const STATUSES: Employee["status"][] = ["Active", "Probation", "On leave", "Resigned"]; const TYPES: Employee["type"][] = ["Full-time", "Part-time", "Contract"];
 const stTone = (s: string) => (s === "Active" ? "green" : s === "Probation" ? "amber" : s === "On leave" ? "blue" : "slate") as "green" | "amber" | "blue" | "slate";
 
 export default function HrmApp({ branding }: { branding: Branding }) {
-  const [hrm] = useSlice("hrm"); const [screen, setScreen] = useState("dash"); const [empId, setEmpId] = useState<string | null>(null);
-  const pending = hrm.leave.filter((l) => l.status === "Pending").length;
-  const open = (id: string) => { setEmpId(id); setScreen("profile"); };
+  const [hrm] = useSlice("hrm"); const [section, setSection] = useState("people"); const [empId, setEmpId] = useState<string | null>(null); const [find, setFind] = useState("");
+  const pending = hrm.leave.filter((l) => l.status === "Pending").length; const onboarding = hrm.onboarding.filter((o) => o.items.some((i) => !i.done)).length;
+  const hits = find.trim().length >= 2 ? hrm.employees.filter((e) => `${e.name} ${e.position} ${e.dept}`.toLowerCase().includes(find.trim().toLowerCase())).slice(0, 6) : [];
+  const badge = (id: string) => (id === "leave" ? pending : id === "onboarding" ? onboarding : 0);
   return (
-    <ErpShell branding={branding} title="NorthPeak HR" subtitle="People operations · fictional employees only" nav={NAV.map((n) => (n.id === "leave" ? { ...n, badge: pending || undefined } : n))} active={screen === "profile" ? "directory" : screen} onNav={(s) => { setScreen(s); setEmpId(null); }} onReset={() => resetDb(["hrm"])}
-      note="Demonstration HR software. All employees, salaries and reviews are fictional; no real personal data is used. Data is stored only in this browser (localStorage); there is no server or shared database.">
-      {screen === "dash" && <Dash go={setScreen} open={open} />}
-      {screen === "directory" && <Directory open={open} />}
-      {screen === "profile" && empId && <Profile id={empId} back={() => setScreen("directory")} open={open} />}
-      {screen === "departments" && <Departments />}
-      {screen === "positions" && <Positions />}
-      {screen === "onboarding" && <OnboardingScreen open={open} />}
-      {screen === "leave" && <LeaveScreen open={open} />}
-      {screen === "performance" && <Performance open={open} />}
-      {screen === "reports" && <HrReports />}
-    </ErpShell>
+    <AppProviders className="bg-stone-50 text-slate-800" note="Demonstration HR software. All employees, salaries and reviews are fictional; no real personal data is used. Data is stored only in this browser (localStorage); there is no server or shared database.">
+      <header className="no-print bg-slate-900 text-slate-100">
+        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
+          <BrandLogo branding={branding} height={30} />
+          <div><h1 className="font-display text-xl font-semibold leading-tight text-white">NorthPeak People</h1><p className="text-sm text-slate-300">People operations · fictional employees only</p></div>
+          <div className="relative ml-auto min-w-[220px] max-w-sm flex-1">
+            <input type="search" value={find} onChange={(e) => setFind(e.target.value)} aria-label="Find an employee" placeholder="Find an employee…" className="w-full rounded-md border border-slate-600 bg-slate-800 px-3 py-2 text-[15px] text-white placeholder:text-slate-400" />
+            {hits.length > 0 && <ul className="absolute left-0 right-0 z-40 mt-1 overflow-hidden rounded-lg border border-slate-200 bg-white text-slate-800 shadow-xl">{hits.map((e) => <li key={e.id}><button type="button" className="flex w-full items-center gap-2 px-3 py-2 text-left text-[15px] hover:bg-stone-50" onClick={() => { setEmpId(e.id); setFind(""); }}><Avatar name={e.name} size={26} />{e.name}<span className="ml-auto text-sm text-slate-500">{e.dept}</span></button></li>)}</ul>}
+          </div>
+          <DemoBadge /><ResetButton onReset={() => resetDb(["hrm"])} /><DemoLinks compact />
+        </div>
+        <nav aria-label="HR sections" className="mx-auto flex max-w-[1500px] flex-wrap gap-1 px-4">
+          {SECTIONS.map((s) => <button key={s.id} type="button" data-nav={s.id} aria-current={section === s.id && !empId ? "page" : undefined} onClick={() => { setSection(s.id); setEmpId(null); }} className={`rounded-t-lg px-5 py-2.5 text-[16px] font-medium ${section === s.id && !empId ? "bg-stone-50 text-slate-900" : "text-slate-200 hover:bg-slate-800"}`}>{s.label}{badge(s.id) > 0 && <span className={`ml-2 rounded-full px-2 text-[13px] font-semibold ${section === s.id && !empId ? "bg-amber-200 text-amber-900" : "bg-amber-500 text-slate-900"}`}>{badge(s.id)}</span>}</button>)}
+        </nav>
+      </header>
+      <main className="mx-auto w-full max-w-[1500px] min-w-0 flex-1 p-4 sm:p-6" id="app-main">
+        {empId ? <Profile id={empId} back={() => setEmpId(null)} open={setEmpId} /> : <>
+          {section === "people" && <People open={setEmpId} />}
+          {section === "departments" && <DepartmentsSection />}
+          {section === "onboarding" && <OnboardingScreen open={setEmpId} />}
+          {section === "leave" && <LeaveScreen open={setEmpId} />}
+          {section === "performance" && <Performance open={setEmpId} />}
+          {section === "organization" && <OrganizationSection open={setEmpId} go={setSection} />}
+        </>}
+      </main>
+    </AppProviders>
   );
 }
+
 const active = (e: Employee) => e.status !== "Resigned";
 const approvedDays = (leave: LeaveReq[], empId: string, type: string) => sum(leave.filter((l) => l.empId === empId && l.type === type && l.status === "Approved" && l.from >= "2026-01-01"), (l) => l.days);
 export const leaveBalance = (hrm: { leave: LeaveReq[]; leaveAdj: { empId: string; type: string; days: number }[] }, empId: string, type: string) => (LEAVE_ENTITLEMENT[type] ?? 0) + sum(hrm.leaveAdj.filter((a) => a.empId === empId && a.type === type), (a) => a.days) - approvedDays(hrm.leave, empId, type);
@@ -53,6 +69,7 @@ function Dash({ go, open }: { go(s: string): void; open(id: string): void }) {
 }
 
 /* ───────── Directory ───────── */
+
 function EmployeeForm({ existing, onClose, onSave }: { existing?: Employee; onClose(): void; onSave(e: Omit<Employee, "id" | "notes">, onboard: boolean): void }) {
   const [hrm] = useSlice("hrm");
   const [f, setF] = useState({ name: existing?.name ?? "", email: existing?.email ?? "", phone: existing?.phone ?? "", dept: existing?.dept ?? hrm.departments[0]?.name ?? "", position: existing?.position ?? "", status: existing?.status ?? ("Probation" as Employee["status"]), type: existing?.type ?? ("Full-time" as Employee["type"]), hireDate: existing?.hireDate ?? DEMO_TODAY, salary: String(existing?.salary ?? ""), location: existing?.location ?? "Austin, US", managerId: existing?.managerId ?? "" });
@@ -67,44 +84,114 @@ function EmployeeForm({ existing, onClose, onSave }: { existing?: Employee; onCl
       <TextIn label="Location" value={f.location} onChange={(e) => setF({ ...f, location: e.target.value })} /><SelectIn label="Manager" value={f.managerId} onChange={(e) => setF({ ...f, managerId: e.target.value })} options={[{ value: "", label: "No manager" }, ...hrm.employees.filter((x) => x.id !== existing?.id && active(x)).map((m) => ({ value: m.id, label: m.name }))]} /><TextIn label="Phone" value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></div>
     {!existing && <label className="mt-3 flex items-center gap-2 text-sm"><input type="checkbox" checked={onboard} onChange={(e) => setOnboard(e.target.checked)} />Create an onboarding checklist for this employee</label>}</Modal>);
 }
-function Directory({ open }: { open(id: string): void }) {
-  const [hrm, setHrm] = useSlice("hrm"); const toast = useToast(); const [dept, setDept] = useState(""); const [status, setStatus] = useState(""); const [type, setType] = useState(""); const [view, setView] = useState("cards"); const [q, setQ] = useState(""); const [form, setForm] = useState(false);
-  const rows = hrm.employees.filter((e) => (!dept || e.dept === dept) && (!status || e.status === status) && (!type || e.type === type) && (!q || `${e.name} ${e.position} ${e.email} ${e.dept}`.toLowerCase().includes(q.toLowerCase())));
-  const cols: Col<Employee>[] = [{ key: "name", label: "Employee", render: (e) => <span className="flex items-center gap-2"><Avatar name={e.name} /><span><span className="block font-medium text-slate-900">{e.name}</span><span className="block text-xs text-slate-500">{e.email}</span></span></span>, value: (e) => e.name }, { key: "position", label: "Position" }, { key: "dept", label: "Department" }, { key: "status", label: "Status", render: (e) => <Badge tone={stTone(e.status)}>{e.status}</Badge> }, { key: "type", label: "Type" }, { key: "location", label: "Location" }, { key: "hireDate", label: "Hired", render: (e) => fmtDate(e.hireDate) }, { key: "salary", label: "Salary", align: "right", render: (e) => money(e.salary, "USD", 0) }];
-  return (<><PageHead title="Employee directory" sub={`${rows.length} of ${hrm.employees.length} people. Open a card or row for the profile.`} actions={<><Segmented label="View" value={view} onChange={setView} options={[{ id: "cards", label: "Cards" }, { id: "table", label: "Table" }]} /><Btn kind="primary" onClick={() => setForm(true)} testid="add-employee">+ Add employee</Btn></>} />
-    {view === "table" ? <DataTable rows={rows} columns={cols} rowKey={(e) => e.id} onRow={(e) => open(e.id)} exportName="hr-employees" search={false} pageSize={12} testid="emp-table" toolbar={<><SearchBox value={q} onChange={setQ} placeholder="Search name, role, email…" /><FilterSelect label="Department" value={dept} onChange={setDept} options={hrm.departments.map((d) => d.name)} /><FilterSelect label="Status" value={status} onChange={setStatus} options={STATUSES} /><FilterSelect label="Type" value={type} onChange={setType} options={TYPES} /></>} /> : (<>
-      <div className="mb-3 flex flex-wrap items-center gap-2"><SearchBox value={q} onChange={setQ} placeholder="Search name, role, email…" /><FilterSelect label="Department" value={dept} onChange={setDept} options={hrm.departments.map((d) => d.name)} /><FilterSelect label="Status" value={status} onChange={setStatus} options={STATUSES} /><FilterSelect label="Type" value={type} onChange={setType} options={TYPES} />
-        <Btn small className="ml-auto" onClick={() => downloadCsv("hr-employees", [["ID", "Name", "Email", "Department", "Position", "Status", "Type", "Hire date", "Salary", "Location"], ...rows.map((e) => [e.id, e.name, e.email, e.dept, e.position, e.status, e.type, e.hireDate, e.salary, e.location])])} testid="export-employees">Export CSV ({rows.length})</Btn></div>
-      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" data-testid="emp-cards">{rows.map((e) => <li key={e.id}><button type="button" onClick={() => open(e.id)} className="flex w-full items-start gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm hover:border-blue-500"><Avatar name={e.name} size={44} /><span className="min-w-0 flex-1"><span className="block truncate font-display font-semibold text-slate-900">{e.name}</span><span className="block truncate text-xs text-slate-500">{e.position} · {e.dept}</span><span className="mt-1.5 flex flex-wrap gap-1"><Badge tone={stTone(e.status)}>{e.status}</Badge><Badge>{e.type}</Badge></span><span className="mt-1 block truncate text-[11px] text-slate-400">{e.location}</span></span></button></li>)}</ul>{rows.length === 0 && <Empty>No employees match these filters.</Empty>}</>)}
+
+/* ───────── People: faceted directory ───────── */
+function Facet({ title, options, value, onChange }: { title: string; options: { value: string; label: string; count: number }[]; value: string; onChange(v: string): void }) {
+  return (<fieldset className="mb-5"><legend className="mb-1.5 text-base font-semibold text-slate-900">{title}</legend>
+    <ul className="space-y-0.5">{[{ value: "", label: "All", count: options.reduce((a, o) => a + o.count, 0) }, ...options].map((o) => <li key={o.value}><label className="flex cursor-pointer items-center gap-2 rounded px-1.5 py-1 text-[15px] hover:bg-stone-100"><input type="radio" name={title} checked={value === o.value} onChange={() => onChange(o.value)} /><span className="flex-1">{o.label}</span><span className="text-sm text-slate-500 tabular-nums">{o.count}</span></label></li>)}</ul></fieldset>);
+}
+function OrgNode({ e, byMgr, open, depth }: { e: Employee; byMgr: Map<string, Employee[]>; open(id: string): void; depth: number }) {
+  const kids = byMgr.get(e.id) ?? []; const [shown, setShown] = useState(depth < 2);
+  return (<li>
+    <div className="flex items-center gap-2 py-1">
+      {kids.length > 0 ? <button type="button" aria-expanded={shown} aria-label={`${shown ? "Collapse" : "Expand"} ${e.name}'s team`} onClick={() => setShown(!shown)} className="flex h-7 w-7 items-center justify-center rounded border border-slate-300 bg-white text-sm hover:border-blue-500">{shown ? "−" : "+"}</button> : <span className="w-7" />}
+      <button type="button" onClick={() => open(e.id)} className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-left hover:border-blue-500"><Avatar name={e.name} size={30} /><span><span className="block text-[15px] font-semibold text-slate-900">{e.name}</span><span className="block text-sm text-slate-600">{e.position} · {e.dept}</span></span></button>
+      {kids.length > 0 && <span className="text-sm text-slate-500">{kids.length} direct report{kids.length === 1 ? "" : "s"}</span>}
+    </div>
+    {shown && kids.length > 0 && <ul className="ml-3 border-l-2 border-stone-200 pl-5">{kids.map((k) => <OrgNode key={k.id} e={k} byMgr={byMgr} open={open} depth={depth + 1} />)}</ul>}
+  </li>);
+}
+function OrgTree({ open }: { open(id: string): void }) {
+  const [hrm] = useSlice("hrm"); const act = hrm.employees.filter(active); const ids = new Set(act.map((e) => e.id));
+  const byMgr = new Map<string, Employee[]>(); act.forEach((e) => { if (e.managerId && ids.has(e.managerId)) byMgr.set(e.managerId, [...(byMgr.get(e.managerId) ?? []), e]); });
+  const roots = act.filter((e) => !e.managerId || !ids.has(e.managerId));
+  return <ul data-testid="org-tree">{roots.map((r) => <OrgNode key={r.id} e={r} byMgr={byMgr} open={open} depth={0} />)}</ul>;
+}
+function People({ open }: { open(id: string): void }) {
+  const [hrm, setHrm] = useSlice("hrm"); const toast = useToast(); const [dept, setDept] = useState(""); const [status, setStatus] = useState(""); const [type, setType] = useState(""); const [view, setView] = useState("cards"); const [q, setQ] = useState(""); const [sort, setSort] = useState("name"); const [form, setForm] = useState(false);
+  const base = hrm.employees.filter((e) => !q || `${e.name} ${e.position} ${e.email} ${e.dept}`.toLowerCase().includes(q.toLowerCase()));
+  const rows = base.filter((e) => (!dept || e.dept === dept) && (!status || e.status === status) && (!type || e.type === type)).sort((a, b) => (sort === "hire" ? b.hireDate.localeCompare(a.hireDate) : sort === "dept" ? a.dept.localeCompare(b.dept) || a.name.localeCompare(b.name) : a.name.localeCompare(b.name)));
+  const count = (f: (e: Employee) => string, v: string) => base.filter((e) => f(e) === v).length;
+  const cols: Col<Employee>[] = [{ key: "name", label: "Employee", render: (e) => <span className="flex items-center gap-2"><Avatar name={e.name} /><span><span className="block font-medium text-slate-900">{e.name}</span><span className="block text-sm text-slate-500">{e.email}</span></span></span>, value: (e) => e.name }, { key: "position", label: "Position" }, { key: "dept", label: "Department" }, { key: "status", label: "Status", render: (e) => <Badge tone={stTone(e.status)}>{e.status}</Badge> }, { key: "type", label: "Type" }, { key: "location", label: "Location" }, { key: "hireDate", label: "Hired", render: (e) => fmtDate(e.hireDate) }];
+  const exportRows = () => downloadCsv("hr-employees", [["ID", "Name", "Email", "Department", "Position", "Status", "Type", "Hire date", "Salary", "Location"], ...rows.map((e) => [e.id, e.name, e.email, e.dept, e.position, e.status, e.type, e.hireDate, e.salary, e.location])]);
+  return (<>
+    <PageHead title="People" sub={`${rows.length} of ${hrm.employees.length} people. Use the filters on the left, or switch between cards, table and org tree.`} actions={<><Segmented label="Directory view" value={view} onChange={setView} options={[{ id: "cards", label: "Cards" }, { id: "table", label: "Table" }, { id: "org", label: "Org tree" }]} /><Btn onClick={exportRows} testid="export-employees">Export CSV ({rows.length})</Btn><Btn kind="primary" onClick={() => setForm(true)} testid="add-employee">+ Add employee</Btn></>} />
+    <div className="grid gap-6 lg:grid-cols-[250px_1fr]">
+      <aside aria-label="Directory filters" className="h-fit rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
+        <label className="mb-4 block"><span className="mb-1 block text-base font-semibold text-slate-900">Search</span><input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, role, email…" aria-label="Search directory" className="w-full rounded-md border border-slate-300 px-3 py-2 text-[15px]" /></label>
+        <Facet title="Department" value={dept} onChange={setDept} options={hrm.departments.map((d) => ({ value: d.name, label: d.name, count: count((e) => e.dept, d.name) }))} />
+        <Facet title="Status" value={status} onChange={setStatus} options={STATUSES.map((s) => ({ value: s, label: s, count: count((e) => e.status, s) }))} />
+        <Facet title="Employment type" value={type} onChange={setType} options={TYPES.map((s) => ({ value: s, label: s, count: count((e) => e.type, s) }))} />
+        <label className="block"><span className="mb-1 block text-base font-semibold text-slate-900">Sort by</span><select aria-label="Sort directory" value={sort} onChange={(e) => setSort(e.target.value)} className="w-full rounded-md border border-slate-300 bg-white px-2 py-2 text-[15px]"><option value="name">Name</option><option value="dept">Department</option><option value="hire">Newest hire</option></select></label>
+        {(dept || status || type || q) && <Btn small className="mt-4" onClick={() => { setDept(""); setStatus(""); setType(""); setQ(""); }}>Clear filters</Btn>}
+      </aside>
+      <div className="min-w-0">
+        {view === "table" && <DataTable rows={rows} columns={cols} rowKey={(e) => e.id} onRow={(e) => open(e.id)} search={false} pageSize={12} testid="emp-table" />}
+        {view === "cards" && (rows.length ? <ul className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3" data-testid="emp-cards">{rows.map((e) => <li key={e.id}><button type="button" onClick={() => open(e.id)} className="flex h-full w-full items-start gap-3 rounded-2xl border border-stone-200 bg-white p-4 text-left shadow-sm hover:border-blue-500"><Avatar name={e.name} size={52} /><span className="min-w-0 flex-1"><span className="block font-display text-lg font-semibold leading-tight text-slate-900">{e.name}</span><span className="block text-[15px] text-slate-600">{e.position}</span><span className="block text-sm text-slate-500">{e.dept} · {e.location}</span><span className="mt-2 flex flex-wrap gap-1.5"><Badge tone={stTone(e.status)}>{e.status}</Badge><Badge>{e.type}</Badge></span></span></button></li>)}</ul> : <Empty>No one matches these filters.</Empty>)}
+        {view === "org" && <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"><OrgTree open={open} /></div>}
+      </div>
+    </div>
     {form && <EmployeeForm onClose={() => setForm(false)} onSave={(rec, onboard) => { const id = `e${Date.now().toString().slice(-6)}`; setHrm((s) => ({ ...s, employees: [...s.employees, { id, notes: [], ...rec }], onboarding: onboard ? [...s.onboarding, { id: uid("ob"), empId: id, startDate: rec.hireDate, items: ONBOARD_TEMPLATE.map(([task, owner]) => ({ id: uid("t"), task, owner, done: false })) }] : s.onboarding })); logActivity("HR", `Employee added: ${rec.name}`); toast(`${rec.name} added${onboard ? " with an onboarding checklist" : ""}`); setForm(false); }} />}</>);
 }
 
-/* ───────── Profile ───────── */
+/* ───────── Employee profile page ───────── */
+const baseDocs = (e: Employee): EmpDoc[] => [{ id: `${e.id}-d1`, name: "Employment contract", kind: "Contract", date: e.hireDate }, { id: `${e.id}-d2`, name: "Right-to-work verification", kind: "Compliance", date: e.hireDate }, { id: `${e.id}-d3`, name: `Role description: ${e.position}`, kind: "Role", date: e.hireDate }];
 function Profile({ id, back, open }: { id: string; back(): void; open(id: string): void }) {
-  const [hrm, setHrm] = useSlice("hrm"); const toast = useToast(); const confirm = useConfirm(); const e = hrm.employees.find((x) => x.id === id); const [tab, setTab] = useState("overview"); const [edit, setEdit] = useState(false); const [note, setNote] = useState("");
-  if (!e) return <Empty>Employee not found. <Btn small onClick={back}>Back to directory</Btn></Empty>;
-  const mgr = hrm.employees.find((x) => x.id === e.managerId); const reports = hrm.employees.filter((x) => x.managerId === e.id); const leave = hrm.leave.filter((l) => l.empId === id); const reviews = hrm.reviews.filter((r) => r.empId === id); const ob = hrm.onboarding.find((o) => o.empId === id);
+  const [hrm, setHrm] = useSlice("hrm"); const toast = useToast(); const confirm = useConfirm(); const e = hrm.employees.find((x) => x.id === id);
+  const [tab, setTab] = useState("overview"); const [edit, setEdit] = useState(false); const [note, setNote] = useState(""); const [docForm, setDocForm] = useState(false); const [review, setReview] = useState(false);
+  if (!e) return <Empty>Employee not found. <Btn small onClick={back}>Back to people</Btn></Empty>;
+  const mgr = hrm.employees.find((x) => x.id === e.managerId); const reports = hrm.employees.filter((x) => x.managerId === e.id); const leave = hrm.leave.filter((l) => l.empId === id).sort((a, b) => b.from.localeCompare(a.from)); const reviews = hrm.reviews.filter((r) => r.empId === id); const ob = hrm.onboarding.find((o) => o.empId === id);
+  const docs = [...baseDocs(e), ...(e.docs ?? [])];
   const setStatus = (s: Employee["status"]) => { setHrm((st) => ({ ...st, employees: st.employees.map((x) => (x.id === id ? { ...x, status: s } : x)) })); logActivity("HR", `${e.name} status → ${s}`); toast(`Status changed to ${s}`); };
+  const decide = (l: LeaveReq, s: "Approved" | "Rejected") => { setHrm((st) => ({ ...st, leave: st.leave.map((x) => (x.id === l.id ? { ...x, status: s, decidedBy: "e28" } : x)) })); logActivity("HR", `Leave ${s.toLowerCase()}: ${e.name} (${l.days} days)`); toast(`Leave ${s.toLowerCase()} for ${e.name}`, s === "Rejected" ? "amber" : "green"); };
+  const activity = [{ id: "hire", at: e.hireDate, title: `Joined as ${e.position}`, sub: e.dept }, ...leave.map((l) => ({ id: l.id, at: l.submitted, title: `${l.type} leave ${l.status.toLowerCase()}`, sub: `${fmtDate(l.from)} – ${fmtDate(l.to)} (${l.days} days)` })), ...reviews.map((r) => ({ id: r.id, at: r.date, title: `${r.period} review ${r.status === "Completed" ? `completed · ${r.rating}/5` : "drafted"}`, sub: r.notes })), ...e.notes.map((n, i) => ({ id: `n${i}`, at: n.slice(0, 11), title: n.slice(13) || n, sub: "Note" }))].sort((a, b) => b.at.localeCompare(a.at));
   return (<>
-    <PageHead title={e.name} sub={`${e.position} · ${e.dept} · ${e.location}`} actions={<><Btn onClick={back}>← Directory</Btn><Btn onClick={() => setEdit(true)} testid="edit-employee">Edit</Btn>
-      <label className="flex items-center gap-1 text-xs text-slate-500">Status<select aria-label="Employee status" value={e.status} onChange={(ev) => setStatus(ev.target.value as Employee["status"])} className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm text-slate-800">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></label></>} />
-    <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
-      <Panel><div className="flex flex-col items-center text-center"><Avatar name={e.name} size={72} /><h3 className="mt-2 font-display text-lg font-semibold">{e.name}</h3><p className="text-sm text-slate-500">{e.position}</p><div className="mt-2 flex gap-1"><Badge tone={stTone(e.status)}>{e.status}</Badge><Badge>{e.type}</Badge></div></div>
-        <dl className="mt-4 space-y-2 text-sm"><div><dt className="text-xs text-slate-500">Email</dt><dd>{e.email}</dd></div><div><dt className="text-xs text-slate-500">Phone</dt><dd>{e.phone}</dd></div><div><dt className="text-xs text-slate-500">Manager</dt><dd>{mgr ? <button className="text-blue-700 hover:underline" onClick={() => open(mgr.id)}>{mgr.name}</button> : "—"}</dd></div><div><dt className="text-xs text-slate-500">Hired</dt><dd>{fmtDate(e.hireDate)} ({tenureYears(e.hireDate).toFixed(1)} years)</dd></div></dl></Panel>
-      <div><Tabs value={tab} onChange={setTab} tabs={[{ id: "overview", label: "Overview" }, { id: "employment", label: "Employment" }, { id: "leave", label: "Leave", count: leave.length }, { id: "reviews", label: "Performance", count: reviews.length }, { id: "onboarding", label: "Onboarding" }, { id: "notes", label: "Notes", count: e.notes.length }]} />
-        <div className="mt-3">
-          {tab === "overview" && <div className="grid gap-4 sm:grid-cols-2"><Panel title="Leave balances"><ul className="space-y-1 text-sm">{["Annual", "Sick", "Parental", "Unpaid"].map((t) => <li key={t} className="flex justify-between"><span>{t}</span><span className="tabular-nums">{leaveBalance(hrm, id, t)} days left</span></li>)}</ul></Panel><Panel title="Direct reports">{reports.length ? <ul className="space-y-1 text-sm">{reports.map((r) => <li key={r.id}><button className="text-blue-700 hover:underline" onClick={() => open(r.id)}>{r.name}</button> <span className="text-slate-500">· {r.position}</span></li>)}</ul> : <p className="text-sm text-slate-400">None</p>}</Panel></div>}
-          {tab === "employment" && <Panel><dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm"><dt className="text-slate-500">Department</dt><dd>{e.dept}</dd><dt className="text-slate-500">Position</dt><dd>{e.position}</dd><dt className="text-slate-500">Annual salary</dt><dd>{money(e.salary, "USD", 0)}</dd><dt className="text-slate-500">Employment type</dt><dd>{e.type}</dd><dt className="text-slate-500">Employee ID</dt><dd>{e.id}</dd></dl>
-            <div className="mt-3 flex gap-2"><Btn small onClick={() => setEdit(true)}>Change department / position</Btn><Btn small kind="danger" onClick={async () => { if (await confirm(`Remove ${e.name} from the demo data?`)) { setHrm((s) => ({ ...s, employees: s.employees.filter((x) => x.id !== id), leave: s.leave.filter((l) => l.empId !== id), reviews: s.reviews.filter((r) => r.empId !== id), onboarding: s.onboarding.filter((o) => o.empId !== id) })); toast("Employee removed", "amber"); back(); } }}>Delete employee</Btn></div></Panel>}
-          {tab === "leave" && <Panel pad={false}><ul className="divide-y divide-slate-100">{leave.map((l) => <li key={l.id} className="flex items-center gap-3 px-4 py-2 text-sm"><Badge>{l.type}</Badge><span>{fmtDate(l.from)} – {fmtDate(l.to)} ({l.days} days)</span><span className="ml-auto"><Badge tone={l.status === "Approved" ? "green" : l.status === "Rejected" ? "red" : "amber"}>{l.status}</Badge></span></li>)}{leave.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-400">No leave recorded.</li>}</ul></Panel>}
-          {tab === "reviews" && <Panel pad={false}><ul className="divide-y divide-slate-100">{reviews.map((r) => <li key={r.id} className="px-4 py-3 text-sm"><div className="flex justify-between"><strong>{r.period}</strong><span>{r.status === "Completed" ? `${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}` : <Badge tone="amber">Draft</Badge>}</span></div><p className="mt-1 text-slate-600">{r.notes || "No notes yet."}</p><p className="text-xs text-slate-500">Goals: {r.goals}</p></li>)}{reviews.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-400">No reviews yet. Add one from the Performance screen.</li>}</ul></Panel>}
-          {tab === "onboarding" && (ob ? <Panel><ChecklistView ob={ob} /></Panel> : <Empty>No onboarding checklist. <Btn small onClick={() => { setHrm((s) => ({ ...s, onboarding: [...s.onboarding, { id: uid("ob"), empId: id, startDate: DEMO_TODAY, items: ONBOARD_TEMPLATE.map(([task, owner]) => ({ id: uid("t"), task, owner, done: false })) }] })); toast("Checklist created"); }}>Create from template</Btn></Empty>)}
-          {tab === "notes" && <Panel><div className="flex gap-2"><input aria-label="Add employee note" value={note} onChange={(ev) => setNote(ev.target.value)} placeholder="Add a note…" className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" /><Btn kind="primary" onClick={() => { if (!note.trim()) return toast("Write a note first", "red"); setHrm((s) => ({ ...s, employees: s.employees.map((x) => (x.id === id ? { ...x, notes: [`${fmtDate(DEMO_TODAY)}: ${note.trim()}`, ...x.notes] } : x)) })); setNote(""); toast("Note added"); }} testid="add-emp-note">Add</Btn></div><div className="mt-3"><Timeline items={e.notes.map((n, i) => ({ id: String(i), at: n.split(": ")[0], title: n.split(": ").slice(1).join(": ") }))} /></div></Panel>}
-        </div></div></div>
-    {edit && <EmployeeForm existing={e} onClose={() => setEdit(false)} onSave={(rec) => { setHrm((s) => ({ ...s, employees: s.employees.map((x) => (x.id === id ? { ...x, ...rec } : x)) })); logActivity("HR", `${rec.name} updated`); toast("Employee updated"); setEdit(false); }} />}</>);
+    <p className="no-print mb-2"><button type="button" onClick={back} className="text-[15px] font-medium text-blue-700 hover:underline">← Back to the directory</button></p>
+    <section className="mb-5 flex flex-wrap items-center gap-5 rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
+      <Avatar name={e.name} size={84} />
+      <div className="min-w-[220px] flex-1"><h2 className="font-display text-[32px] font-semibold leading-tight text-slate-900">{e.name}</h2><p className="text-lg text-slate-600">{e.position} · {e.dept}</p><p className="mt-1 flex flex-wrap items-center gap-2 text-[15px] text-slate-600"><Badge tone={stTone(e.status)}>{e.status}</Badge><Badge>{e.type}</Badge>{e.location} · {e.email} · {e.phone}</p></div>
+      <div className="no-print flex flex-wrap items-center gap-2"><label className="flex items-center gap-2 text-sm text-slate-600">Status<select aria-label="Employee status" value={e.status} onChange={(ev) => setStatus(ev.target.value as Employee["status"])} className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-[15px] text-slate-800">{STATUSES.map((s) => <option key={s}>{s}</option>)}</select></label>
+        <Btn onClick={() => setEdit(true)} testid="edit-employee">Edit</Btn><Btn onClick={() => downloadCsv(`employee-${e.id}`, [["Field", "Value"], ["Name", e.name], ["Email", e.email], ["Department", e.dept], ["Position", e.position], ["Status", e.status], ["Type", e.type], ["Hire date", e.hireDate], ["Location", e.location]])}>Export profile</Btn></div>
+    </section>
+    <Tabs value={tab} onChange={setTab} tabs={[{ id: "overview", label: "Overview" }, { id: "employment", label: "Employment" }, { id: "documents", label: "Documents", count: docs.length }, { id: "leave", label: "Leave", count: leave.length }, { id: "performance", label: "Performance", count: reviews.length }, { id: "activity", label: "Activity" }]} />
+    <div className="mt-4">
+      {tab === "overview" && <div className="grid gap-4 lg:grid-cols-3">
+        <Panel title="Contact and reporting"><dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-[15px]"><dt className="text-slate-500">Email</dt><dd>{e.email}</dd><dt className="text-slate-500">Phone</dt><dd>{e.phone}</dd><dt className="text-slate-500">Manager</dt><dd>{mgr ? <button className="text-blue-700 hover:underline" onClick={() => open(mgr.id)}>{mgr.name}</button> : "—"}</dd><dt className="text-slate-500">Hired</dt><dd>{fmtDate(e.hireDate)} ({tenureYears(e.hireDate).toFixed(1)} years)</dd></dl></Panel>
+        <Panel title="Leave balances"><ul className="space-y-1.5 text-[15px]">{["Annual", "Sick", "Parental", "Unpaid"].map((t) => <li key={t} className="flex justify-between"><span>{t}</span><span className="tabular-nums">{leaveBalance(hrm, id, t)} days left</span></li>)}</ul></Panel>
+        <Panel title="Direct reports">{reports.length ? <ul className="space-y-1.5 text-[15px]">{reports.map((r) => <li key={r.id}><button className="text-blue-700 hover:underline" onClick={() => open(r.id)}>{r.name}</button> <span className="text-slate-500">· {r.position}</span></li>)}</ul> : <p className="text-[15px] text-slate-500">No direct reports.</p>}</Panel>
+        {ob && <Panel title="Onboarding checklist" className="lg:col-span-3"><ChecklistView ob={ob} /></Panel>}</div>}
+      {tab === "employment" && <Panel><dl className="grid grid-cols-[auto_1fr] gap-x-8 gap-y-2.5 text-[15px]"><dt className="text-slate-500">Department</dt><dd>{e.dept}</dd><dt className="text-slate-500">Position</dt><dd>{e.position}</dd><dt className="text-slate-500">Annual salary</dt><dd>{money(e.salary, "USD", 0)}</dd><dt className="text-slate-500">Employment type</dt><dd>{e.type}</dd><dt className="text-slate-500">Employee ID</dt><dd>{e.id}</dd></dl>
+        <div className="mt-4 flex gap-2"><Btn small onClick={() => setEdit(true)}>Change department / position</Btn><Btn small kind="danger" onClick={async () => { if (await confirm(`Remove ${e.name} from the demo data?`)) { setHrm((s) => ({ ...s, employees: s.employees.filter((x) => x.id !== id), leave: s.leave.filter((l) => l.empId !== id), reviews: s.reviews.filter((r) => r.empId !== id), onboarding: s.onboarding.filter((o) => o.empId !== id) })); toast("Employee removed", "amber"); back(); } }}>Delete employee</Btn></div></Panel>}
+      {tab === "documents" && <Panel title="Document records" actions={<Btn small onClick={() => setDocForm(true)} testid="add-doc">+ Add record</Btn>}><p className="mb-2 text-sm text-slate-600">Records only: this demo lists document names and dates. No file is uploaded or stored.</p>
+        <ul className="divide-y divide-slate-100">{docs.map((d) => <li key={d.id} className="flex flex-wrap items-center gap-3 py-2 text-[15px]"><Badge>{d.kind}</Badge><span className="flex-1 font-medium">{d.name}</span><span className="text-slate-500">{fmtDate(d.date)}</span>{(e.docs ?? []).some((x) => x.id === d.id) && <Btn small kind="danger" aria-label={`Remove ${d.name}`} onClick={() => { setHrm((s) => ({ ...s, employees: s.employees.map((x) => (x.id === id ? { ...x, docs: (x.docs ?? []).filter((y) => y.id !== d.id) } : x)) })); toast("Record removed", "amber"); }}>Remove</Btn>}</li>)}</ul></Panel>}
+      {tab === "leave" && <Panel pad={false}><ul className="divide-y divide-slate-100">{leave.map((l) => <li key={l.id} className="flex flex-wrap items-center gap-3 px-4 py-2.5 text-[15px]"><Badge>{l.type}</Badge><span>{fmtDate(l.from)} – {fmtDate(l.to)} ({l.days} days)</span><span className="text-slate-500">{l.reason}</span><span className="ml-auto flex items-center gap-2"><Badge tone={l.status === "Approved" ? "green" : l.status === "Rejected" ? "red" : "amber"}>{l.status}</Badge>{l.status === "Pending" && <><Btn small kind="primary" onClick={() => decide(l, "Approved")} aria-label={`Approve ${e.name}`}>Approve</Btn><Btn small kind="danger" onClick={() => decide(l, "Rejected")} aria-label={`Reject ${e.name}`}>Reject</Btn></>}</span></li>)}{leave.length === 0 && <li className="px-4 py-8 text-center text-[15px] text-slate-400">No leave recorded.</li>}</ul></Panel>}
+      {tab === "performance" && <Panel title="Reviews and notes" actions={<Btn small onClick={() => setReview(true)} testid="profile-new-review">+ Add review / note</Btn>} pad={false}><ul className="divide-y divide-slate-100">{reviews.map((r) => <li key={r.id} className="px-4 py-3 text-[15px]"><div className="flex justify-between"><strong>{r.period}</strong><span>{r.status === "Completed" ? `${"★".repeat(r.rating)}${"☆".repeat(5 - r.rating)}` : <Badge tone="amber">Draft</Badge>}</span></div><p className="mt-1 text-slate-700">{r.notes || "No notes yet."}</p><p className="text-sm text-slate-500">Goals: {r.goals}</p></li>)}{reviews.length === 0 && <li className="px-4 py-8 text-center text-[15px] text-slate-400">No reviews yet.</li>}</ul></Panel>}
+      {tab === "activity" && <Panel title="Activity and notes"><div className="mb-3 flex gap-2"><input aria-label="Add employee note" value={note} onChange={(ev) => setNote(ev.target.value)} placeholder="Add a note…" className="w-full rounded-md border border-slate-300 px-3 py-2 text-[15px]" /><Btn kind="primary" onClick={() => { if (!note.trim()) return toast("Write a note first", "red"); setHrm((s) => ({ ...s, employees: s.employees.map((x) => (x.id === id ? { ...x, notes: [`${fmtDate(DEMO_TODAY)}: ${note.trim()}`, ...x.notes] } : x)) })); setNote(""); toast("Note added"); }} testid="add-emp-note">Add</Btn></div>
+        <Timeline items={activity.map((a) => ({ id: a.id, at: fmtDate(a.at), title: a.title, sub: a.sub }))} /></Panel>}
+    </div>
+    {edit && <EmployeeForm existing={e} onClose={() => setEdit(false)} onSave={(rec) => { setHrm((s) => ({ ...s, employees: s.employees.map((x) => (x.id === id ? { ...x, ...rec } : x)) })); logActivity("HR", `${rec.name} updated`); toast("Employee updated"); setEdit(false); }} />}
+    {docForm && <DocForm onClose={() => setDocForm(false)} onSave={(d) => { setHrm((s) => ({ ...s, employees: s.employees.map((x) => (x.id === id ? { ...x, docs: [...(x.docs ?? []), { id: uid("doc"), ...d }] } : x)) })); toast("Document record added"); setDocForm(false); }} />}
+    {review && <ReviewForm existing={{ empId: id } as Review} onClose={() => setReview(false)} onSave={(rec) => { setHrm((s) => ({ ...s, reviews: [{ id: uid("r"), date: DEMO_TODAY, ...rec }, ...s.reviews] })); logActivity("HR", `Review recorded for ${e.name}`); toast("Review saved"); setReview(false); }} />}</>);
+}
+function DocForm({ onSave, onClose }: { onSave(d: Omit<EmpDoc, "id">): void; onClose(): void }) {
+  const [f, setF] = useState({ name: "", kind: "Certificate", date: DEMO_TODAY }); const [err, setErr] = useState("");
+  return (<Modal title="Add document record" small onClose={onClose} footer={<><Btn onClick={onClose}>Cancel</Btn><Btn kind="primary" testid="save-doc" onClick={() => { if (f.name.trim().length < 3) return setErr("Enter a document name (3+ characters)."); onSave({ ...f, name: f.name.trim() }); }}>Save record</Btn></>}>
+    <div className="grid gap-3"><TextIn label="Document name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /><SelectIn label="Type" value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })} options={["Certificate", "Contract", "Compliance", "Policy", "Other"]} /><TextIn label="Date" type="date" value={f.date} onChange={(e) => setF({ ...f, date: e.target.value })} /></div><p className="mt-2 text-sm text-slate-600">Records only: no file is uploaded.</p>{err && <p role="alert" className="mt-1 text-sm text-red-600">{err}</p>}</Modal>);
 }
 
-/* ───────── Departments & positions ───────── */
+/* ───────── Departments (with job positions) and Organization ───────── */
+function DepartmentsSection() {
+  const [v, setV] = useState("departments");
+  return (<><div className="mb-3"><Segmented label="Department view" value={v} onChange={setV} options={[{ id: "departments", label: "Departments" }, { id: "positions", label: "Job positions" }]} /></div>{v === "departments" ? <Departments /> : <Positions />}</>);
+}
+function OrganizationSection({ open, go }: { open(id: string): void; go(s: string): void }) {
+  const [v, setV] = useState("chart");
+  return (<><PageHead title="Organization" sub="Reporting lines, workforce statistics and HR reports for the whole company." actions={<Segmented label="Organization view" value={v} onChange={setV} options={[{ id: "chart", label: "Org chart" }, { id: "workforce", label: "Workforce" }, { id: "reports", label: "Reports" }]} />} />
+    {v === "chart" && <div className="rounded-xl border border-stone-200 bg-white p-5 shadow-sm"><OrgTree open={open} /></div>}
+    {v === "workforce" && <Dash go={(s) => go(s === "directory" ? "people" : s === "positions" ? "departments" : s)} open={open} />}
+    {v === "reports" && <HrReports />}</>);
+}
+
 function Departments() {
   const [hrm, setHrm] = useSlice("hrm"); const toast = useToast(); const confirm = useConfirm(); const [form, setForm] = useState<Department | "new" | null>(null);
   return (<><PageHead title="Departments" sub="Headcount and salary cost against each department's budget." actions={<Btn kind="primary" onClick={() => setForm("new")} testid="add-dept">+ New department</Btn>} />
@@ -211,3 +298,4 @@ function HrReports() {
       {tab === "status" && <Panel title="All employees by status"><Donut slices={byStatus} center={<>{hrm.employees.length}<br />records</>} /></Panel>}
       {tab === "leave" && <Panel title="Approved leave days in 2026"><HBars items={leaveUse} /></Panel>}</div></>);
 }
+

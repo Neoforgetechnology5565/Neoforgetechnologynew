@@ -1,5 +1,6 @@
 /** Fictional workforce shared by HRM, payroll, CRM (sales owners), support (agents), projects (resources). */
-export interface Employee { id: string; name: string; email: string; phone: string; dept: string; position: string; status: "Active" | "Probation" | "On leave" | "Resigned"; type: "Full-time" | "Part-time" | "Contract"; hireDate: string; salary: number; location: string; managerId: string; notes: string[] }
+export interface Employee { id: string; name: string; email: string; phone: string; dept: string; position: string; status: "Active" | "Probation" | "On leave" | "Resigned"; type: "Full-time" | "Part-time" | "Contract"; hireDate: string; salary: number; location: string; managerId: string; notes: string[]; docs?: EmpDoc[] }
+export interface EmpDoc { id: string; name: string; kind: string; date: string }
 export interface Department { id: string; name: string; headId: string; budget: number }
 export interface Position { id: string; title: string; dept: string; level: string; openings: number; min: number; max: number }
 export interface OnboardTask { id: string; task: string; owner: string; done: boolean }
