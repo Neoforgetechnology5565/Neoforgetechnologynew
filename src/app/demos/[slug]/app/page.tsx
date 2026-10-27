@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import RevitDashboard from "@/components/demos/RevitDashboard";
 import { DEMO_MAP } from "@/lib/demos";
+import { getBranding } from "@/lib/db";
+import type { Branding } from "@/lib/types";
 
 type Params = { params: Promise<{ slug: string }> };
-const APPS: Record<string, () => React.JSX.Element> = { "revit-bim-automation-dashboard": RevitDashboard };
+const APPS: Record<string, (p: { branding: Branding }) => React.JSX.Element> = { "revit-bim-automation-dashboard": RevitDashboard };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const d = DEMO_MAP[(await params).slug];
@@ -15,5 +17,5 @@ export default async function DemoApp({ params }: Params) {
   const slug = (await params).slug;
   const App = APPS[slug];
   if (!App) notFound();
-  return <App />;
+  return <App branding={await getBranding()} />;
 }
