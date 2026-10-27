@@ -27,7 +27,7 @@ const decline = async () => { const d = p.getByRole("button", { name: "Decline" 
 console.log("foot ui tests →", APP);
 await p.goto(APP, { waitUntil: "networkidle" }); await decline();
 await t("landing: honest scope, privacy, both entry points, sample mode", async () => {
-  ok(await p.getByRole("button", { name: "Start Foot Measurement" }).isVisible(), "start"); ok(await p.getByRole("button", { name: "Upload Existing Scan" }).isVisible(), "upload");
+  ok(await p.getByText("Illustrative 3D model", { exact: true }).first().isVisible(), "showcase 3D label"); ok(await p.getByRole("button", { name: "Start Foot Measurement" }).isVisible(), "start"); ok(await p.getByRole("button", { name: "Upload Existing Scan" }).isVisible(), "upload");
   ok(await p.getByText(/Not measured:/).isVisible(), "not-measured statement"); ok(await p.getByRole("heading", { name: "Privacy" }).isVisible(), "privacy");
   const fonts = await p.evaluate(() => getComputedStyle(document.body).fontFamily); ok(/Georgia/.test(fonts), "Georgia");
   const small = await p.evaluate(() => [...document.querySelectorAll("main *, body *")].filter((e) => e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).fontSize && parseFloat(getComputedStyle(e).fontSize) < 12.9 && e.offsetParent).length); ok(small === 0, `${small} text nodes under 13px`);
@@ -57,7 +57,7 @@ await t("manual corner editor: drag a handle, re-measure keeps original", async 
 });
 await t("camera: fake stream → live guidance → capture → upload → measured", async () => {
   await stage(/Photos/).click(); await p.getByRole("tab", { name: /Left foot/ }).click(); await p.getByRole("button", { name: "Open camera" }).click(); const dlg = p.getByRole("dialog", { name: /Camera/ }); await dlg.waitFor();
-  await dlg.getByText(/Good\. Place your bare foot/).waitFor({ timeout: 20000 }); await dlg.getByRole("button", { name: "Capture photo" }).click(); await dlg.getByRole("button", { name: "Use this photo" }).click();
+  await dlg.getByText(/Good\. Place your bare foot/).waitFor({ timeout: 20000 }); ok(await dlg.getByText("Take a photo like this").isVisible(), "example shown"); await dlg.getByRole("button", { name: "Capture photo" }).click(); await dlg.getByText(/We found your foot and the paper/).waitFor({ timeout: 20000 }); await dlg.getByRole("button", { name: "Use this photo" }).click();
   await p.getByText("analysed", { exact: true }).last().waitFor({ timeout: 30000 }); await p.getByText(/camera-left\.jpg/).first().waitFor();
 });
 await t("camera permission denied → clear message and photo-picker fallback", async () => {
@@ -68,14 +68,14 @@ await t("camera permission denied → clear message and photo-picker fallback", 
 await t("results: left/right comparison, units, 3D labelled as inferred, OBJ import", async () => {
   await stage(/Results/).click(); await p.getByRole("heading", { name: "Measured feet" }).waitFor(); await p.getByText("Left vs right").waitFor();
   await p.getByRole("button", { name: "in", exact: true }).click(); ok(/\d\.\d\d in/.test(await p.locator("table").first().innerText()), "inches"); await p.getByRole("button", { name: "mm", exact: true }).click();
-  await p.getByText("Inferred geometry").first().waitFor({ timeout: 15000 });
+  await p.getByText("Inferred geometry").first().waitFor({ timeout: 15000 }); ok(await p.getByRole("button", { name: "Both feet" }).isEnabled(), "both-feet 3D view available");
   const pts = []; for (let i = 0; i < 400; i++) { const a = i * 0.7; pts.push(`v ${(Math.cos(a) * 13).toFixed(3)} ${(Math.sin(a * 1.3) * 4.5).toFixed(3)} ${(Math.sin(a) * 3.5).toFixed(3)}`); } const faces = []; for (let i = 1; i <= 398; i++) faces.push(`f ${i} ${i + 1} ${i + 2}`);
   await p.getByLabel(/OBJ units/).selectOption("cm"); await p.locator("input[type=file][accept='.obj,text/plain']").setInputFiles({ name: "scan.obj", mimeType: "text/plain", buffer: Buffer.from([...pts, ...faces].join("\n")) });
-  await p.getByText("Imported model").first().waitFor({ timeout: 15000 }); await p.getByText(/Imported right OBJ “scan.obj”/).waitFor();
+  await p.getByText("Imported model").first().waitFor({ timeout: 15000 }); await p.getByText(/Imported (left|right) OBJ “scan.obj”/).waitFor();
   await p.getByRole("button", { name: "Top" }).click(); await p.getByRole("button", { name: "Reset camera" }).click();
 });
 await t("fit: sizes, calculation, fit preference changes size, US men's ≠ women's", async () => {
-  await stage(/Fit/).click(); await p.getByTestId("size-EU").waitFor(); const eu0 = +(await p.getByTestId("size-EU").innerText()); const m = +(await p.getByTestId("size-US men's").innerText()), w = +(await p.getByTestId("size-US women's").innerText()); ok(w - m === 1.5, `US offset ${w - m}`);
+  await stage(/Fit/).click(); await p.getByRole("heading", { name: /What defines your size \(1\/3\)/ }).waitFor(); await p.getByTestId("story-head").waitFor(); await p.getByRole("button", { name: "Continue", exact: true }).click(); await p.getByText(/foot width|feet are/i).first().waitFor(); await p.getByRole("button", { name: "Continue", exact: true }).click(); await p.getByText(/Foot height is not measured/).waitFor(); await p.getByTestId("size-EU").waitFor(); const eu0 = +(await p.getByTestId("size-EU").innerText()); const m = +(await p.getByTestId("size-US men's").innerText()), w = +(await p.getByTestId("size-US women's").innerText()); ok(w - m === 1.5, `US offset ${w - m}`);
   await p.getByLabel("Fit preference").selectOption("snug"); await p.waitForTimeout(900); const euS = +(await p.getByTestId("size-EU").innerText()); await p.getByLabel("Fit preference").selectOption("roomy"); await p.waitForTimeout(900); const eu1 = +(await p.getByTestId("size-EU").innerText()); ok(eu1 > euS && eu1 >= eu0, `snug ${euS} regular ${eu0} roomy ${eu1}`); ok(await p.getByText(/No brand size charts are loaded/).isVisible(), "brand note"); ok(await p.getByText("How this was calculated").isVisible(), "explanation");
 });
 await t("report: preview, JSON and CSV export, then delete removes everything", async () => {

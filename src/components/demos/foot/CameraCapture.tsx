@@ -1,7 +1,8 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { useCallback, useEffect, useRef, useState } from "react";
-import { detectPaper } from "@/lib/foot/vision";
+import { analyzeFootImage, detectPaper } from "@/lib/foot/vision";
+import { SetupDiagram } from "./Parts";
 import type { PaperKind, Pt } from "@/lib/foot/types";
 import { PAPER_MM } from "@/lib/foot/types";
 
@@ -14,7 +15,7 @@ const HINTS = { none: "Lay a plain white sheet flat on a darker floor and keep a
 export default function CameraCapture({ paper, title, onUse, onClose, onFallback }: { paper: PaperKind; title: string; onUse: (blob: Blob) => void; onClose: () => void; onFallback?: () => void }) {
   const video = useRef<HTMLVideoElement>(null), overlay = useRef<HTMLCanvasElement>(null), work = useRef<HTMLCanvasElement | null>(null), stream = useRef<MediaStream | null>(null);
   const [status, setStatus] = useState<Status>("starting"); const [msg, setMsg] = useState(""); const [devices, setDevices] = useState<MediaDeviceInfo[]>([]); const [deviceId, setDeviceId] = useState<string>(""); const [live, setLive] = useState<Live>({ found: false, ready: false, hint: HINTS.none });
-  const [shot, setShot] = useState<{ blob: Blob; url: string } | null>(null); const [vw, setVw] = useState({ w: 4, h: 3 });
+  const [shot, setShot] = useState<{ blob: Blob; url: string } | null>(null); const [check, setCheck] = useState<{ state: "working" | "ok" | "bad"; text: string } | null>(null); const [example, setExample] = useState(true); const [vw, setVw] = useState({ w: 4, h: 3 });
 
   const stop = useCallback(() => { stream.current?.getTracks().forEach((t) => t.stop()); stream.current = null; if (video.current) video.current.srcObject = null; }, []);
   const start = useCallback(async (id?: string) => {
@@ -62,8 +63,17 @@ export default function CameraCapture({ paper, title, onUse, onClose, onFallback
   const snap = () => {
     const v = video.current; if (!v?.videoWidth) return; const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight; c.getContext("2d")!.drawImage(v, 0, 0);
     c.toBlob((b) => { if (b) setShot({ blob: b, url: URL.createObjectURL(b) }); }, "image/jpeg", 0.92);
+    // Real check of the still, on-device, with the same engine the server runs: is the sheet found and can the foot be told apart?
+    setCheck({ state: "working", text: "Analyzing your image…" });
+    window.setTimeout(() => {
+      try {
+        const k = Math.min(1, 1100 / Math.max(c.width, c.height)); const w = document.createElement("canvas"); w.width = Math.round(c.width * k); w.height = Math.round(c.height * k); const g = w.getContext("2d", { willReadFrequently: true })!; g.drawImage(c, 0, 0, w.width, w.height);
+        const d = g.getImageData(0, 0, w.width, w.height); const a = analyzeFootImage({ w: w.width, h: w.height, ch: 4, data: d.data }, { paper }).analysis;
+        setCheck(a.ok ? { state: "ok", text: `Great! We found your foot and the paper${a.warnings.length ? ` — note: ${a.warnings[0]}` : ""}` } : { state: "bad", text: `${a.reason} You can retake, or use it anyway and fix the corners by hand.` });
+      } catch { setCheck({ state: "bad", text: "The check could not run. The server will still analyse the photo." }); }
+    }, 60);
   };
-  const clearShot = () => { if (shot) URL.revokeObjectURL(shot.url); setShot(null); };
+  const clearShot = () => { if (shot) URL.revokeObjectURL(shot.url); setShot(null); setCheck(null); };
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col bg-black text-white" role="dialog" aria-modal="true" aria-label={`Camera — ${title}`}>
@@ -72,7 +82,9 @@ export default function CameraCapture({ paper, title, onUse, onClose, onFallback
       <div className="relative mx-auto flex w-full max-w-3xl flex-1 items-center justify-center overflow-hidden">
         <div className="relative w-full" style={{ aspectRatio: `${vw.w} / ${vw.h}`, maxHeight: "100%" }}>
           <video ref={video} playsInline muted className={`absolute inset-0 h-full w-full ${shot ? "invisible" : ""}`} />
-          {shot && /* eslint-disable-next-line @next/next/no-img-element */ <img src={shot.url} alt="Captured photo preview" className="absolute inset-0 h-full w-full object-contain" />}
+          {shot && <img src={shot.url} alt="Captured photo preview" className="absolute inset-0 h-full w-full object-contain" />}
+          {!shot && status === "live" && (example ? <div className="absolute left-2 top-2 w-44 rounded-lg bg-black/70 p-1.5 sm:w-56"><div className="mb-1 flex items-center justify-between text-xs text-white"><span className="font-semibold">Take a photo like this</span><button type="button" onClick={() => setExample(false)} aria-label="Hide example" className="px-1 text-white/80 hover:text-white">✕</button></div><SetupDiagram /></div> : <button type="button" onClick={() => setExample(true)} className="absolute left-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs text-white">Show example</button>)}
+          {shot && check && <div role="status" aria-live="polite" className={`absolute inset-x-3 bottom-3 rounded-lg px-3 py-2 text-sm font-medium ${check.state === "ok" ? "bg-emerald-600 text-white" : check.state === "bad" ? "bg-amber-500 text-black" : "bg-black/75 text-white"}`}>{check.state === "ok" ? "✓ " : ""}{check.text}</div>}
           <canvas ref={overlay} className={`pointer-events-none absolute inset-0 h-full w-full ${shot ? "hidden" : ""}`} aria-hidden />
           {status !== "live" && !shot && <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-6 text-center"><div className="max-w-sm"><p className="text-base font-semibold">{status === "starting" ? "Starting camera…" : status === "denied" ? "Camera blocked" : status === "unsupported" ? "Camera unavailable here" : status === "nodevice" ? "No camera found" : "Camera error"}</p>{msg && <p className="mt-2 text-sm text-white/80">{msg}</p>}
             <div className="mt-4 flex flex-wrap justify-center gap-2">{status !== "starting" && <button type="button" onClick={() => void start()} className="rounded-md border border-white/40 px-3 py-1.5 text-sm hover:bg-white/10">Try again</button>}{onFallback && status !== "starting" && <button type="button" onClick={() => { stop(); onFallback(); }} className="rounded-md bg-emerald-600 px-3 py-1.5 text-sm font-semibold hover:bg-emerald-500">Use the photo-picker instead</button>}</div></div></div>}

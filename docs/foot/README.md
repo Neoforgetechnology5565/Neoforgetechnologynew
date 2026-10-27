@@ -13,6 +13,12 @@ Two first-class ways to get a foot into the system:
 
 Measurement = calibrated **top view** with a sheet of **A4 / US Letter paper** as the scale: length, widest width, forefoot (ball) width, heel width, outline area, left-vs-right difference, in mm / cm / in. Then EU / UK / US men's / US women's size estimates with the calculation shown, an adjustable fit allowance, sample style profiles, a 3D viewer, history, a printable report and JSON / CSV export.
 
+## 3D models
+- **Illustrative showcase pair** (landing page, and the "Looking for your best size…" overlay): a parametric template foot pair at typical adult dimensions. Labelled *Illustrative 3D model*; not a scan.
+- **Your feet** (Results, and the "What defines your size" walkthrough): the *measured* outline of each foot with a generic estimated height profile (rounded cross-section). Length/width lines are measured; height is not. Labelled *Inferred geometry* (or *Sample visualization* for synthetic photos).
+- **Imported OBJ**: your own mesh, measured and shown as provided.
+The walkthrough (length → width → height) follows the common retail-fit flow; the height step honestly says height is not measured.
+
 ## What it deliberately does not do
 - No girth, instep, arch height or volume (impossible from one top silhouette; never displayed).
 - No guessing without calibration: if the sheet cannot be verified the photo gets a reason, not a number.

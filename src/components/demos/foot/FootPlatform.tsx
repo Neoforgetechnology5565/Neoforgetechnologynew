@@ -9,9 +9,12 @@ import type { Branding } from "@/lib/types";
 import DemoShell from "../DemoShell";
 import { api, saved, type Auth } from "./api";
 import { BIG, CARD, GO, H, SUB, openPrintCheck } from "./Parts";
+import FootViewer, { templateShape, type ViewerModel } from "./FootViewer";
 import { STEPS, type Ctx, type ObjFile, type Step } from "./ctx";
 import type { Unit } from "./report";
 import { CaptureStep, FitStep, ReportStep, ResultsStep, ReviewStep, SetupStep } from "./Steps";
+
+const SHOWCASE: ViewerModel = { kind: "pair", showcase: true, left: templateShape(258, 98, "left"), right: templateShape(262, 100, "right") };
 
 export default function FootPlatform({ branding }: { branding: Branding }) {
   const [auth, setAuth] = useState<Auth | null>(null); const [session, setSession] = useState<SessionDTO | null>(null); const [captures, setCaptures] = useState<CaptureDTO[]>([]); const [results, setResults] = useState<Results | null>(null);
@@ -86,7 +89,7 @@ function Landing({ start, busy, history, open, health }: { start: (k: "measure" 
           {health === "down" && <p role="alert" className="mt-3 rounded bg-red-50 p-2 text-sm text-red-900">The measurement service is not reachable right now. Try again shortly.</p>}
           <p className="mt-3 text-sm text-stone-600">Sample data = a rendered scene with a known foot size, so you can try every screen without a camera. It is labelled everywhere it appears.</p>
         </div>
-        <HeroArt />
+        <div><FootViewer model={SHOWCASE} spin hideCaption className="h-[22rem]" /><p className="mt-2 text-sm text-stone-600"><b className="text-stone-800">Illustrative 3D model.</b> A template foot pair for display — drag to rotate. Your own feet appear the same way after measuring, built from your measured outline.</p></div>
       </section>
       <section className="mt-10 grid gap-4 md:grid-cols-4" aria-label="How it works">
         {[["1", "Set the scale", "A plain A4 or Letter sheet on the floor is the ruler."], ["2", "Photograph from above", "On your phone via QR code, in this browser, or upload files. Live checks guide you."], ["3", "Check & correct", "See exactly what was detected. Fix the sheet corners by hand if needed."], ["4", "Get sizes", "Length, width, left vs right, EU / UK / US sizes, a printable report."]].map(([n, t, d]) => <div key={n} className={CARD}><span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-700 text-sm font-bold text-white">{n}</span><h3 className="mt-2 font-semibold text-stone-900">{t}</h3><p className={SUB}>{d}</p></div>)}
@@ -97,17 +100,5 @@ function Landing({ start, busy, history, open, health }: { start: (k: "measure" 
       </section>
       <section className={`${CARD} mt-6`} aria-label="Recent sessions"><h3 className={H}>Your recent sessions</h3>{history.length === 0 ? <p className={SUB}>Sessions you create in this browser appear here so you can reopen them.</p> : <ul className="mt-2 divide-y divide-stone-200">{history.map((s) => <li key={s.id} className="flex flex-wrap items-center gap-2 py-2 text-sm"><span className="min-w-0 flex-1"><b className="text-stone-900">{s.name}</b> <span className="text-stone-600">· {s.captureCount} photo(s) · {s.status} · {new Date(s.updatedAt).toLocaleDateString("en-GB")}</span></span><button type="button" className={BIG} onClick={() => keys[s.id] && open(s.id, keys[s.id])}>Open</button></li>)}</ul>}</section>
     </div>
-  );
-}
-function HeroArt() {
-  return (
-    <svg viewBox="0 0 420 340" className="w-full" role="img" aria-label="Illustration: a foot outline on a sheet of paper with length and width measurement lines">
-      <rect width="420" height="340" rx="18" fill="#44403c" /><g transform="rotate(-4 210 180)"><rect x="40" y="52" width="340" height="240" fill="#fafaf9" stroke="#d6d3d1" strokeWidth="2" />
-        <path d="M82 214 C70 184 78 146 114 138 C170 126 250 126 304 134 C336 142 344 186 322 206 C300 228 190 236 120 232 C98 232 86 226 82 214Z" fill="#e8c9a8" stroke="#a16207" strokeWidth="2" />
-        <line x1="82" y1="258" x2="338" y2="258" stroke="#047857" strokeWidth="3" /><line x1="82" y1="250" x2="82" y2="266" stroke="#047857" strokeWidth="3" /><line x1="338" y1="250" x2="338" y2="266" stroke="#047857" strokeWidth="3" /><text x="210" y="280" textAnchor="middle" fontSize="16" fill="#065f46" fontFamily="Georgia" fontWeight="700">length</text>
-        <line x1="270" y1="118" x2="270" y2="238" stroke="#b45309" strokeWidth="3" strokeDasharray="6 4" /><text x="286" y="112" fontSize="16" fill="#92400e" fontFamily="Georgia" fontWeight="700">width</text>
-        {[[40, 52], [380, 52], [380, 292], [40, 292]].map(([x, y]) => <circle key={`${x}${y}`} cx={x} cy={y} r="7" fill="#10b981" stroke="#fff" strokeWidth="2" />)}</g>
-      <text x="210" y="326" textAnchor="middle" fontSize="13" fill="#d6d3d1" fontFamily="Georgia">The sheet’s four corners set the scale</text>
-    </svg>
   );
 }

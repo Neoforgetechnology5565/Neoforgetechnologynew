@@ -8,12 +8,13 @@ import { PAPER_MM, type PaperKind, type Side } from "@/lib/foot/types";
 import { MESH_LIMITS } from "@/lib/foot/mesh";
 import { api, ApiError, fmtLen, prepareImage } from "./api";
 import CameraCapture from "./CameraCapture";
-import FootViewer, { type ViewerModel } from "./FootViewer";
+import FootViewer, { templateShape, type ViewerModel } from "./FootViewer";
 import PhotoReview from "./PhotoReview";
 import { BIG, CARD, Dropzone, GO, GRADE, H, PhoneLink, SUB, SetupDiagram, openPrintCheck } from "./Parts";
 import type { Ctx } from "./ctx";
 import { reportHtml } from "./report";
 
+const WAIT_MODEL: ViewerModel = { kind: "pair", showcase: true, show: { length: false, width: false }, left: templateShape(258, 98, "left"), right: templateShape(262, 100, "right") };
 const SIDE_LABEL: Record<Side, string> = { left: "Left foot", right: "Right foot" };
 const chip = (cls: string, t: string) => <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${cls}`}>{t}</span>;
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : (e as Error).message || "Something went wrong");
@@ -145,16 +146,18 @@ export function ReviewStep({ c }: { c: Ctx }) {
 
 /* ───────── 4. results ───────── */
 export function ResultsStep({ c }: { c: Ctx }) {
-  const r = c.results; const [busy, setBusy] = useState(false); const [vside, setVside] = useState<Side>("right"); const [objBusy, setObjBusy] = useState(false); const [unitOf, setUnitOf] = useState<"mm" | "cm" | "m">("mm");
-  const sides = (["left", "right"] as Side[]).filter((s) => r?.[s]); const view = (sides.includes(vside) ? vside : sides[0]) as Side | undefined;
+  const r = c.results; const [busy, setBusy] = useState(false); const [vside, setVside] = useState<Side | "both">("both"); const [objBusy, setObjBusy] = useState(false); const [unitOf, setUnitOf] = useState<"mm" | "cm" | "m">("mm");
+  const sides = (["left", "right"] as Side[]).filter((s) => r?.[s]); const view = (vside === "both" ? (sides.length > 1 ? "both" : sides[0]) : sides.includes(vside) ? vside : sides[0]) as Side | "both" | undefined;
+  const oside: Side = view === "both" || !view ? (sides[0] ?? "right") : view;
   const run = async () => { setBusy(true); try { await api.process(c.auth); await c.refresh(); } catch (e) { c.notify(msg(e), true); } finally { setBusy(false); } };
-  const file = async (f: File[]) => { const x = f[0]; if (!x) return; if (x.size > MESH_LIMITS.maxBytes) return c.notify(`OBJ files are limited to ${Math.round(MESH_LIMITS.maxBytes / 1048576)} MB.`, true); setObjBusy(true); try { const text = await x.text(); await api.mesh(c.auth, text, vside, unitOf, x.name); c.setObj(vside, { text, unit: unitOf, filename: x.name }); await c.refresh(); } catch (e) { c.notify(msg(e), true); } finally { setObjBusy(false); } };
-  const model: ViewerModel | null = useMemo(() => { const o = view && c.objs[view]; if (o && view) return { kind: "obj", side: view, ...o }; return view && r?.[view] ? { kind: "inferred", side: view, result: r[view]! } : null; }, [view, r, c.objs]);
+  const file = async (f: File[]) => { const x = f[0]; if (!x) return; if (x.size > MESH_LIMITS.maxBytes) return c.notify(`OBJ files are limited to ${Math.round(MESH_LIMITS.maxBytes / 1048576)} MB.`, true); setObjBusy(true); try { const text = await x.text(); await api.mesh(c.auth, text, oside, unitOf, x.name); c.setObj(oside, { text, unit: unitOf, filename: x.name }); setVside(oside); await c.refresh(); } catch (e) { c.notify(msg(e), true); } finally { setObjBusy(false); } };
+  const model: ViewerModel | null = useMemo(() => { if (view === "both") return { kind: "pair", left: r?.left, right: r?.right, sample: r?.anySample }; const o = view ? c.objs[view] : undefined; if (o && view) return { kind: "obj", side: view, ...o }; return view && r?.[view] ? { kind: "inferred", side: view, result: r[view]! } : null; }, [view, r, c.objs]);
   if (!r || (!r.left && !r.right)) return <section className={CARD}><h2 className={H}>No measured foot yet</h2><p className={SUB}>Results appear once at least one photo has been measured. Photos that failed their checks never produce numbers.</p><div className="mt-3 flex gap-2"><button type="button" className={GO} onClick={() => c.go("capture")}>Add photos</button><button type="button" className={BIG} onClick={() => c.go("review")}>Review photos</button></div></section>;
   const stale = c.session.status !== "processed"; const Row = ({ l, a, b }: { l: string; a?: number; b?: number }) => <tr className="border-t border-stone-200"><th className="py-1.5 pr-3 text-left font-normal text-stone-600">{l}</th><td className="py-1.5 text-right font-semibold tabular-nums">{a != null ? fmtLen(a, c.unit) : "—"}</td><td className="py-1.5 text-right font-semibold tabular-nums">{b != null ? fmtLen(b, c.unit) : "—"}</td></tr>;
   const L = r.left, R = r.right;
   return (
     <div className="space-y-4">
+      {busy && <div role="status" className="fixed inset-0 z-[60] flex items-center justify-center bg-stone-900/60 p-4"><div className="w-[min(92vw,26rem)] rounded-2xl bg-white p-4 text-center shadow-xl"><p className="font-display text-lg font-semibold text-stone-900">Looking for your best size…</p><FootViewer model={WAIT_MODEL} spin hideCaption className="mt-2 h-56" /><p className="mt-1 text-sm text-stone-600">Finalising your measurements. The model shown is an illustration, not your foot.</p></div></div>}
       <section className={CARD}>
         <div className="flex flex-wrap items-center gap-3"><h2 className={H}>Measured feet</h2><div role="group" aria-label="Units" className="ml-auto flex overflow-hidden rounded-md border border-stone-300">{(["mm", "cm", "in"] as const).map((u) => <button key={u} type="button" aria-pressed={c.unit === u} onClick={() => c.setUnit(u)} className={`px-3 py-1 text-sm ${c.unit === u ? "bg-emerald-700 text-white" : "bg-white text-stone-700 hover:bg-stone-50"}`}>{u}</button>)}</div><button type="button" className={stale ? GO : BIG} disabled={busy} onClick={run}>{busy ? "Processing…" : stale ? "Process & finalise" : "Re-process"}</button></div>
         {r.anySample && <p className="mt-2 rounded bg-fuchsia-50 p-2 text-sm text-fuchsia-900"><b>Sample data in use.</b> At least one foot comes from a synthetic sample photo, not a person.</p>}
@@ -170,8 +173,8 @@ export function ResultsStep({ c }: { c: Ctx }) {
         <details className="mt-3 text-sm"><summary className="cursor-pointer text-stone-700">How these numbers were produced</summary><ul className="mt-1 list-disc space-y-1 pl-5 text-stone-700">{r.method.map((m) => <li key={m}>{m}</li>)}</ul>{c.session.events.length > 0 && <ol className="mt-2 space-y-0.5" aria-label="Processing stages">{c.session.events.map((e, i) => <li key={i} className="flex justify-between"><span>{e.stage}{e.note ? <span className="text-stone-500"> — {e.note}</span> : null}</span><span className="tabular-nums text-stone-500">{e.ms ?? 0} ms</span></li>)}</ol>}</details>
       </section>
       <section className={CARD}>
-        <div className="mb-2 flex flex-wrap items-center gap-2"><h2 className={H}>3D view</h2>{sides.length > 0 && <div role="group" aria-label="Foot shown" className="flex gap-1">{(["left", "right"] as Side[]).map((s) => <button key={s} type="button" disabled={!r[s] && !c.objs[s]} aria-pressed={view === s} onClick={() => setVside(s)} className={`rounded-md border px-3 py-1 text-sm ${view === s ? "border-emerald-600 bg-emerald-50" : "border-stone-300 bg-white"} disabled:opacity-40`}>{s === "left" ? "Left" : "Right"}</button>)}</div>}
-          <div className="ml-auto flex flex-wrap items-center gap-2 text-sm"><label className="flex items-center gap-1">OBJ units<select value={unitOf} onChange={(e) => setUnitOf(e.target.value as "mm")} className="rounded border border-stone-300 bg-white px-1.5 py-1"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label><ObjPick onFiles={file} busy={objBusy} />{view && c.objs[view] && <button type="button" className={BIG} onClick={() => { c.setObj(view, undefined); void api.meshDel(c.auth).then(c.refresh); }}>Remove OBJ</button>}</div></div>
+        <div className="mb-2 flex flex-wrap items-center gap-2"><h2 className={H}>3D view</h2>{sides.length > 0 && <div role="group" aria-label="Foot shown" className="flex gap-1">{(["both", "left", "right"] as const).map((s) => <button key={s} type="button" disabled={s === "both" ? sides.length < 2 : !r[s] && !c.objs[s]} aria-pressed={view === s} onClick={() => setVside(s)} className={`rounded-md border px-3 py-1 text-sm ${view === s ? "border-emerald-600 bg-emerald-50" : "border-stone-300 bg-white"} disabled:opacity-40`}>{s === "both" ? "Both feet" : s === "left" ? "Left" : "Right"}</button>)}</div>}
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-sm"><label className="flex items-center gap-1">OBJ units<select value={unitOf} onChange={(e) => setUnitOf(e.target.value as "mm")} className="rounded border border-stone-300 bg-white px-1.5 py-1"><option value="mm">mm</option><option value="cm">cm</option><option value="m">m</option></select></label><ObjPick onFiles={file} busy={objBusy} />{c.objs[oside] && <button type="button" className={BIG} onClick={() => { c.setObj(oside, undefined); void api.meshDel(c.auth).then(c.refresh); }}>Remove OBJ</button>}</div></div>
         <FootViewer model={model} />
         {c.session.meshes.map((m) => <p key={m.id} className="mt-2 rounded bg-sky-50 p-2 text-sm text-sky-900"><b>Imported {m.side} OBJ “{m.filename}”</b> ({m.unit}): {m.measurement.lengthMm} × {m.measurement.widthMm} mm, height box {m.measurement.heightMm} mm. {m.measurement.notes.join(" ")}{!c.objs[m.side] ? " The geometry is not kept on the server, so re-import the file to view it again." : ""}</p>)}
       </section>
@@ -185,6 +188,34 @@ function ObjPick({ onFiles, busy }: { onFiles: (f: File[]) => void; busy: boolea
 }
 
 /* ───────── 5. fit ───────── */
+/** "What defines your size": walks through length, width and (honestly) height with the measured pair in 3D. */
+function SizeStory({ c }: { c: Ctx }) {
+  const r = c.results!; const [n, setN] = useState(0); const L = r.left, R = r.right; const w = r.width; const lenGap = r.comparison?.lengthDiffMm ?? 0;
+  const model: ViewerModel = useMemo(() => ({ kind: "pair", left: L, right: R, sample: r.anySample, show: { length: n === 0, width: n === 1 } }), [L, R, r.anySample, n]);
+  const marks = { narrow: 0.1, standard: 0.37, wide: 0.64, "extra wide": 0.9 } as const; const pos = w ? Math.min(0.96, Math.max(0.04, (w.ratio - 0.33) / 0.12)) : 0.5; void marks;
+  const titles = ["Length", "Width", "Height"]; const heads = [
+    !L || !R ? `Measured length: ${fmtLen((L ?? R)!.lengthMm, c.unit)}.` : Math.abs(lenGap) < 1 ? "Both feet are similar in length." : `The ${lenGap > 0 ? "left" : "right"} foot is ${Math.abs(lenGap).toFixed(1)} mm longer.`,
+    w ? (w.cls === "narrow" ? "Your feet are narrower than the typical ratio." : w.cls === "standard" ? "Your foot width is close to the typical ratio." : "Your feet are wider than the typical ratio.") : "",
+    "Foot height is not measured from a top-down photo." ];
+  return (
+    <section className={CARD} aria-label="What defines your size">
+      <div className="flex flex-wrap items-center gap-2"><h2 className={H}>What defines your size ({n + 1}/3)</h2><span className="rounded-full bg-stone-100 px-2 py-0.5 text-sm text-stone-700">{titles[n]}</span></div>
+      <p className="mt-2 rounded-lg bg-amber-100 px-3 py-2 text-base font-medium text-stone-900" data-testid="story-head">{heads[n]}</p>
+      <div className="mt-3 grid gap-4 md:grid-cols-[1.2fr_1fr]">
+        {n < 2 ? <FootViewer model={model} spin hideCaption className="h-72" /> : <div className="flex h-72 items-center justify-center rounded-lg border border-dashed border-stone-300 bg-stone-50 p-6 text-center text-sm text-stone-700">No 3D height is shown because none was measured. A single photo from above cannot see how tall the foot is; that needs depth or side views.</div>}
+        <div className="text-sm text-stone-700">
+          {n === 0 && <><p className="font-semibold text-stone-900">Foot length</p><p>Left: <b>{L ? fmtLen(L.lengthMm, c.unit) : "—"}</b> · Right: <b>{R ? fmtLen(R.lengthMm, c.unit) : "—"}</b></p><p className="mt-1">Shoe size follows the <b>longer</b> foot plus a toe allowance.</p></>}
+          {n === 1 && <><p className="font-semibold text-stone-900">Foot width</p><p>Left: <b>{L ? fmtLen(L.widthMm, c.unit) : "—"}</b> · Right: <b>{R ? fmtLen(R.widthMm, c.unit) : "—"}</b></p>
+            <div className="mt-3" aria-label="Width scale"><div className="relative h-2 rounded bg-gradient-to-r from-sky-200 via-emerald-300 to-amber-300"><span className="absolute -top-1 h-4 w-1.5 rounded bg-stone-900" style={{ left: `${pos * 100}%` }} /></div><div className="mt-1 flex justify-between text-xs text-stone-600"><span>Narrow</span><span>Standard</span><span>Wide</span></div></div>
+            <p className="mt-2 text-stone-600">{w?.note}</p></>}
+          {n === 2 && <><p className="font-semibold text-stone-900">Foot height (instep)</p><p>Not available. We show nothing rather than guess. Shoe fit for high insteps should be checked by trying shoes on or by a depth-capable scanner.</p></>}
+        </div>
+      </div>
+      <div className="mt-3 flex gap-2"><button type="button" className={BIG} disabled={n === 0} onClick={() => setN(n - 1)}>← Back</button><button type="button" className={GO} disabled={n === 2} onClick={() => setN(n + 1)}>Continue</button></div>
+    </section>
+  );
+}
+
 export function FitStep({ c }: { c: Ctx }) {
   const r = c.results; const [fit, setFit] = useState<Fit>(c.session.fit); const [custom, setCustom] = useState<number | null>(null); const [data, setData] = useState<Awaited<ReturnType<typeof api.reco>> | null>(null); const [err, setErr] = useState("");
   useEffect(() => { if (!r?.size) return; let dead = false; api.reco(c.auth, { fit, allowanceMm: custom ?? undefined }).then((d) => !dead && setData(d)).catch((e) => !dead && setErr(msg(e))); return () => { dead = true; }; }, [c.auth, fit, custom, r?.size, c.captures]);
@@ -192,6 +223,7 @@ export function FitStep({ c }: { c: Ctx }) {
   const s = data?.size ?? r.size; const w = (data?.width ?? r.width) as typeof r.width;
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_22rem]">
+      <div className="lg:col-span-2"><SizeStory c={c} /></div>
       <section className={CARD}>
         <h2 className={H}>Size estimate</h2>
         <p className={SUB}>Based on the {r.fitFoot.side === "either" ? "(equal) feet" : `${r.fitFoot.side} foot, the longer one`}: {fmtLen(r.fitFoot.lengthMm, c.unit)} long, {fmtLen(r.fitFoot.widthMm, c.unit)} wide.</p>
