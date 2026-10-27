@@ -71,12 +71,11 @@ export default async function Home() {
                 </div>
               </div>
               <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {(list.length ? list.map((s) => ({ key: s.id, name: s.name, desc: s.description, href: `/${d.slug}/${s.slug}` }))
-                  : d.groups.map((g) => ({ key: g.title, name: g.title, desc: g.items.slice(0, 4).join(" · "), href: `/${d.slug}#${g.title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}` }))).slice(0, 9).map((c) => (
+                {(list.length ? list.map((s) => ({ key: s.id, name: s.name, desc: s.description, href: `/services#${s.slug}` }))
+                  : d.groups.map((g) => ({ key: g.title, name: g.title, desc: g.items.slice(0, 4).join(" · "), href: `/services#${d.slug}` }))).slice(0, 9).map((c) => (
                   <Link key={c.key} href={c.href} className={`group rounded-2xl border p-7 transition ${dark ? "border-slate-800 hover:border-blue-400" : "border-stone-200 hover:border-blue-400 hover:shadow-lg"}`}>
                     <h3 className={`font-display text-xl font-semibold ${dark ? "text-white group-hover:text-blue-400" : "text-stone-900 group-hover:text-blue-600"}`}>{c.name}</h3>
                     {c.desc && <p className={`mt-2 line-clamp-3 text-sm leading-relaxed ${dark ? "text-slate-400" : "text-stone-500"}`}>{c.desc}</p>}
-                    <span className={`mt-4 inline-block text-sm font-medium ${dark ? "text-blue-400" : "text-blue-600"}`}>Explore →</span>
                   </Link>
                 ))}
               </div>
