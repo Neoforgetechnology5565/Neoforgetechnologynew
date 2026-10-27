@@ -16,7 +16,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing", "/demos"].map((p) => ({ url: `${base}${p}` })),
     ...DEMOS.map((d) => ({ url: `${base}/demos/${d.slug}` })),
     ...ERP_DEMOS.map((d) => ({ url: `${base}/erp-demos/${d.slug}` })),
-    { url: `${base}/cad-bim-suite` }, ...SUITE.map((d) => ({ url: `${base}/cad-bim-suite/${d.slug}` })),
+    ...SUITE.map((d) => ({ url: `${base}/cad-bim-suite/${d.slug}` })),
     ...CV_DEMOS.filter((d) => d.status === "live").map((d) => ({ url: `${base}/ai-demos/${d.slug}` })),
     ...SERVICES.map((s) => ({ url: `${base}/services/${s.slug}` })),
     ...DIVISIONS.flatMap((d) => [{ url: `${base}/${d.slug}` }, { url: `${base}/portfolio/${d.slug}` }]),

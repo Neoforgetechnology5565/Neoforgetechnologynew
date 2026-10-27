@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CtaBand, SectionHead } from "@/components/Blocks";
 import { PROCESS } from "@/lib/services";
 import { DEMOS, DEMO_DISCLAIMER } from "@/lib/demos";
+import { SUITE, SUITE_DISCLAIMER } from "@/lib/bim/suite";
 
 /** CAD/BIM portfolio: the interactive demo cards. Shown at /portfolio/cad-bim (and /demos). */
 export default function DemoCenter({ children }: { children?: React.ReactNode }) {
@@ -15,11 +16,8 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
           <p className="mt-4 max-w-2xl rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">{DEMO_DISCLAIMER}</p>
         </div>
       </section>
-      <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
-        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-5"><div className="min-w-0 flex-1"><p className="font-display text-lg font-semibold text-stone-900">New: full-stack CAD/BIM suite with a real backend</p><p className="mt-1 text-sm text-stone-700">Upload a 2D plan (DXF, SVG, image or IFC), get a 3D building with interior, exterior and MEP/HVAC, run clash detection and download IFC, GLB, DXF and PDF. Each application states exactly what is built.</p></div><Link href="/cad-bim-suite" className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-600">Open the suite</Link></div>
-      </section>
       <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
-        <SectionHead eyebrow="Sample works" title="Interactive demonstrations">Ten working samples of the kinds of tools we can build. They run in your browser on invented sample data, so you can test them without installing anything.</SectionHead>
+        <SectionHead eyebrow="Sample works" title="Interactive demonstrations">Demonstrations 1–10: working samples of the kinds of tools we can build. They run in your browser on invented sample data, so you can test them without installing anything.</SectionHead>
       </section>
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -40,6 +38,29 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
             </li>
           ))}
         </ul>
+      </section>
+      <section id="full-stack-suite" className="scroll-mt-24 border-t border-stone-200 bg-stone-50/60">
+        <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
+          <SectionHead eyebrow="Full-stack CAD / BIM suite · demonstrations 11–21" title="Eleven applications with a real backend">Unlike the browser-only samples above, these applications accept real files (DXF, SVG, images, IFC, point clouds), process them on the server, store projects and produce downloadable outputs such as IFC, GLB, DXF, CSV and PDF. Each card says exactly what is built and tested.</SectionHead>
+          <p className="mt-4 max-w-3xl rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900">{SUITE_DISCLAIMER}</p>
+        </div>
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
+          <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {SUITE.map((d) => (
+              <li key={d.slug} className="flex flex-col rounded-2xl border border-emerald-300 bg-white p-6">
+                <div className="flex items-center justify-between"><span className="font-display text-2xl font-semibold text-blue-600">{d.no}</span><span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">Full-stack · built &amp; tested</span></div>
+                <h3 className="mt-3 font-display text-xl font-semibold text-stone-900">{d.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-stone-600">{d.short}</p>
+                <p className="mt-2 text-sm text-stone-500"><b className="text-stone-700">Formats:</b> {d.formats}</p>
+                <div className="mt-6 flex flex-1 flex-wrap items-end gap-2">
+                  <Link href={`/cad-bim-suite/${d.slug}/app`} className="rounded-full bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600">Launch Application</Link>
+                  <Link href={`/cad-bim-suite/${d.slug}`} className="rounded-full border border-stone-300 px-4 py-2 text-sm font-medium text-stone-700 hover:border-blue-600 hover:text-blue-700">View Features</Link>
+                  <Link href="/contact?division=cad-bim" className="rounded-full px-2 py-2 text-sm font-medium text-blue-700 hover:underline">Request Similar Software</Link>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
       </section>
       <section className="border-y border-stone-200 bg-stone-50 py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

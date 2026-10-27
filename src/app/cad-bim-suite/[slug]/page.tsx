@@ -12,7 +12,7 @@ export default async function Page({ params }: Params) {
   return (
     <>
       <section className="bg-slate-950 py-16 text-white"><div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <p className="text-sm text-slate-400"><Link href="/cad-bim-suite" className="hover:text-blue-400">CAD/BIM suite</Link> / {d.no}</p>
+        <p className="text-sm text-slate-400"><Link href="/portfolio/cad-bim#full-stack-suite" className="hover:text-blue-400">CAD/BIM portfolio</Link> / {d.no}</p>
         <h1 className="mt-4 font-display text-4xl font-semibold sm:text-5xl">{d.title}</h1><p className="mt-4 max-w-2xl text-lg text-slate-300">{d.short}</p>
         <div className="mt-8 flex flex-wrap gap-3">{d.status === "live" ? <Link href={`/cad-bim-suite/${d.slug}/app`} className="rounded-full bg-blue-500 px-7 py-3.5 text-sm font-semibold text-slate-950 hover:bg-blue-400">Launch application</Link> : <span className="rounded-full border border-slate-600 px-7 py-3.5 text-sm font-semibold text-slate-400">Not built yet</span>}<Link href="/contact?division=cad-bim" className="rounded-full border border-slate-600 px-7 py-3.5 text-sm font-semibold hover:border-blue-400">Request similar software</Link></div>
       </div></section>

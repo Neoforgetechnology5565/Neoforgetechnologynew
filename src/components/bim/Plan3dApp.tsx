@@ -40,7 +40,7 @@ export default function Plan3dApp({ branding }: { branding: Branding }) {
 
   const status = project ? `${project.sampleOnly ? "sample" : "user upload"} · v${project.version}${busy === "process" ? " · processing…" : ""}` : "No project open";
   return (
-    <DemoShell branding={branding} app="2D Plan → Interactive 3D Building Model" project={project ? project.name : "No project open"} status={status} back={{ href: "/cad-bim-suite", label: "CAD/BIM suite", all: "← All 11 apps" }} contact="/contact?division=cad-bim" badge="Full-stack CAD/BIM demo"
+    <DemoShell branding={branding} app="2D Plan → Interactive 3D Building Model" project={project ? project.name : "No project open"} status={status} back={{ href: "/portfolio/cad-bim#full-stack-suite", label: "CAD/BIM portfolio", all: "← Demos 11–21" }} contact="/contact?division=cad-bim" badge="Full-stack CAD/BIM demo"
       footer={`${SUITE_DISCLAIMER} Heights, sills, slab thickness and roof are configurable assumptions. No airflow, pressure, load or code-compliance values are calculated.`}
       actions={project ? <button type="button" className={BTN} onClick={closeProject}>All projects</button> : undefined}>
       <div className="min-h-[70vh] p-3 sm:p-4">
@@ -66,7 +66,7 @@ function Landing({ samples, history, busy, startSample, startBlank, open }: { sa
   return (
     <div className="mx-auto max-w-6xl space-y-5 py-4">
       <section className="grid items-center gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <div><p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">CAD / BIM · demo 01 of 11</p><h2 className="mt-2 font-display text-3xl font-bold leading-tight text-white sm:text-4xl">Turn a 2D architectural plan into a 3D building you can walk through — with MEP and HVAC inside.</h2>
+        <div><p className="text-sm font-semibold uppercase tracking-widest text-emerald-400">CAD / BIM · demo 11 of 21</p><h2 className="mt-2 font-display text-3xl font-bold leading-tight text-white sm:text-4xl">Turn a 2D architectural plan into a 3D building you can walk through — with MEP and HVAC inside.</h2>
           <p className="mt-3 max-w-2xl text-base text-slate-300">Upload a DXF, SVG, image or IFC. The backend parses the real file, extracts layers and geometry, builds walls, openings, rooms, slabs and roof, overlays HVAC / electrical / plumbing, checks for clashes, and exports IFC, GLB, DXF, CSV and PDF.</p>
           <div className="mt-5 flex flex-wrap gap-3"><button type="button" className={`${GO} !px-5 !py-2.5 !text-sm`} disabled={!!busy} onClick={startBlank}>{busy === "blank" ? "Creating…" : "Upload my own plan"}</button>{samples[0] && <button type="button" className="rounded-md border border-blue-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-600/30 disabled:opacity-50" disabled={!!busy} onClick={() => startSample(samples[0])}>{busy === `sample:${samples[0].id}` ? "Generating…" : "Open the sample house (with HVAC)"}</button>}</div>
           <p className="mt-3 text-sm text-slate-400">Everything is computed from the file: nothing on screen is a hard-coded result. Sample files are synthetic with known geometry and are labelled as samples.</p></div>
