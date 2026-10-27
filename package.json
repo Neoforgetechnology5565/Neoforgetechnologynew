@@ -11,7 +11,12 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
+    "@tensorflow/tfjs-backend-cpu": "^4.22.0",
+    "@tensorflow/tfjs-backend-wasm": "^4.22.0",
+    "@tensorflow/tfjs-converter": "^4.22.0",
+    "@tensorflow/tfjs-core": "^4.22.0",
     "@types/three": "^0.170.0",
+    "@vladmandic/human": "^3.3.6",
     "cloudinary": "^2.11.0",
     "firebase": "^12.19.0",
     "firebase-admin": "^14.5.0",
