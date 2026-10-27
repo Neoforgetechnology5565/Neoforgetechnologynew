@@ -42,6 +42,7 @@ export async function runPlan3d(files: InFile[], settingsRaw: Record<string, unk
     if (plan.format === "ifc") { stage("Parsing IFC", plan.name); ifcModel = await readIfc(plan.buf); warnings.push(...ifcModel.warnings); meshes.push(...ifcModel.meshes); }
     else {
       stage("Parsing drawing", `${plan.format.toUpperCase()} ${plan.name}`); planDoc = await loadDoc(plan, st, needs, warnings, raster);
+      if (plan.format === "png" || plan.format === "jpg") assumptions.push(`Plan geometry was inferred from image pixels at ${st.rasterPxPerMetre ?? "an unconfirmed number of"} px per metre (axis-aligned thick strokes only). It is an interpretation of an image, not verified CAD geometry.`);
       if (planDoc) { planAnalysis = analyzeDoc(planDoc, st); stage("Interpreting plan", `${planAnalysis.layers.length} layers, ${Object.values(planAnalysis.entityCounts).reduce((a, b) => a + b, 0)} entities`); const res = assemble(interpretPlan(planDoc, st), st); building = res.building; stage("Generating 3D geometry", `${building.stats.walls} walls, ${building.stats.rooms} rooms`); meshes.push(...res.meshes); assumptions.push(...building.assumptions); warnings.push(...building.warnings); }
     }
   }

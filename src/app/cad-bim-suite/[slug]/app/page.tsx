@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import DemoApp from "@/components/bim/DemoApp";
 import Plan3dApp from "@/components/bim/Plan3dApp";
+import { UI } from "@/components/bim/demo-ui";
 import { SUITE_MAP } from "@/lib/bim/suite";
 import { getBranding } from "@/lib/db";
 
@@ -10,5 +12,6 @@ export default async function App({ params }: Params) {
   const slug = (await params).slug; const d = SUITE_MAP[slug]; if (!d || d.status === "planned") notFound();
   const branding = await getBranding();
   if (slug === "plan-to-3d-building-model") return <Plan3dApp branding={branding} />;
+  if (UI[d.key]) return <DemoApp branding={branding} slug={slug} />;
   notFound();
 }

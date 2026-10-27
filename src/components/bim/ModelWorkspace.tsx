@@ -34,7 +34,7 @@ export function visibleFor(v: Vis, u: { id: string; cat: string; sys?: string; l
   if (s === "electrical-power" || s === "electrical-lighting" || s === "cable-tray") return v.electrical; if (s === "water-cold" || s === "water-hot" || s === "vent" || s === "mechanical-pipe") return v.plumbing; if (s === "drainage") return v.drainage; if (s === "fire-protection") return v.fire; return true;
 }
 
-export default function ModelWorkspace({ model, auth, onRegenerate, busy, onToast, className = "" }: { model: Plan3dModel; auth: Auth; onRegenerate: (patch: Record<string, unknown>) => Promise<void>; busy: boolean; onToast: (m: string, bad?: boolean) => void; className?: string }) {
+export default function ModelWorkspace({ model, auth, onRegenerate, busy, onToast, className = "", focus = null }: { model: Plan3dModel; auth: Auth; onRegenerate: (patch: Record<string, unknown>) => Promise<void>; busy: boolean; onToast: (m: string, bad?: boolean) => void; className?: string; focus?: { id: string; n: number } | null }) {
   const host = useRef<HTMLDivElement>(null); const eng = useRef<BimScene | null>(null); const [ready, setReady] = useState(false); const [glError, setGlError] = useState("");
   const [vis, setVis] = useState<Vis>(ALL_ON); const stack = useRef<Vis[]>([]); const [sel, setSel] = useState<string | null>(null); const [selCat, setSelCat] = useState<string | undefined>(); const [left, setLeft] = useState<"layers" | "rooms" | "search">("layers"); const [right, setRight] = useState<"props" | "clashes" | "info">("props");
   const [ortho, setOrtho] = useState(false); const [walk, setWalk] = useState(false); const [measure, setMeasure] = useState(false); const [dist, setDist] = useState<null | { a: { x: number; y: number; z: number }; b: { x: number; y: number; z: number } | null; server?: Record<string, number | string> }>(null);
@@ -50,6 +50,7 @@ export default function ModelWorkspace({ model, auth, onRegenerate, busy, onToas
   useEffect(() => { const e = eng.current; if (!e || !ready) return; e.load(model.meshes); e.setVisible((u) => visibleFor(vis, u, levelIdx, 0)); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [model, ready]);
   useEffect(() => { const e = eng.current; if (!e || !ready) return; e.setVisible((u) => visibleFor(vis, u, levelIdx, 0)); e.setGhost(vis.ghost); }, [vis, ready, levelIdx]);
   useEffect(() => { eng.current?.select(sel ? [sel] : []); }, [sel, ready, model]);
+  useEffect(() => { if (!focus || !ready) return; setSel(focus.id); setRight("props"); eng.current?.focus([focus.id]); }, [focus, ready]);
   useEffect(() => { const e = eng.current; if (!e) return; if (!sec.on) e.setSection(null); else e.setSection(sec.axis, sec.offset, sec.flip); }, [sec, ready, model]);
   useEffect(() => { eng.current?.setMeasure(measure); if (!measure) setDist(null); }, [measure]);
 
