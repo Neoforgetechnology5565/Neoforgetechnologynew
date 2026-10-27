@@ -3,13 +3,14 @@ export interface Note { id: string; at: string; by: string; text: string }
 export interface Company { id: string; name: string; industry: string; size: string; city: string; country: string; website: string; ownerId: string; notes: Note[] }
 export interface Contact { id: string; name: string; title: string; email: string; phone: string; companyId: string; ownerId: string; lastContact: string; notes: Note[] }
 export interface Lead { id: string; name: string; company: string; email: string; source: string; status: "New" | "Contacted" | "Qualified" | "Unqualified"; score: number; ownerId: string; value: number; createdAt: string; notes: Note[] }
-export type Stage = "Qualification" | "Discovery" | "Proposal" | "Negotiation" | "Won" | "Lost";
-export interface Opp { id: string; name: string; companyId: string; contactId: string; value: number; stage: Stage; ownerId: string; closeDate: string; createdAt: string; lostReason?: string; notes: Note[] }
+export type Stage = "New Lead" | "Qualified" | "Discovery" | "Proposal" | "Negotiation" | "Won" | "Lost";
+export type Priority = "High" | "Medium" | "Low";
+export interface Opp { id: string; name: string; companyId: string; contactId: string; value: number; stage: Stage; ownerId: string; closeDate: string; createdAt: string; lostReason?: string; priority?: Priority; notes: Note[] }
 export interface Activity { id: string; type: "Call" | "Email" | "Meeting" | "Demo" | "Task"; subject: string; due: string; done: boolean; ownerId: string; oppId?: string; contactId?: string }
 export interface QuoteLine { desc: string; qty: number; price: number }
 export interface Quote { id: string; number: string; oppId: string; date: string; validUntil: string; lines: QuoteLine[]; discount: number; tax: number; status: "Draft" | "Sent" | "Accepted" | "Declined" }
-export const STAGES: Stage[] = ["Qualification", "Discovery", "Proposal", "Negotiation", "Won", "Lost"];
-export const STAGE_PROB: Record<Stage, number> = { Qualification: 0.1, Discovery: 0.25, Proposal: 0.5, Negotiation: 0.75, Won: 1, Lost: 0 };
+export const STAGES: Stage[] = ["New Lead", "Qualified", "Discovery", "Proposal", "Negotiation", "Won", "Lost"];
+export const STAGE_PROB: Record<Stage, number> = { "New Lead": 0.05, Qualified: 0.1, Discovery: 0.25, Proposal: 0.5, Negotiation: 0.75, Won: 1, Lost: 0 };
 
 const co = (id: string, name: string, industry: string, size: string, city: string, country: string, ownerId: string): Company => ({ id, name, industry, size, city, country, website: `www.${name.toLowerCase().replace(/[^a-z]+/g, "")}.example`, ownerId, notes: [] });
 const ct = (id: string, name: string, title: string, companyId: string, ownerId: string, last: string): Contact => ({ id, name, title, companyId, ownerId, lastContact: last, email: `${name.toLowerCase().replace(/[^a-z ]/g, "").replace(" ", ".")}@${companyId}.example`, phone: `+1 415 555 0${id.slice(1).padStart(3, "0")}`, notes: [] });
@@ -42,12 +43,12 @@ export const seedCrm = () => ({
   ] as Lead[],
   opps: [
     op("o1", "Fleet tracking platform", "c1", "k1", 96000, "Proposal", "e02", "2026-04-15", "2026-01-20"), op("o2", "Site progress reporting app", "c2", "k3", 38000, "Discovery", "e03", "2026-05-02", "2026-02-10"), op("o3", "Patient scheduling portal", "c3", "k5", 148000, "Negotiation", "e02", "2026-03-31", "2025-11-18"),
-    op("o4", "Supplier portal", "c4", "k7", 62000, "Qualification", "e05", "2026-06-10", "2026-03-04"), op("o5", "Equipment maintenance CRM", "c5", "k9", 27000, "Proposal", "e03", "2026-04-22", "2026-01-30"), op("o6", "Omnichannel retail dashboard", "c6", "k10", 175000, "Negotiation", "e05", "2026-04-05", "2025-12-02"),
-    op("o7", "MRO inventory system", "c7", "k12", 118000, "Discovery", "e02", "2026-05-20", "2026-02-18"), op("o8", "Revenue management dashboard", "c8", "k13", 54000, "Proposal", "e03", "2026-04-30", "2026-02-02"), op("o9", "Asset inspection workflows", "c9", "k14", 83000, "Qualification", "e05", "2026-06-25", "2026-03-06"),
+    op("o4", "Supplier portal", "c4", "k7", 62000, "Qualified", "e05", "2026-06-10", "2026-03-04"), op("o5", "Equipment maintenance CRM", "c5", "k9", 27000, "Proposal", "e03", "2026-04-22", "2026-01-30"), op("o6", "Omnichannel retail dashboard", "c6", "k10", 175000, "Negotiation", "e05", "2026-04-05", "2025-12-02"),
+    op("o7", "MRO inventory system", "c7", "k12", 118000, "Discovery", "e02", "2026-05-20", "2026-02-18"), op("o8", "Revenue management dashboard", "c8", "k13", 54000, "Proposal", "e03", "2026-04-30", "2026-02-02"), op("o9", "Asset inspection workflows", "c9", "k14", 83000, "Qualified", "e05", "2026-06-25", "2026-03-06"),
     op("o10", "Matter management system", "c10", "k15", 31000, "Won", "e02", "2026-02-27", "2025-12-15"), op("o11", "Student data analytics", "c11", "k16", 69000, "Discovery", "e03", "2026-05-14", "2026-02-24"), op("o12", "Vessel maintenance tracker", "c12", "k17", 44000, "Proposal", "e05", "2026-04-18", "2026-02-05"),
     op("o13", "Production reporting suite", "c13", "k18", 162000, "Proposal", "e02", "2026-04-28", "2026-01-12"), op("o14", "Quality audit app", "c13", "k19", 36000, "Won", "e02", "2026-02-12", "2025-11-30"), op("o15", "Crop planning tool", "c14", "k20", 21000, "Discovery", "e03", "2026-05-08", "2026-03-01"),
     op("o16", "Warehouse WMS rollout", "c1", "k22", 72000, "Lost", "e02", "2026-02-20", "2025-11-05", "Chose an incumbent vendor"), op("o17", "Hotel ops automation", "c8", "k24", 29000, "Lost", "e03", "2026-01-30", "2025-12-08", "Budget frozen"), op("o18", "Energy trading reports", "c9", "k21", 52000, "Won", "e05", "2026-03-06", "2025-12-20"),
-    op("o19", "Procurement analytics", "c7", "k23", 47000, "Qualification", "e02", "2026-07-01", "2026-03-10"), op("o20", "Store systems integration", "c6", "k11", 88000, "Discovery", "e05", "2026-05-29", "2026-02-27"),
+    op("o19", "Procurement analytics", "c7", "k23", 47000, "New Lead", "e02", "2026-07-01", "2026-03-10"), op("o20", "Store systems integration", "c6", "k11", 88000, "Discovery", "e05", "2026-05-29", "2026-02-27"), op("o21", "Crop sensor reporting", "c14", "k20", 18000, "New Lead", "e03", "2026-07-15", "2026-03-14"),
   ] as Opp[],
   activities: [
     { id: "a1", type: "Call", subject: "Discovery call: Harbor & Pine", due: "2026-03-16", done: false, ownerId: "e03", oppId: "o2", contactId: "k3" }, { id: "a2", type: "Meeting", subject: "Contract review: Lumen Health", due: "2026-03-17", done: false, ownerId: "e02", oppId: "o3", contactId: "k5" },

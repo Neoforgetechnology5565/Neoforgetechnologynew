@@ -13,59 +13,52 @@ const ConfirmCtx = createContext<(msg: string, opts?: { yes?: string; danger?: b
 export const useToast = () => useContext(ToastCtx);
 export const useConfirm = () => useContext(ConfirmCtx);
 
-export function ErpShell({ branding, title, subtitle, nav, active, onNav, actions, onReset, resetLabel = "Reset demo data", back = { href: "/portfolio/crm-hrm-erp", label: "← All demos" }, children, note }: {
-  branding: Branding; title: string; subtitle: string; nav: NavItem[]; active: string; onNav(id: string): void; actions?: ReactNode; onReset(): void; resetLabel?: string; back?: { href: string; label: string }; children: ReactNode; note?: string;
-}) {
+/** Toasts + confirmation dialogs + footer note, shared by every demo regardless of its layout. */
+export function AppProviders({ note, children, className = "" }: { note?: string; children: ReactNode; className?: string }) {
   const [toasts, setToasts] = useState<{ id: number; msg: string; tone: Tone }[]>([]);
   const [conf, setConf] = useState<{ msg: string; yes: string; danger: boolean; res(v: boolean): void } | null>(null);
   const toast = useCallback((msg: string, tone: Tone = "green") => { const id = Date.now() + Math.random(); setToasts((t) => [...t, { id, msg, tone }]); setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500); }, []);
   const confirm = useCallback((msg: string, o?: { yes?: string; danger?: boolean }) => new Promise<boolean>((res) => setConf({ msg, yes: o?.yes ?? "Confirm", danger: o?.danger ?? true, res })), []);
-  const groups = useMemo(() => { const g: { name: string; items: NavItem[] }[] = []; for (const n of nav) { const k = n.group ?? ""; let x = g.find((y) => y.name === k); if (!x) g.push((x = { name: k, items: [] })); x.items.push(n); } return g; }, [nav]);
-  const [menu, setMenu] = useState(false);
   return (
     <ToastCtx.Provider value={toast}><ConfirmCtx.Provider value={confirm}>
-      <div className="erp-root flex min-h-screen flex-col bg-slate-100 text-slate-800">
-        <header className="no-print flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-800 bg-slate-900 px-3 py-2.5 text-slate-200 sm:px-4">
-          <Link href={back.href} aria-label="Neo Forge Technology: back to demos" className="shrink-0"><Logo media={branding.logoDark} trim={branding.autoTrim} height={32} dark priority /></Link>
-          <span className="hidden h-8 w-px bg-slate-700 sm:block" aria-hidden />
-          <div className="min-w-0"><h1 className="truncate font-display text-base font-semibold text-white">{title}</h1><p className="truncate text-[11px] text-slate-400">{subtitle}</p></div>
-          <span className="rounded-full border border-amber-500/40 bg-amber-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">Demonstration · local sample data</span>
-          <div className="ml-auto flex flex-wrap items-center gap-2">
-            {actions}
-            <button type="button" className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium hover:border-blue-400 hover:text-white" onClick={async () => { if (await confirm("Restore the original sample data for this demo? Your changes in this browser will be lost.", { yes: "Reset data" })) { onReset(); toast("Sample data restored"); } }}>{resetLabel}</button>
-            <Link href={back.href} className="rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium hover:border-blue-400 hover:text-white">{back.label}</Link>
-            <Link href="/contact?division=crm-hrm-erp" className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-500">Request similar software</Link>
-          </div>
-        </header>
-        <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-          <nav aria-label="Application screens" className="no-print shrink-0 border-b border-slate-800 bg-slate-950 text-slate-300 lg:w-56 lg:border-b-0 lg:border-r">
-            <button type="button" className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium lg:hidden" aria-expanded={menu} onClick={() => setMenu(!menu)}>{nav.find((n) => n.id === active)?.label}<span aria-hidden>{menu ? "▴" : "▾"}</span></button>
-            <div className={`${menu ? "block" : "hidden"} px-2 pb-3 lg:sticky lg:top-0 lg:block lg:max-h-screen lg:overflow-y-auto lg:py-3`}>
-              {groups.map((g) => (
-                <div key={g.name} className="mb-2">
-                  {g.name && <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{g.name}</p>}
-                  {g.items.map((n) => (
-                    <button key={n.id} type="button" data-nav={n.id} aria-current={n.id === active ? "page" : undefined} onClick={() => { onNav(n.id); setMenu(false); }} className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[13px] ${n.id === active ? "bg-blue-600 text-white" : "hover:bg-slate-800 hover:text-white"}`}>
-                      <span>{n.label}</span>{n.badge != null && n.badge !== 0 && <span className={`rounded-full px-1.5 text-[10px] font-semibold ${n.id === active ? "bg-white/25" : "bg-slate-800 text-blue-300"}`}>{n.badge}</span>}
-                    </button>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </nav>
-          <main className="min-w-0 flex-1 p-3 sm:p-5" id="app-main">{children}</main>
-        </div>
-        <footer className="no-print border-t border-slate-800 bg-slate-900 px-4 py-2 text-[11px] leading-snug text-slate-400">{note ?? "Interactive frontend demonstration with fictional data. Everything runs in your browser and is stored only in this browser's localStorage. There is no server or shared database, and nothing is sent anywhere."}</footer>
-        <div className="no-print pointer-events-none fixed bottom-4 right-4 z-[70] flex w-72 flex-col gap-2" role="status" aria-live="polite">
-          {toasts.map((t) => <div key={t.id} className={`pointer-events-auto rounded-lg border px-3 py-2 text-sm shadow-lg ${t.tone === "red" ? "border-red-300 bg-red-50 text-red-800" : t.tone === "amber" ? "border-amber-300 bg-amber-50 text-amber-900" : "border-blue-300 bg-white text-slate-800"}`} data-testid="toast">{t.msg}</div>)}
+      <div className={`erp-root app-readable flex min-h-screen flex-col ${className}`}>
+        <div className="flex min-h-0 flex-1 flex-col">{children}</div>
+        <footer className="no-print border-t border-slate-800 bg-slate-900 px-4 py-2.5 text-[13px] leading-snug text-slate-300">{note ?? "Interactive frontend demonstration with fictional data. Everything runs in your browser and is stored only in this browser's localStorage. There is no server or shared database, and nothing is sent anywhere."}</footer>
+        <div className="no-print pointer-events-none fixed bottom-4 right-4 z-[70] flex w-80 flex-col gap-2" role="status" aria-live="polite">
+          {toasts.map((t) => <div key={t.id} className={`pointer-events-auto rounded-lg border px-3 py-2.5 text-[15px] shadow-lg ${t.tone === "red" ? "border-red-300 bg-red-50 text-red-800" : t.tone === "amber" ? "border-amber-300 bg-amber-50 text-amber-900" : "border-blue-300 bg-white text-slate-800"}`} data-testid="toast">{t.msg}</div>)}
         </div>
         {conf && (
           <Modal title="Please confirm" onClose={() => { conf.res(false); setConf(null); }} small footer={<><Btn onClick={() => { conf.res(false); setConf(null); }}>Cancel</Btn><Btn kind={conf.danger ? "danger" : "primary"} onClick={() => { conf.res(true); setConf(null); }} testid="confirm-yes">{conf.yes}</Btn></>}>
-            <p className="text-sm text-slate-700">{conf.msg}</p>
+            <p className="text-[15px] text-slate-700">{conf.msg}</p>
           </Modal>
         )}
       </div>
     </ConfirmCtx.Provider></ToastCtx.Provider>
+  );
+}
+/** Reset control: asks for confirmation, then restores the demo's sample data. */
+export function ResetButton({ onReset, label = "Reset demo data", className = "" }: { onReset(): void; label?: string; className?: string }) {
+  const confirm = useConfirm(); const toast = useToast();
+  return <button type="button" className={className || "rounded-md border border-slate-600 px-3 py-1.5 text-sm font-medium hover:border-blue-400 hover:text-white"} onClick={async () => { if (await confirm("Restore the original sample data for this demo? Your changes in this browser will be lost.", { yes: "Reset data" })) { onReset(); toast("Sample data restored"); } }}>{label}</button>;
+}
+export function BrandLogo({ branding, back = "/portfolio/crm-hrm-erp", dark = true, height = 32 }: { branding: Branding; back?: string; dark?: boolean; height?: number }) {
+  return <Link href={back} aria-label="Neo Forge Technology: back to demos" className="shrink-0"><Logo media={dark ? branding.logoDark : branding.logoLight} trim={branding.autoTrim} height={height} dark={dark} priority /></Link>;
+}
+export function DemoLinks({ back = "/portfolio/crm-hrm-erp", compact }: { back?: string; compact?: boolean }) {
+  const c = "rounded-md border border-slate-500/60 px-3 py-1.5 text-sm font-medium hover:border-blue-400";
+  return <><Link href={back} className={c}>{compact ? "← Demos" : "← All demos"}</Link><Link href="/contact?division=crm-hrm-erp" className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-500">{compact ? "Request similar" : "Request similar software"}</Link></>;
+}
+export const DemoBadge = ({ text = "Demonstration · local sample data" }: { text?: string }) => <span className="rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-0.5 text-[13px] font-semibold text-amber-600">{text}</span>;
+
+/** Legacy sidebar layout (no demo uses it any more; kept for reference). */
+export function ErpShell({ branding, title, subtitle, nav, active, onNav, actions, onReset, resetLabel = "Reset demo data", back = { href: "/portfolio/crm-hrm-erp", label: "← All demos" }, children, note }: {
+  branding: Branding; title: string; subtitle: string; nav: NavItem[]; active: string; onNav(id: string): void; actions?: ReactNode; onReset(): void; resetLabel?: string; back?: { href: string; label: string }; children: ReactNode; note?: string;
+}) {
+  return (
+    <AppProviders note={note} className="bg-slate-100 text-slate-800">
+      <header className="no-print flex flex-wrap items-center gap-3 border-b border-slate-800 bg-slate-900 px-4 py-2.5 text-slate-200"><BrandLogo branding={branding} back={back.href} /><div><h1 className="text-base font-semibold text-white">{title}</h1><p className="text-sm text-slate-400">{subtitle}</p></div><DemoBadge /><div className="ml-auto flex flex-wrap items-center gap-2">{actions}<ResetButton onReset={onReset} label={resetLabel} /><DemoLinks back={back.href} /></div></header>
+      <div className="flex flex-1 flex-col lg:flex-row"><nav className="no-print shrink-0 bg-slate-950 p-2 lg:w-60">{nav.map((n) => <button key={n.id} type="button" data-nav={n.id} aria-current={n.id === active ? "page" : undefined} onClick={() => onNav(n.id)} className={`block w-full rounded-md px-3 py-2 text-left text-[15px] ${n.id === active ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}>{n.label}</button>)}</nav><main className="min-w-0 flex-1 p-5" id="app-main">{children}</main></div>
+    </AppProviders>
   );
 }
 
@@ -84,13 +77,13 @@ export const Panel = ({ title, actions, children, className = "", pad = true }: 
   </section>
 );
 export const Kpi = ({ label, value, sub, tone, onClick, testid }: { label: string; value: ReactNode; sub?: ReactNode; tone?: Tone; onClick?: () => void; testid?: string }) => {
-  const inner = <><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p><p className={`mt-1 font-display text-2xl font-semibold tabular-nums ${tone === "red" ? "text-red-700" : tone === "amber" ? "text-amber-700" : "text-slate-900"}`}>{value}</p>{sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}</>;
+  const inner = <><p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">{label}</p><p className={`mt-1 font-display text-3xl font-semibold tabular-nums ${tone === "red" ? "text-red-700" : tone === "amber" ? "text-amber-700" : "text-slate-900"}`}>{value}</p>{sub && <p className="mt-0.5 text-xs text-slate-500">{sub}</p>}</>;
   const cls = "h-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm";
   return onClick ? <button type="button" data-testid={testid} onClick={onClick} className={`${cls} hover:border-blue-500`}>{inner}</button> : <div data-testid={testid} className={cls}>{inner}</div>;
 };
 export const KpiRow = ({ children }: { children: ReactNode }) => <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 xl:grid-cols-6">{children}</div>;
 export const PageHead = ({ title, sub, actions }: { title: string; sub?: string; actions?: ReactNode }) => (
-  <div className="no-print mb-4 flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-xl font-semibold text-slate-900">{title}</h2>{sub && <p className="text-sm text-slate-500">{sub}</p>}</div><div className="flex flex-wrap items-center gap-2">{actions}</div></div>
+  <div className="no-print mb-4 flex flex-wrap items-end justify-between gap-3"><div><h2 className="font-display text-[30px] font-semibold leading-tight text-slate-900">{title}</h2>{sub && <p className="mt-1 text-[15px] text-slate-600">{sub}</p>}</div><div className="flex flex-wrap items-center gap-2">{actions}</div></div>
 );
 export const Empty = ({ children }: { children: ReactNode }) => <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{children}</p>;
 export const Notice = ({ tone = "amber", children }: { tone?: Tone; children: ReactNode }) => <p className={`rounded-lg border px-3 py-2 text-xs ${tone === "amber" ? "border-amber-300 bg-amber-50 text-amber-900" : tone === "red" ? "border-red-300 bg-red-50 text-red-800" : "border-blue-200 bg-blue-50 text-blue-900"}`}>{children}</p>;
@@ -121,11 +114,11 @@ export function Modal({ title, onClose, children, footer, small, wide }: { title
   );
 }
 /** Slide-over drawer for record details. */
-export function Drawer({ title, onClose, children, footer }: { title: ReactNode; onClose(): void; children: ReactNode; footer?: ReactNode }) {
+export function Drawer({ title, onClose, children, footer, wide }: { title: ReactNode; onClose(): void; children: ReactNode; footer?: ReactNode; wide?: boolean }) {
   useEffect(() => { const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); window.addEventListener("keydown", k); return () => window.removeEventListener("keydown", k); }, [onClose]);
   return (
     <div className="no-print fixed inset-0 z-[55] flex justify-end bg-slate-950/40" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
-      <aside role="dialog" aria-label="Details" className="flex h-full w-full max-w-lg flex-col bg-white shadow-2xl">
+      <aside role="dialog" aria-label="Details" className={`flex h-full w-full flex-col bg-white shadow-2xl ${wide ? "max-w-4xl" : "max-w-lg"}`}>
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-3"><h3 className="font-display text-base font-semibold text-slate-900">{title}</h3><button type="button" onClick={onClose} aria-label="Close details" className="rounded px-2 text-slate-500 hover:bg-slate-100">✕</button></div>
         <div className="flex-1 overflow-y-auto p-5">{children}</div>
         {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">{footer}</div>}
@@ -192,7 +185,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRow, pageSize = 10, expo
 }
 
 /* ───────────────────────── Kanban ───────────────────────── */
-export function Kanban<T>({ columns, items, colOf, idOf, onMove, renderCard, colFooter }: { columns: { id: string; label: string; tone?: Tone }[]; items: T[]; colOf(i: T): string; idOf(i: T): string; onMove(id: string, col: string): void; renderCard(i: T): ReactNode; colFooter?(colId: string, items: T[]): ReactNode }) {
+export function Kanban<T>({ columns, items, colOf, idOf, onMove, renderCard, colFooter, colWidth = "w-64" }: { colWidth?: string; columns: { id: string; label: string; tone?: Tone }[]; items: T[]; colOf(i: T): string; idOf(i: T): string; onMove(id: string, col: string): void; renderCard(i: T): ReactNode; colFooter?(colId: string, items: T[]): ReactNode }) {
   const [over, setOver] = useState<string | null>(null);
   return (
     <div className="flex gap-3 overflow-x-auto pb-2" data-testid="kanban">
@@ -200,7 +193,7 @@ export function Kanban<T>({ columns, items, colOf, idOf, onMove, renderCard, col
         const its = items.filter((i) => colOf(i) === c.id);
         return (
           <div key={c.id} data-col={c.id} onDragOver={(e) => { e.preventDefault(); setOver(c.id); }} onDragLeave={() => setOver(null)} onDrop={(e) => { e.preventDefault(); setOver(null); const id = e.dataTransfer.getData("text/plain"); if (id) onMove(id, c.id); }}
-            className={`flex w-64 shrink-0 flex-col rounded-xl border bg-slate-50 ${over === c.id ? "border-blue-500 bg-blue-50" : "border-slate-200"}`}>
+            className={`flex ${colWidth} shrink-0 flex-col rounded-xl border bg-slate-50 ${over === c.id ? "border-blue-500 bg-blue-50" : "border-slate-200"}`}>
             <div className="flex items-center justify-between px-3 py-2"><span className="text-xs font-semibold uppercase tracking-wider text-slate-600">{c.label}</span><Badge tone={c.tone ?? "slate"}>{its.length}</Badge></div>
             <div className="flex min-h-[60px] flex-1 flex-col gap-2 px-2 pb-2">
               {its.map((i) => (
@@ -231,12 +224,12 @@ export function BarChart({ data, series, stacked, height = 200, fmt = (n) => num
   const bw = iw / Math.max(1, data.length), gw = bw * 0.7, sw = stacked ? gw : gw / series.length;
   return (
     <div><svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
-      {[0, 0.25, 0.5, 0.75, 1].map((t) => <g key={t}><line x1={pl} x2={W - 6} y1={pt + ih * (1 - t)} y2={pt + ih * (1 - t)} stroke="#e2e8f0" /><text x={pl - 4} y={pt + ih * (1 - t) + 3} textAnchor="end" fontSize="9" fill="#64748b">{fmt(max * t)}</text></g>)}
+      {[0, 0.25, 0.5, 0.75, 1].map((t) => <g key={t}><line x1={pl} x2={W - 6} y1={pt + ih * (1 - t)} y2={pt + ih * (1 - t)} stroke="#e2e8f0" /><text x={pl - 4} y={pt + ih * (1 - t) + 3} textAnchor="end" fontSize="11.5" fill="#64748b">{fmt(max * t)}</text></g>)}
       {data.map((d, i) => { let acc = 0; return (
         <g key={d.label}>
           {series.map((s, k) => { const v = Math.max(0, d.values[s.key] ?? 0), h = (v / max) * ih, x = pl + i * bw + (bw - gw) / 2 + (stacked ? 0 : k * sw), y = stacked ? pt + ih - ((acc + v) / max) * ih : pt + ih - h; acc += v;
             return <rect key={s.key} x={x} y={y} width={Math.max(1, sw - 1)} height={h} rx={1.5} fill={s.color ?? PALETTE[k % PALETTE.length]} className={onBar ? "cursor-pointer hover:opacity-80" : ""} onClick={onBar ? () => onBar(d.label, s.key) : undefined}><title>{`${d.label} · ${s.label}: ${fmt(v)}`}</title></rect>; })}
-          <text x={pl + i * bw + bw / 2} y={H - 6} textAnchor="middle" fontSize="9" fill="#64748b">{d.label}</text>
+          <text x={pl + i * bw + bw / 2} y={H - 6} textAnchor="middle" fontSize="11.5" fill="#64748b">{d.label}</text>
         </g>); })}
     </svg><Legend series={series} /></div>
   );
@@ -247,10 +240,10 @@ export function LineChart({ data, series, height = 200, fmt = (n) => num(n), ari
   const X = (i: number) => pl + (data.length === 1 ? iw / 2 : (i / (data.length - 1)) * iw), Y = (v: number) => pt + ih - ((v - min) / span) * ih;
   return (
     <div><svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img" aria-label={ariaLabel}>
-      {[0, 0.25, 0.5, 0.75, 1].map((t) => <g key={t}><line x1={pl} x2={W - 10} y1={pt + ih * (1 - t)} y2={pt + ih * (1 - t)} stroke="#e2e8f0" /><text x={pl - 4} y={pt + ih * (1 - t) + 3} textAnchor="end" fontSize="9" fill="#64748b">{fmt(min + span * t)}</text></g>)}
+      {[0, 0.25, 0.5, 0.75, 1].map((t) => <g key={t}><line x1={pl} x2={W - 10} y1={pt + ih * (1 - t)} y2={pt + ih * (1 - t)} stroke="#e2e8f0" /><text x={pl - 4} y={pt + ih * (1 - t) + 3} textAnchor="end" fontSize="11.5" fill="#64748b">{fmt(min + span * t)}</text></g>)}
       {series.map((s, k) => { const c = s.color ?? PALETTE[k % PALETTE.length], pts = data.map((d, i) => `${X(i)},${Y(d.values[s.key] ?? 0)}`).join(" ");
         return <g key={s.key}>{area && <polygon points={`${X(0)},${Y(0)} ${pts} ${X(data.length - 1)},${Y(0)}`} fill={c} opacity={0.12} />}<polyline points={pts} fill="none" stroke={c} strokeWidth={2} />{data.map((d, i) => <circle key={i} cx={X(i)} cy={Y(d.values[s.key] ?? 0)} r={3} fill={c}><title>{`${d.label} · ${s.label}: ${fmt(d.values[s.key] ?? 0)}`}</title></circle>)}</g>; })}
-      {data.map((d, i) => (data.length <= 12 || i % Math.ceil(data.length / 12) === 0) && <text key={i} x={X(i)} y={H - 6} textAnchor="middle" fontSize="9" fill="#64748b">{d.label}</text>)}
+      {data.map((d, i) => (data.length <= 12 || i % Math.ceil(data.length / 12) === 0) && <text key={i} x={X(i)} y={H - 6} textAnchor="middle" fontSize="11.5" fill="#64748b">{d.label}</text>)}
     </svg><Legend series={series} /></div>
   );
 }

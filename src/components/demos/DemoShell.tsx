@@ -7,7 +7,7 @@ import Logo from "@/components/Logo";
 /** Shared chrome for every interactive demo: Neo Forge logo, app title, project, status, actions and the sample-data disclaimer. */
 export default function DemoShell({ branding, app, project, status, actions, children, back = { href: "/portfolio/cad-bim", label: "CAD/BIM portfolio", all: "← All demos" }, contact = "/contact?division=cad-bim", badge = "Simulated demo · sample data", footer = `${DEMO_DISCLAIMER} This browser demo does not connect to the desktop application.` }: { branding: Branding; app: string; project: string; status: string; actions?: ReactNode; children: ReactNode; back?: { href: string; label: string; all: string }; contact?: string; badge?: string; footer?: string }) {
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-slate-200">
+    <div className="app-readable flex min-h-screen flex-col bg-slate-950 text-slate-200">
       <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-slate-800 bg-slate-900 px-3 py-2.5 sm:px-4">
         <Link href={back.href} aria-label={`Neo Forge Technology — back to ${back.label}`} className="shrink-0"><Logo media={branding.logoDark} trim={branding.autoTrim} height={34} dark priority /></Link>
         <span className="hidden h-8 w-px bg-slate-700 sm:block" aria-hidden />

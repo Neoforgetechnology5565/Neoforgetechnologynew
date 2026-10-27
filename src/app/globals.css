@@ -4,7 +4,9 @@
 
 :root { color-scheme: light; }
 html { scroll-behavior: smooth; }
-body { @apply bg-white text-stone-900 antialiased; }
+body { @apply bg-white text-stone-900 antialiased; font-family: Georgia, 'Times New Roman', serif; font-size: 15px; line-height: 1.6; }
+button, input, select, textarea, optgroup { font-family: inherit; font-size: inherit; }
+svg text { font-family: Georgia, 'Times New Roman', serif; }
 ::selection { background: #5bc236; color: #0b0b0b; }
 
 @layer components {
@@ -41,3 +43,19 @@ body { @apply bg-white text-stone-900 antialiased; }
   #print-root .print-area { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
   .no-print { display: none !important; }
 }
+
+/* Readable interface scale for the software demos (business apps, CAD/BIM demos, computer-vision demos).
+   Body text is 15px; the smallest text anywhere is 13px. Applied through the .app-readable wrapper. */
+.app-readable { font-family: Georgia, "Times New Roman", serif; font-size: 15px; line-height: 1.55; }
+.app-readable .text-xs { font-size: 14px; line-height: 1.45; }
+.app-readable .text-sm { font-size: 15px; line-height: 1.5; }
+.app-readable .text-\[10px\], .app-readable .text-\[11px\] { font-size: 13px; line-height: 1.4; }
+.app-readable .text-base { font-size: 16px; }
+.app-readable .text-lg { font-size: 18px; }
+.app-readable .text-xl { font-size: 21px; }
+.app-readable .text-2xl { font-size: 26px; }
+.app-readable .text-3xl { font-size: 32px; line-height: 1.2; }
+.app-readable input:not([type=checkbox]):not([type=radio]):not([type=range]), .app-readable select, .app-readable textarea { font-size: 15px; min-height: 38px; }
+.app-readable button { min-height: 34px; }
+.app-readable :focus-visible { outline: 2px solid #34821d; outline-offset: 2px; }
+.app-readable table { font-variant-numeric: tabular-nums; }

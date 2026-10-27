@@ -14,9 +14,20 @@ let hydrated = false;
 const subs = new Set<() => void>();
 
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* storage unavailable or full */ } }
+/** Saved slices from an older build may lack newer fields: fill them from the seed instead of dropping the whole slice. */
+function mergeSlices(seed: DB, saved: Partial<DB>): Partial<DB> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(saved)) { const base = (seed as unknown as Record<string, unknown>)[k]; out[k] = base && v && typeof base === "object" && !Array.isArray(base) && typeof v === "object" && !Array.isArray(v) ? { ...(base as object), ...(v as object) } : v; }
+  return out as Partial<DB>;
+}
+/** Renamed values from earlier builds. */
+function migrate(d: DB): DB {
+  if (d.crm.opps.some((o) => (o.stage as string) === "Qualification")) d = { ...d, crm: { ...d.crm, opps: d.crm.opps.map((o) => ((o.stage as string) === "Qualification" ? { ...o, stage: "Qualified" as const } : o)) } };
+  return d;
+}
 function hydrate() {
   if (hydrated) return; hydrated = true;
-  try { const raw = localStorage.getItem(KEY); if (raw) { const saved = JSON.parse(raw) as Partial<DB>; state = { ...state, ...saved }; subs.forEach((f) => f()); } } catch { /* corrupt storage: keep the seed */ }
+  try { const raw = localStorage.getItem(KEY); if (raw) { const saved = JSON.parse(raw) as Partial<DB>; state = migrate({ ...state, ...mergeSlices(state, saved) }); subs.forEach((f) => f()); } } catch { /* corrupt storage: keep the seed */ }
 }
 const subscribe = (f: () => void) => { subs.add(f); queueMicrotask(hydrate); return () => { subs.delete(f); }; };
 const get = () => state;

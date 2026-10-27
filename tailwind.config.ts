@@ -22,7 +22,8 @@ const config: Config = {
       fontFamily: {
         sans: ["Georgia", "Cambria", "'Times New Roman'", "serif"],
         display: ["Georgia", "Cambria", "'Times New Roman'", "serif"],
-        mono: ["var(--font-geist-mono)", "ui-monospace", "SFMono-Regular", "monospace"],
+        // Georgia everywhere: even "mono" utility classes resolve to the Georgia stack so no component falls back to another family.
+        mono: ["Georgia", "Cambria", "'Times New Roman'", "serif"],
       },
       keyframes: {
         scan: { "0%": { transform: "translateY(-10%)" }, "100%": { transform: "translateY(110%)" } },
