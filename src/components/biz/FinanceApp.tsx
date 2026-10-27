@@ -1,62 +1,181 @@
 "use client";
 import { useMemo, useState } from "react";
 import { logActivity, resetDb, useSlice } from "@/lib/biz/db";
-import { AGE_BUCKETS, PERIODS, ageBucket, balanceOf, balanceSheet, billStatus, cashSummary, docTotals, invStatus, monthlyPL, paidOf, periodOf, profitAndLoss, type DocStatus } from "@/lib/biz/fin-calc";
+import { AGE_BUCKETS, BANK_ONLY, PERIODS, ageBucket, balanceOf, balanceSheet, billStatus, cashMovements, cashSummary, docTotals, invStatus, ledgerRows, monthlyPL, paidOf, periodOf, profitAndLoss, type DocStatus, type LedgerRow } from "@/lib/biz/fin-calc";
 import type { Bill, Expense, FinLine, Invoice } from "@/lib/biz/seed-fin";
 import { DEMO_CURRENCY, DEMO_TODAY, addDays, downloadCsv, fmtDate, groupBy, monthLabel, money, moneyK, pct, round2, sum, uid } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { Badge, BarChart, Btn, DataTable, Donut, Empty, ErpShell, FilterSelect, HBars, Kpi, KpiRow, LineChart, Modal, Notice, PageHead, Panel, PrintSheet, SelectIn, Tabs, TextIn, printNow, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Empty, FilterSelect, HBars, Kpi, KpiRow, LineChart, Modal, Notice, PageHead, Panel, PrintSheet, ResetButton, SelectIn, Segmented, Tabs, TextIn, printNow, useConfirm, useToast, type Col } from "./kit";
 
-const NAV = [{ id: "dash", label: "Dashboard", group: "Overview" }, { id: "analytics", label: "Financial analytics", group: "Overview" },
-  { id: "invoices", label: "Customer invoices", group: "Sales" }, { id: "ar", label: "Accounts receivable", group: "Sales" },
-  { id: "bills", label: "Supplier bills", group: "Purchases" }, { id: "ap", label: "Accounts payable", group: "Purchases" }, { id: "expenses", label: "Expenses", group: "Purchases" },
-  { id: "payments", label: "Payments & transactions", group: "Cash" }, { id: "accounts", label: "Chart of accounts", group: "Ledger" },
-  { id: "pnl", label: "Profit & loss", group: "Reports" }, { id: "bs", label: "Balance sheet", group: "Reports" }, { id: "cf", label: "Cash flow", group: "Reports" }];
+/* Ledger workbook: a paper-and-ink accounting workspace. Underlined tabs across a title block, double-entry ledger as the working view, account balances always at the right. */
+const TABS = [{ id: "overview", label: "Overview" }, { id: "transactions", label: "Transactions" }, { id: "invoices", label: "Invoices" }, { id: "expenses", label: "Expenses" }, { id: "accounts", label: "Accounts" }, { id: "reconciliation", label: "Reconciliation" }, { id: "reports", label: "Reports" }];
 const sTone = (s: DocStatus) => (s === "Paid" ? "green" : s === "Overdue" ? "red" : s === "Partially paid" ? "amber" : s === "Draft" ? "slate" : "blue") as "green" | "red" | "amber" | "slate" | "blue";
 const M = (n: number) => money(n, DEMO_CURRENCY);
 
 export default function FinanceApp({ branding }: { branding: Branding }) {
-  const [screen, setScreen] = useState("dash"); const [period, setPeriod] = useState("qtd");
+  const [tab, setTab] = useState("overview"); const [period, setPeriod] = useState("qtd"); const [acct, setAcct] = useState("");
   const [fin] = useSlice("fin");
   const overdue = fin.invoices.filter((i) => invStatus(i) === "Overdue").length;
+  const toLedger = (id: string) => { setAcct(id); setTab("transactions"); };
   return (
-    <ErpShell branding={branding} title="NorthPeak Finance" subtitle={`Accounting & reporting · ${DEMO_CURRENCY} · demo date ${fmtDate(DEMO_TODAY)}`} nav={NAV.map((n) => (n.id === "invoices" ? { ...n, badge: overdue || undefined } : n))} active={screen} onNav={setScreen} onReset={() => resetDb(["fin"])}
-      note="Demonstration accounting software with fictional data. Not certified accounting, audit or tax software, and tax rates are demo assumptions. Stored only in this browser (localStorage); no server or database.">
-      {screen === "dash" && <Dash period={period} setPeriod={setPeriod} go={setScreen} />}
-      {screen === "analytics" && <Analytics period={period} setPeriod={setPeriod} />}
-      {screen === "invoices" && <Invoices />}
-      {screen === "ar" && <Ageing kind="ar" />}
-      {screen === "bills" && <Bills />}
-      {screen === "ap" && <Ageing kind="ap" />}
-      {screen === "expenses" && <Expenses />}
-      {screen === "payments" && <Transactions />}
-      {screen === "accounts" && <Accounts period={period} />}
-      {screen === "pnl" && <PnL period={period} setPeriod={setPeriod} />}
-      {screen === "bs" && <BalanceSheetScreen period={period} setPeriod={setPeriod} />}
-      {screen === "cf" && <CashFlow period={period} setPeriod={setPeriod} />}
-    </ErpShell>
+    <AppProviders className="bg-stone-100 text-slate-800" note="Demonstration accounting software with fictional data. Not certified accounting, audit or tax software, and tax rates are demo assumptions. Stored only in this browser (localStorage); no server or database.">
+      <header className="no-print border-b-2 border-slate-800 bg-white">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 pt-3">
+          <BrandLogo branding={branding} dark={false} height={28} />
+          <div className="border-l border-slate-300 pl-5"><h1 className="font-display text-2xl font-semibold leading-tight text-slate-900">NorthPeak Finance · General ledger</h1><p className="text-sm text-slate-600">{DEMO_CURRENCY} · accrual basis · demo date {fmtDate(DEMO_TODAY)}</p></div>
+          <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge /><PeriodSelect value={period} onChange={setPeriod} /><ResetButton onReset={() => resetDb(["fin"])} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-blue-500" /><span className="flex gap-2 text-slate-700 [&_a]:border-slate-300"><DemoLinks compact /></span></div>
+        </div>
+        <nav aria-label="Finance sections" className="mt-2 flex flex-wrap gap-x-1 px-4">
+          {TABS.map((t) => <button key={t.id} type="button" data-nav={t.id} aria-current={tab === t.id ? "page" : undefined} onClick={() => { setTab(t.id); if (t.id !== "transactions") setAcct(""); }} className={`-mb-px border-b-[3px] px-4 py-2.5 text-[15px] font-medium ${tab === t.id ? "border-blue-600 text-slate-900" : "border-transparent text-slate-600 hover:text-slate-900"}`}>{t.label}{t.id === "invoices" && overdue > 0 && <span className="ml-1.5 rounded-full bg-red-100 px-1.5 text-[13px] text-red-700">{overdue}</span>}</button>)}
+        </nav>
+      </header>
+      <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+        <main className="min-w-0 flex-1 p-4 sm:p-6" id="app-main">
+          {tab === "overview" && <Overview period={period} go={setTab} toLedger={toLedger} />}
+          {tab === "transactions" && <Transactions acct={acct} setAcct={setAcct} />}
+          {tab === "invoices" && <InvoicesTab />}
+          {tab === "expenses" && <ExpensesTab />}
+          {tab === "accounts" && <Accounts period={period} toLedger={toLedger} />}
+          {tab === "reconciliation" && <Reconciliation />}
+          {tab === "reports" && <ReportsTab period={period} setPeriod={setPeriod} />}
+        </main>
+        <BalanceRail period={period} toLedger={toLedger} />
+      </div>
+    </AppProviders>
   );
 }
 const PeriodSelect = ({ value, onChange }: { value: string; onChange(v: string): void }) => <select aria-label="Reporting period" value={value} onChange={(e) => onChange(e.target.value)} className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm" data-testid="period">{PERIODS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}</select>;
 const custName = (cos: { id: string; name: string }[], id: string) => cos.find((c) => c.id === id)?.name ?? "Unknown customer";
 
-/* ───────── Dashboard ───────── */
-function Dash({ period, setPeriod, go }: { period: string; setPeriod(v: string): void; go(s: string): void }) {
+/* ───────── Account balances rail ───────── */
+function BalanceRail({ period, toLedger }: { period: string; toLedger(id: string): void }) {
+  const [fin] = useSlice("fin"); const pr = periodOf(period); const bs = balanceSheet(fin, pr.to); const pl = profitAndLoss(fin, pr.from, pr.to);
+  const row = (id: string, name: string, v: number) => <li key={id}><button type="button" onClick={() => toLedger(id)} className="flex w-full items-baseline justify-between gap-3 border-b border-dotted border-slate-300 py-1.5 text-left text-[15px] hover:bg-stone-50"><span><span className="text-slate-500">{id}</span> {name}</span><span className="tabular-nums text-slate-900">{M(v)}</span></button></li>;
+  return (
+    <aside aria-label="Account balances" className="no-print border-t border-slate-300 bg-white p-4 xl:w-72 xl:shrink-0 xl:border-l xl:border-t-0">
+      <h2 className="font-display text-lg font-semibold text-slate-900">Account balances</h2><p className="mb-2 text-sm text-slate-600">As at {fmtDate(pr.to)}. Select an account to open its ledger.</p>
+      <h3 className="mt-3 text-sm font-semibold text-slate-600">Assets</h3><ul>{row("1000", "Cash at bank", bs.assets.cash)}{row("1100", "Accounts receivable", bs.assets.ar)}{row("1500", "Equipment (net)", bs.assets.equipment)}</ul>
+      <h3 className="mt-3 text-sm font-semibold text-slate-600">Liabilities</h3><ul>{row("2000", "Accounts payable", bs.liabilities.ap)}{row("2100", "Sales tax payable", bs.liabilities.tax)}{row("2500", "Bank loan", bs.liabilities.loan)}</ul>
+      <h3 className="mt-3 text-sm font-semibold text-slate-600">Period result · {pr.label}</h3><ul><li className="flex justify-between border-b border-dotted border-slate-300 py-1.5 text-[15px]"><span>Revenue</span><span className="tabular-nums">{M(pl.totalRevenue)}</span></li><li className="flex justify-between border-b border-dotted border-slate-300 py-1.5 text-[15px]"><span>Expenses</span><span className="tabular-nums">({M(pl.totalExpenses)})</span></li><li className="flex justify-between border-b-2 border-double border-slate-700 py-1.5 text-[15px] font-semibold"><span>Net result</span><span className={`tabular-nums ${pl.netProfit < 0 ? "text-red-700" : ""}`}>{M(pl.netProfit)}</span></li></ul>
+      <p className={`mt-3 text-sm font-medium ${bs.balanced ? "text-blue-700" : "text-red-700"}`}>{bs.balanced ? "✓ Books balance" : "Books out of balance"}</p>
+    </aside>
+  );
+}
+
+/* ───────── Overview ───────── */
+function Overview({ period, go, toLedger }: { period: string; go(t: string): void; toLedger(id: string): void }) {
   const [fin] = useSlice("fin"); const [crm] = useSlice("crm"); const pr = periodOf(period);
   const pl = profitAndLoss(fin, pr.from, pr.to), cash = cashSummary(fin, pr.from, pr.to);
   const arTotal = sum(fin.invoices.filter((i) => !i.draft), (i) => balanceOf(i)), apTotal = sum(fin.bills, (b) => balanceOf(b));
   const months = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"]; const mp = monthlyPL(fin, months);
   const od = fin.invoices.filter((i) => invStatus(i) === "Overdue").sort((a, b) => balanceOf(b) - balanceOf(a));
+  const unrec = cashMovements(fin, () => "").filter((t) => !fin.reconciled.includes(t.id)).length; const drafts = fin.invoices.filter((i) => i.draft).length;
+  const recent = useMemo(() => ledgerRows(fin, (id) => custName(crm.companies, id), fin.reconciled).slice(0, 8), [fin, crm.companies]);
+  const L = ({ l, v, to, testid, neg, bold }: { l: string; v: number; to?: () => void; testid?: string; neg?: boolean; bold?: boolean }) => <tr className={bold ? "border-t-2 border-double border-slate-700 font-semibold" : "border-b border-dotted border-slate-300"}><td className="py-2">{to ? <button type="button" className="text-left hover:underline" onClick={to}>{l}</button> : l}</td><td className={`py-2 text-right tabular-nums ${v < 0 ? "text-red-700" : ""}`} data-testid={testid}>{neg ? `(${M(v)})` : M(v)}</td></tr>;
   return (<>
-    <PageHead title="Finance dashboard" sub={`${pr.label}. Every figure is calculated from invoices, bills, expenses and payments.`} actions={<PeriodSelect value={period} onChange={setPeriod} />} />
-    <KpiRow><Kpi label="Revenue" value={moneyK(pl.totalRevenue)} sub="invoiced, excl. tax" testid="kpi-revenue" /><Kpi label="Expenses" value={moneyK(pl.totalExpenses)} sub="bills + expenses" /><Kpi label="Net profit" value={moneyK(pl.netProfit)} tone={pl.netProfit < 0 ? "red" : undefined} sub={pl.totalRevenue ? `${pct(pl.netProfit / pl.totalRevenue)} margin` : ""} testid="kpi-profit" />
-      <Kpi label="Cash at bank" value={moneyK(cash.closing)} sub={`net ${moneyK(cash.net)} in period`} /><Kpi label="Receivable" value={moneyK(arTotal)} sub={`${od.length} overdue`} tone={od.length ? "amber" : undefined} onClick={() => go("ar")} testid="kpi-ar" /><Kpi label="Payable" value={moneyK(apTotal)} onClick={() => go("ap")} /></KpiRow>
-    <div className="mt-4 grid gap-4 lg:grid-cols-3">
-      <Panel title="Revenue vs expenses by month" className="lg:col-span-2"><BarChart ariaLabel="Revenue vs expenses" data={mp.map((m) => ({ label: monthLabel(m.month), values: { revenue: m.revenue, expenses: m.expenses } }))} series={[{ key: "revenue", label: "Revenue" }, { key: "expenses", label: "Expenses", color: "#f59e0b" }]} fmt={moneyK} /></Panel>
-      <Panel title="Overdue invoices" pad={false}><ul className="divide-y divide-slate-100">{od.slice(0, 6).map((i) => <li key={i.id} className="flex items-center justify-between px-4 py-2 text-sm"><span><span className="font-medium">{i.number}</span><span className="block text-xs text-slate-500">{custName(crm.companies, i.customerId)} · due {fmtDate(i.due)}</span></span><span className="tabular-nums text-red-700">{M(balanceOf(i))}</span></li>)}{od.length === 0 && <li className="px-4 py-6 text-center text-sm text-slate-400">Nothing overdue.</li>}</ul></Panel>
-      <Panel title="Profit trend" className="lg:col-span-3"><LineChart ariaLabel="Monthly profit" area data={mp.map((m) => ({ label: monthLabel(m.month), values: { profit: m.profit } }))} series={[{ key: "profit", label: "Net profit" }]} fmt={moneyK} height={160} /></Panel>
+    <PageHead title="Overview" sub={`${pr.label}. Every figure is derived from invoices, bills, expenses and payments.`} />
+    <div className="grid gap-5 xl:grid-cols-5">
+      <section className="rounded-sm border border-slate-300 bg-white p-5 shadow-sm xl:col-span-3" aria-label="Statement of position">
+        <h3 className="font-display text-xl font-semibold">Statement of position</h3><p className="mb-3 text-sm text-slate-600">NorthPeak Software Ltd (fictional) · {pr.label}</p>
+        <table className="w-full text-[15px]"><tbody>
+          <L l="Revenue (invoiced, excl. tax)" v={pl.totalRevenue} testid="ov-revenue" to={() => go("reports")} />
+          <L l="Expenses (bills and expenses)" v={pl.totalExpenses} neg to={() => go("expenses")} />
+          <L l={`Net profit${pl.totalRevenue ? ` · ${pct(pl.netProfit / pl.totalRevenue)} margin` : ""}`} v={pl.netProfit} bold testid="ov-profit" />
+          <tr><td colSpan={2} className="pt-4 text-sm font-semibold text-slate-600">Cash and obligations</td></tr>
+          <L l={`Cash at bank (net ${moneyK(cash.net)} in period)`} v={cash.closing} to={() => toLedger("1000")} />
+          <L l={`Receivable (${od.length} overdue)`} v={arTotal} testid="ov-ar" to={() => go("invoices")} />
+          <L l="Payable" v={apTotal} to={() => go("expenses")} />
+        </tbody></table>
+        <div className="mt-5"><BarChart ariaLabel="Revenue vs expenses" data={mp.map((m) => ({ label: monthLabel(m.month), values: { revenue: m.revenue, expenses: m.expenses } }))} series={[{ key: "revenue", label: "Revenue" }, { key: "expenses", label: "Expenses", color: "#f59e0b" }]} fmt={moneyK} height={170} /></div>
+      </section>
+      <section className="space-y-5 xl:col-span-2">
+        <div className="rounded-sm border border-slate-300 bg-white p-5 shadow-sm"><h3 className="font-display text-xl font-semibold">Needs attention</h3>
+          <ul className="mt-2 space-y-1.5 text-[15px]">
+            <li><button type="button" className="text-blue-700 hover:underline" onClick={() => go("invoices")}>{od.length} overdue invoice{od.length === 1 ? "" : "s"} · {M(sum(od, (i) => balanceOf(i)))}</button></li>
+            <li><button type="button" className="text-blue-700 hover:underline" onClick={() => go("reconciliation")}>{unrec} cash movements not yet reconciled</button></li>
+            <li><button type="button" className="text-blue-700 hover:underline" onClick={() => go("invoices")}>{drafts} draft invoice{drafts === 1 ? "" : "s"} awaiting issue</button></li></ul>
+          {od.slice(0, 4).map((i) => <p key={i.id} className="mt-2 border-t border-dotted border-slate-300 pt-2 text-[15px]"><span className="font-medium">{i.number}</span> · {custName(crm.companies, i.customerId)}<span className="block text-sm text-slate-600">due {fmtDate(i.due)} · {M(balanceOf(i))} outstanding</span></p>)}</div>
+        <div className="rounded-sm border border-slate-300 bg-white p-5 shadow-sm"><h3 className="mb-1 font-display text-xl font-semibold">Latest postings</h3>
+          <table className="w-full text-[15px]"><tbody>{recent.map((r) => <tr key={r.id} className="border-b border-dotted border-slate-300"><td className="py-1.5 pr-2 text-sm text-slate-600">{fmtDate(r.date).slice(0, 6)}</td><td className="py-1.5 pr-2">{r.account.slice(5)}<span className="block text-sm text-slate-500">{r.ref}</span></td><td className="py-1.5 text-right tabular-nums">{r.debit ? M(r.debit) : `(${M(r.credit)})`}</td></tr>)}</tbody></table>
+          <button type="button" className="mt-2 text-[15px] font-medium text-blue-700 hover:underline" onClick={() => go("transactions")}>Open full ledger →</button></div>
+      </section>
     </div></>);
 }
+
+/* ───────── Transactions: general ledger + cash movements ───────── */
+function Transactions({ acct, setAcct }: { acct: string; setAcct(v: string): void }) {
+  const [view, setView] = useState("ledger");
+  return (<>
+    <PageHead title="Transactions" sub="The general ledger lists every posting with its debit and credit. Cash movements show only money in and out." actions={<Segmented label="Transaction view" value={view} onChange={setView} options={[{ id: "ledger", label: "General ledger" }, { id: "cash", label: "Cash movements" }]} />} />
+    {view === "ledger" ? <Ledger acct={acct} setAcct={setAcct} /> : <CashMovements />}
+  </>);
+}
+function Ledger({ acct, setAcct }: { acct: string; setAcct(v: string): void }) {
+  const [fin] = useSlice("fin"); const [crm] = useSlice("crm"); const [cat, setCat] = useState(""); const [status, setStatus] = useState(""); const [from, setFrom] = useState(""); const [to, setTo] = useState("");
+  const all = useMemo(() => ledgerRows(fin, (id) => custName(crm.companies, id), fin.reconciled), [fin, crm.companies]);
+  const accounts = [...new Set(all.map((r) => r.account))].sort(); const cats = [...new Set(all.map((r) => r.category))].sort(); const statuses = [...new Set(all.map((r) => r.status))].sort();
+  const sel = acct ? accounts.find((a) => a.startsWith(acct)) ?? "" : "";
+  const rows = all.filter((r) => (!sel || r.account === sel) && (!cat || r.category === cat) && (!status || r.status === status) && (!from || r.date >= from) && (!to || r.date <= to));
+  const dr = round2(sum(rows, (r) => r.debit)), cr = round2(sum(rows, (r) => r.credit));
+  const cols: Col<LedgerRow>[] = [{ key: "date", label: "Date", className: "whitespace-nowrap" }, { key: "ref", label: "Reference", className: "whitespace-nowrap font-medium" }, { key: "desc", label: "Description", className: "min-w-[15rem]" }, { key: "account", label: "Account", className: "min-w-[10rem]" }, { key: "category", label: "Category", className: "min-w-[8rem]" },
+    { key: "debit", label: "Debit", align: "right", render: (r) => (r.debit ? M(r.debit) : "") }, { key: "credit", label: "Credit", align: "right", render: (r) => (r.credit ? M(r.credit) : "") },
+    { key: "status", label: "Status", render: (r) => <Badge tone={r.status === "Paid" || r.status === "Reconciled" ? "green" : r.status === "Overdue" ? "red" : r.status === "Unreconciled" || r.status === "Partially paid" ? "amber" : "slate"}>{r.status}</Badge> }];
+  return (
+    <div className="rounded-sm border border-slate-300 bg-white p-4 shadow-sm">
+      <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} pageSize={14} exportName="finance-general-ledger" searchPlaceholder="Search ledger…" testid="ledger-table" defaultSort={{ key: "date", dir: -1 }} dense
+        toolbar={<><FilterSelect label="Account" value={sel} onChange={(v) => setAcct(v.slice(0, 4))} options={accounts} /><FilterSelect label="Category" value={cat} onChange={setCat} options={cats} /><FilterSelect label="Status" value={status} onChange={setStatus} options={statuses} />
+          <input aria-label="From date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded border border-slate-300 px-2 py-1.5" /><input aria-label="To date" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded border border-slate-300 px-2 py-1.5" /></>}
+        footer={<tr><td colSpan={5} className="px-3 py-2 text-right">Totals for {rows.length} postings</td><td className="px-3 py-2 text-right tabular-nums" data-testid="ledger-debit">{M(dr)}</td><td className="px-3 py-2 text-right tabular-nums" data-testid="ledger-credit">{M(cr)}</td><td className="px-3 py-2 text-sm font-normal">{sel ? `Balance ${M(round2(dr - cr))}` : dr === cr ? "✓ Balanced" : "Out of balance"}</td></tr>} />
+    </div>
+  );
+}
+
+/* ───────── Tab wrappers ───────── */
+function InvoicesTab() {
+  const [v, setV] = useState("invoices");
+  return (<><div className="mb-3"><Segmented label="Invoice view" value={v} onChange={setV} options={[{ id: "invoices", label: "Customer invoices" }, { id: "ar", label: "Receivable ageing" }]} /></div>{v === "invoices" ? <Invoices /> : <Ageing kind="ar" />}</>);
+}
+function ExpensesTab() {
+  const [v, setV] = useState("expenses");
+  return (<><div className="mb-3"><Segmented label="Expense view" value={v} onChange={setV} options={[{ id: "expenses", label: "Expenses" }, { id: "bills", label: "Supplier bills" }, { id: "ap", label: "Payable ageing" }]} /></div>{v === "expenses" ? <Expenses /> : v === "bills" ? <Bills /> : <Ageing kind="ap" />}</>);
+}
+function ReportsTab({ period, setPeriod }: { period: string; setPeriod(v: string): void }) {
+  const [v, setV] = useState("pnl");
+  return (<><div className="mb-3"><Segmented label="Report" value={v} onChange={setV} options={[{ id: "pnl", label: "Profit & loss" }, { id: "bs", label: "Balance sheet" }, { id: "cf", label: "Cash flow" }, { id: "analytics", label: "Analytics" }]} /></div>
+    {v === "pnl" && <PnL period={period} setPeriod={setPeriod} />}{v === "bs" && <BalanceSheetScreen period={period} setPeriod={setPeriod} />}{v === "cf" && <CashFlow period={period} setPeriod={setPeriod} />}{v === "analytics" && <Analytics period={period} setPeriod={setPeriod} />}</>);
+}
+
+/* ───────── Bank reconciliation (sample statement) ───────── */
+function Reconciliation() {
+  const [fin, setFin] = useSlice("fin"); const [crm] = useSlice("crm"); const toast = useToast();
+  const tx = useMemo(() => cashMovements(fin, (id) => custName(crm.companies, id)), [fin, crm.companies]);
+  const rec = new Set(fin.reconciled); const recorded = fin.expenses.some((e) => e.id === BANK_ONLY.expenseId);
+  const opening = 180000; const statement = round2(opening + sum(tx.filter((t) => t.onBank), (t) => t.amount) + (recorded ? 0 : BANK_ONLY.amount));
+  const reconciled = round2(opening + sum(tx.filter((t) => rec.has(t.id)), (t) => t.amount)); const diff = round2(statement - reconciled);
+  const toggle = (id: string) => setFin((s) => ({ ...s, reconciled: s.reconciled.includes(id) ? s.reconciled.filter((x) => x !== id) : [...s.reconciled, id] }));
+  const outstanding = tx.filter((t) => !t.onBank); const unmatched = tx.filter((t) => t.onBank && !rec.has(t.id));
+  const cols: Col<(typeof tx)[number]>[] = [{ key: "m", label: "Matched", noSort: true, noCsv: true, render: (t) => <input type="checkbox" aria-label={`Match ${t.ref}`} checked={rec.has(t.id)} disabled={!t.onBank} onChange={() => toggle(t.id)} /> }, { key: "date", label: "Date", render: (t) => fmtDate(t.date) }, { key: "party", label: "Party" }, { key: "ref", label: "Reference" },
+    { key: "amount", label: "Amount", align: "right", render: (t) => <span className={t.amount < 0 ? "" : "font-medium text-blue-700"}>{M(t.amount)}</span> }, { key: "onBank", label: "Bank statement", value: (t) => (t.onBank ? "On statement" : "Outstanding"), render: (t) => <Badge tone={t.onBank ? (rec.has(t.id) ? "green" : "amber") : "slate"}>{t.onBank ? (rec.has(t.id) ? "Matched" : "To match") : "Outstanding"}</Badge> }];
+  return (<>
+    <PageHead title="Bank reconciliation" sub={`Match the books to a sample bank statement dated ${fmtDate(DEMO_TODAY)}. The statement is simulated; no bank is connected.`} actions={<><Btn onClick={() => { setFin((s) => ({ ...s, reconciled: [...new Set([...s.reconciled, ...tx.filter((t) => t.onBank).map((t) => t.id)])] })); toast("Matched every item that appears on the statement"); }} testid="auto-match">Auto-match all</Btn><Btn onClick={() => { setFin((s) => ({ ...s, reconciled: [] })); toast("Matches cleared", "amber"); }}>Clear matches</Btn></>} />
+    <div className="mb-4 grid gap-4 lg:grid-cols-3">
+      <section className="rounded-sm border border-slate-300 bg-white p-5 shadow-sm lg:col-span-1" aria-label="Reconciliation summary"><h3 className="font-display text-xl font-semibold">Reconciliation summary</h3>
+        <table className="mt-2 w-full text-[15px]"><tbody>
+          <tr className="border-b border-dotted border-slate-300"><td className="py-2">Statement closing balance</td><td className="text-right tabular-nums" data-testid="rec-statement">{M(statement)}</td></tr>
+          <tr className="border-b border-dotted border-slate-300"><td className="py-2">Books, matched items</td><td className="text-right tabular-nums" data-testid="rec-books">{M(reconciled)}</td></tr>
+          <tr className="border-t-2 border-double border-slate-700 font-semibold"><td className="py-2">Difference</td><td className={`text-right tabular-nums ${diff === 0 ? "text-blue-700" : "text-red-700"}`} data-testid="rec-diff">{M(diff)}</td></tr></tbody></table>
+        <p className={`mt-3 text-[15px] font-medium ${diff === 0 ? "text-blue-700" : "text-amber-700"}`} data-testid="rec-state">{diff === 0 ? "✓ Reconciled: the books agree with the statement." : `${unmatched.length + (recorded ? 0 : 1)} statement line${unmatched.length + (recorded ? 0 : 1) === 1 ? "" : "s"} still to match.`}</p>
+        <p className="mt-2 text-sm text-slate-600">{outstanding.length} book item{outstanding.length === 1 ? " is" : "s are"} outstanding (recorded in the books but not yet on the statement).</p>
+      </section>
+      <section className="rounded-sm border border-slate-300 bg-white p-5 shadow-sm lg:col-span-2" aria-label="Statement lines without a book entry"><h3 className="font-display text-xl font-semibold">On the statement, not in the books</h3>
+        {recorded ? <p className="mt-2 text-[15px] text-slate-600">Nothing left: the bank charge has been recorded as an expense.</p> : <div className="mt-2 flex flex-wrap items-center gap-3 text-[15px]"><span>{fmtDate(BANK_ONLY.date)} · {BANK_ONLY.desc}</span><span className="font-medium tabular-nums">{M(BANK_ONLY.amount)}</span>
+          <Btn kind="primary" testid="record-bank-charge" onClick={() => { setFin((s) => ({ ...s, expenses: [{ id: BANK_ONLY.expenseId, date: BANK_ONLY.date, accountId: "6600", vendor: "Bank", amount: -BANK_ONLY.amount, method: "Bank transfer", note: "Bank charges (from statement)" }, ...s.expenses], reconciled: [...s.reconciled, BANK_ONLY.expenseId] })); logActivity("Finance", "Bank charge recorded from reconciliation"); toast("Bank charge recorded as an expense and matched"); }}>Record as expense</Btn></div>}
+      </section>
+    </div>
+    <div className="rounded-sm border border-slate-300 bg-white p-4 shadow-sm"><DataTable rows={tx} columns={cols} rowKey={(t) => t.id} pageSize={12} exportName="finance-reconciliation" searchPlaceholder="Search cash movements…" testid="rec-table" defaultSort={{ key: "date", dir: -1 }} dense /></div>
+  </>);
+}
+
 
 /* ───────── Invoices ───────── */
 function LinesEditor({ lines, setLines, accounts }: { lines: FinLine[]; setLines(l: FinLine[]): void; accounts: { id: string; name: string }[] }) {
@@ -161,7 +280,7 @@ function ExpenseForm({ existing, onSave, onClose }: { existing?: Expense; onSave
 }
 
 /* ───────── Payments / transactions ledger ───────── */
-function Transactions() {
+function CashMovements() {
   const [fin, setFin] = useSlice("fin"); const [crm] = useSlice("crm"); const toast = useToast(); const [from, setFrom] = useState(""); const [to, setTo] = useState(""); const [cat, setCat] = useState(""); const [rec, setRec] = useState<null | "in" | "out">(null); const [pick, setPick] = useState("");
   type Tx = { id: string; date: string; type: string; party: string; ref: string; category: string; method: string; amount: number };
   const all: Tx[] = useMemo(() => [
@@ -172,7 +291,7 @@ function Transactions() {
   const cols: Col<Tx>[] = [{ key: "date", label: "Date", render: (t) => fmtDate(t.date) }, { key: "type", label: "Type", render: (t) => <Badge tone={t.amount > 0 ? "green" : "slate"}>{t.type}</Badge> }, { key: "party", label: "Party" }, { key: "ref", label: "Reference" }, { key: "category", label: "Category" }, { key: "method", label: "Method" }, { key: "amount", label: "Amount", align: "right", render: (t) => <span className={t.amount < 0 ? "text-slate-700" : "font-medium text-blue-700"}>{M(t.amount)}</span> }];
   const openInv = fin.invoices.filter((i) => !i.draft && balanceOf(i) > 0.004), openBills = fin.bills.filter((b) => balanceOf(b) > 0.004);
   const target = rec === "in" ? fin.invoices.find((i) => i.id === pick) : rec === "out" ? fin.bills.find((b) => b.id === pick) : undefined;
-  return (<><PageHead title="Payments & transactions" sub="All cash movements. Filter by date and category." actions={<><Btn onClick={() => { setRec("in"); setPick(openInv[0]?.id ?? ""); }} testid="rec-in">Record receipt</Btn><Btn onClick={() => { setRec("out"); setPick(openBills[0]?.id ?? ""); }} testid="rec-out">Record supplier payment</Btn></>} />
+  return (<><div className="mb-3 flex flex-wrap items-center gap-2"><Btn onClick={() => { setRec("in"); setPick(openInv[0]?.id ?? ""); }} testid="rec-in">Record receipt</Btn><Btn onClick={() => { setRec("out"); setPick(openBills[0]?.id ?? ""); }} testid="rec-out">Record supplier payment</Btn></div>
     <DataTable rows={rows} columns={cols} rowKey={(t) => t.id} exportName="finance-transactions" testid="tx-table" toolbar={<><FilterSelect label="Category" value={cat} onChange={setCat} options={cats} /><input aria-label="From date" type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="rounded border border-slate-300 px-1 py-1 text-sm" /><input aria-label="To date" type="date" value={to} onChange={(e) => setTo(e.target.value)} className="rounded border border-slate-300 px-1 py-1 text-sm" /></>}
       footer={<tr><td colSpan={6} className="px-3 py-2 text-right">Net of {rows.length} filtered transactions</td><td className="px-3 py-2 text-right tabular-nums" data-testid="tx-net">{M(sum(rows, (t) => t.amount))}</td></tr>} />
     {rec && !target && <Modal title={rec === "in" ? "Record receipt" : "Record supplier payment"} small onClose={() => setRec(null)} footer={<Btn onClick={() => setRec(null)}>Close</Btn>}><Empty>There are no open {rec === "in" ? "invoices" : "bills"} to pay.</Empty></Modal>}
@@ -194,12 +313,12 @@ function Ageing({ kind }: { kind: "ar" | "ap" }) {
 }
 
 /* ───────── Accounts ───────── */
-function Accounts({ period }: { period: string }) {
+function Accounts({ period, toLedger }: { period: string; toLedger(id: string): void }) {
   const [fin] = useSlice("fin"); const pr = periodOf(period); const pl = profitAndLoss(fin, pr.from, pr.to); const bs = balanceSheet(fin, pr.to);
   const bal = (id: string, type: string) => type === "Revenue" ? pl.revenue.find((r) => r.id === id)?.amount ?? 0 : type === "Expense" ? pl.expenses.find((r) => r.id === id)?.amount ?? 0 : ({ "1000": bs.assets.cash, "1100": bs.assets.ar, "1500": bs.assets.equipment, "2000": bs.liabilities.ap, "2100": bs.liabilities.tax, "2500": bs.liabilities.loan, "3000": bs.equity.opening, "3900": bs.equity.earnings } as Record<string, number>)[id] ?? 0;
   const rows = fin.accounts.map((a) => ({ ...a, balance: bal(a.id, a.type) }));
-  const cols: Col<(typeof rows)[number]>[] = [{ key: "code", label: "Code" }, { key: "name", label: "Account" }, { key: "type", label: "Type", render: (a) => <Badge tone={a.type === "Revenue" ? "green" : a.type === "Expense" ? "amber" : "slate"}>{a.type}</Badge> }, { key: "balance", label: "Balance / period total", align: "right", render: (a) => M(a.balance) }];
-  return (<><PageHead title="Chart of accounts" sub={`Balances as at ${fmtDate(pr.to)}; revenue and expenses for ${pr.label}. Derived from the transactions.`} /><DataTable rows={rows} columns={cols} rowKey={(a) => a.id} pageSize={25} exportName="finance-chart-of-accounts" /></>);
+  const cols: Col<(typeof rows)[number]>[] = [{ key: "code", label: "Code" }, { key: "name", label: "Account", render: (a) => <button type="button" className="text-left font-medium text-blue-700 hover:underline" onClick={() => toLedger(a.id)}>{a.name}</button> }, { key: "type", label: "Type", render: (a) => <Badge tone={a.type === "Revenue" ? "green" : a.type === "Expense" ? "amber" : "slate"}>{a.type}</Badge> }, { key: "balance", label: "Balance / period total", align: "right", render: (a) => M(a.balance) }];
+  return (<><PageHead title="Chart of accounts" sub={`Balances as at ${fmtDate(pr.to)}; revenue and expenses for ${pr.label}. Select an account name to open its ledger.`} /><DataTable rows={rows} columns={cols} rowKey={(a) => a.id} pageSize={25} exportName="finance-chart-of-accounts" /></>);
 }
 
 /* ───────── Reports ───────── */

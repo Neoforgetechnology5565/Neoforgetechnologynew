@@ -1,6 +1,6 @@
 import { seedHrm } from "./seed-hrm";
 import { seedCrm } from "./seed-crm";
-import { addDays, hash01, DEMO_TODAY } from "./util";
+import { addDays, hash01, onBank, DEMO_TODAY } from "./util";
 
 export interface FinLine { desc: string; qty: number; price: number; accountId: string }
 export interface Payment { id: string; date: string; amount: number; method: string; ref: string }
@@ -54,5 +54,6 @@ export const seedFin = () => {
     push(25, "6000", "Payroll run (summary)", payroll, `Gross salaries ${m} (from the HR demo roster)`); push(1, "6100", "Lakeside Offices LLC", 14500, "Office rent"); push(9, "6200", "Metro Utilities", Math.round(2100 + hash01(m + "u") * 600), "Electricity & water");
     push(14, "6300", "Cloud tools suite", 4800, "Software licences", "Card"); push(16, "6500", "Ad platform", Math.round(8000 + hash01(m + "m") * 6000), "Digital advertising", "Card"); push(20, "6400", "Travel & accommodation", Math.round(1500 + hash01(m + "t") * 4500), "Client visits", "Card"); push(22, "6600", "Hartley & Co accountants", 3200, "Bookkeeping & audit support");
   });
-  return { accounts: ACCOUNTS, invoices, bills, expenses, nextNo: { inv: n, bill: b } };
+  const reconciled = [...invoices.flatMap((i) => i.payments), ...bills.flatMap((i) => i.payments), ...expenses].filter((t) => t.date <= "2026-02-28" && onBank(t.id)).map((t) => t.id);
+  return { accounts: ACCOUNTS, invoices, bills, expenses, reconciled, nextNo: { inv: n, bill: b } };
 };

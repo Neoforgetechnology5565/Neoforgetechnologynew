@@ -50,3 +50,6 @@ export const hoursBetween = (a: string, b: string) => (dtMs(b) - dtMs(a)) / 3600
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const fmtDt = (s: string) => { const [d, t = ""] = s.split("T"); const [, m, day] = d.split("-").map(Number); return `${String(day).padStart(2, "0")} ${MON[m - 1]} ${t}`; };
 export const fmtHours = (h: number) => (Math.abs(h) < 1 ? `${Math.round(Math.abs(h) * 60)} min` : Math.abs(h) < 48 ? `${Math.abs(h).toFixed(1)} h` : `${(Math.abs(h) / 24).toFixed(1)} days`);
+
+/** Deterministic "appears on the sample bank statement" flag used by the finance reconciliation demo (customer receipts always clear; some payments and expenses are still outstanding). */
+export const onBank = (id: string) => id.startsWith("exbank") || id.startsWith("p") || hash01(id + "bank") < 0.9;

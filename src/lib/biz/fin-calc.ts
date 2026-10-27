@@ -1,6 +1,6 @@
 /** Pure finance calculations. Every report is derived from invoices, bills, expenses and payments; nothing is hard-coded. */
 import { EQUIPMENT, FIN_START, LOAN, OPENING_CASH, type Account, type Bill, type Expense, type FinLine, type Invoice, type Payment } from "./seed-fin";
-import { DEMO_TODAY, addDays, daysBetween, monthKey, round2 } from "./util";
+import { DEMO_TODAY, addDays, daysBetween, monthKey, onBank, round2 } from "./util";
 
 export interface FinData { accounts: Account[]; invoices: Invoice[]; bills: Bill[]; expenses: Expense[] }
 export const lineNet = (lines: FinLine[]) => round2(lines.reduce((a, l) => a + l.qty * l.price, 0));
@@ -47,3 +47,32 @@ export const AGE_BUCKETS = ["Current", "1–30 days", "31–60 days", "61–90 d
 export const ageBucket = (due: string, today = DEMO_TODAY) => { const d = daysBetween(due, today); return d <= 0 ? 0 : d <= 30 ? 1 : d <= 60 ? 2 : d <= 90 ? 3 : 4; };
 export function monthlyPL(f: FinData, months: string[]) { return months.map((m) => { const pl = profitAndLoss(f, `${m}-01`, `${m}-31`); return { month: m, revenue: pl.totalRevenue, expenses: pl.totalExpenses, profit: pl.netProfit }; }); }
 export const monthsOf = (f: FinData) => [...new Set([...f.invoices.map((i) => monthKey(i.date)), ...f.expenses.map((e) => monthKey(e.date))])].sort();
+
+/** A cash movement as the books record it; `onBank` says whether the sample bank statement shows it. */
+export interface CashTx { id: string; date: string; kind: "Receipt" | "Supplier payment" | "Expense"; party: string; ref: string; amount: number; onBank: boolean }
+export function cashMovements(f: FinData, custName: (id: string) => string): CashTx[] {
+  return [
+    ...f.invoices.flatMap((i) => i.payments.map((p) => ({ id: p.id, date: p.date, kind: "Receipt" as const, party: custName(i.customerId), ref: `${p.ref} (${i.number})`, amount: p.amount, onBank: onBank(p.id) }))),
+    ...f.bills.flatMap((b) => b.payments.map((p) => ({ id: p.id, date: p.date, kind: "Supplier payment" as const, party: b.supplier, ref: `${p.ref} (${b.number})`, amount: -p.amount, onBank: onBank(p.id) }))),
+    ...f.expenses.map((e) => ({ id: e.id, date: e.date, kind: "Expense" as const, party: e.vendor, ref: e.note, amount: -e.amount, onBank: onBank(e.id) })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
+}
+/** One bank-statement line with no matching book entry yet (the user can record it as an expense). */
+export const BANK_ONLY = { id: "bank-chg-0326", date: "2026-03-14", desc: "Bank charges (statement)", amount: -42.5, expenseId: "exbank-chg-0326" };
+
+/** Double-entry view of the same records: every posting has a debit or a credit, and total debits always equal total credits. */
+export interface LedgerRow { id: string; date: string; ref: string; desc: string; account: string; category: string; debit: number; credit: number; status: string }
+export function ledgerRows(f: FinData, custName: (id: string) => string, reconciled: string[] = []): LedgerRow[] {
+  const aName = (id: string) => `${id} ${f.accounts.find((a) => a.id === id)?.name ?? ""}`.trim();
+  const out: LedgerRow[] = []; const add = (id: string, date: string, ref: string, desc: string, acct: string, category: string, debit: number, credit: number, status: string) => { if (debit || credit) out.push({ id, date, ref, desc, account: aName(acct), category, debit: round2(debit), credit: round2(credit), status }); };
+  const byAcct = (lines: FinLine[]) => { const m = new Map<string, number>(); for (const l of lines) m.set(l.accountId, round2((m.get(l.accountId) ?? 0) + l.qty * l.price)); return [...m.entries()]; };
+  for (const i of f.invoices) { if (i.draft) continue; const t = docTotals(i), st = invStatus(i), who = custName(i.customerId);
+    add(`${i.id}-ar`, i.date, i.number, `Invoice to ${who}`, "1100", "Sales invoice", t.total, 0, st);
+    byAcct(i.lines).forEach(([a, v]) => add(`${i.id}-rev-${a}`, i.date, i.number, `Invoice to ${who}`, a, "Sales invoice", 0, v, st)); add(`${i.id}-tax`, i.date, i.number, `Sales tax on ${i.number}`, "2100", "Sales invoice", 0, t.tax, st);
+    for (const p of i.payments) { const s = reconciled.includes(p.id) ? "Reconciled" : "Unreconciled"; add(`${p.id}-d`, p.date, p.ref, `Receipt from ${who} (${i.number})`, "1000", "Customer receipt", p.amount, 0, s); add(`${p.id}-c`, p.date, p.ref, `Receipt from ${who} (${i.number})`, "1100", "Customer receipt", 0, p.amount, s); } }
+  for (const b of f.bills) { const t = docTotals(b), st = billStatus(b);
+    byAcct(b.lines).forEach(([a, v]) => add(`${b.id}-exp-${a}`, b.date, b.number, `Bill from ${b.supplier}`, a, "Supplier bill", v, 0, st)); add(`${b.id}-tax`, b.date, b.number, `Input tax on ${b.number}`, "2100", "Supplier bill", t.tax, 0, st); add(`${b.id}-ap`, b.date, b.number, `Bill from ${b.supplier}`, "2000", "Supplier bill", 0, t.total, st);
+    for (const p of b.payments) { const s = reconciled.includes(p.id) ? "Reconciled" : "Unreconciled"; add(`${p.id}-d`, p.date, p.ref, `Payment to ${b.supplier} (${b.number})`, "2000", "Supplier payment", p.amount, 0, s); add(`${p.id}-c`, p.date, p.ref, `Payment to ${b.supplier} (${b.number})`, "1000", "Supplier payment", 0, p.amount, s); } }
+  for (const e of f.expenses) { const s = reconciled.includes(e.id) ? "Reconciled" : "Unreconciled"; add(`${e.id}-d`, e.date, e.id.toUpperCase(), `${e.vendor}: ${e.note}`, e.accountId, "Expense", e.amount, 0, s); add(`${e.id}-c`, e.date, e.id.toUpperCase(), `${e.vendor}: ${e.note}`, "1000", "Expense", 0, e.amount, s); }
+  return out.sort((a, b) => b.date.localeCompare(a.date) || a.ref.localeCompare(b.ref));
+}
