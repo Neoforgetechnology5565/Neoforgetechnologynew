@@ -32,3 +32,12 @@ body { @apply bg-white text-stone-900 antialiased; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
+
+/* Printing for the CRM/ERP/HRM demos: printNow() clones the document into #print-root; only that is printed. */
+#print-root { display: none; }
+@media print {
+  body.erp-printing > *:not(#print-root) { display: none !important; }
+  body.erp-printing #print-root { display: block !important; }
+  #print-root .print-area { border: 0 !important; box-shadow: none !important; padding: 0 !important; }
+  .no-print { display: none !important; }
+}

@@ -1,6 +1,7 @@
 import { SERVICES } from "@/lib/services";
 import { DEMOS } from "@/lib/demos";
 import { CV_DEMOS } from "@/lib/cv-demos";
+import { ERP_DEMOS } from "@/lib/erp-demos";
 import type { MetadataRoute } from "next";
 import { getCategories, getPublishedPosts, getPublishedProjects } from "@/lib/db";
 import { DIVISIONS } from "@/lib/divisions";
@@ -13,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing", "/demos"].map((p) => ({ url: `${base}${p}` })),
     ...DEMOS.map((d) => ({ url: `${base}/demos/${d.slug}` })),
+    ...ERP_DEMOS.map((d) => ({ url: `${base}/erp-demos/${d.slug}` })),
     ...CV_DEMOS.filter((d) => d.status === "live").map((d) => ({ url: `${base}/ai-demos/${d.slug}` })),
     ...SERVICES.map((s) => ({ url: `${base}/services/${s.slug}` })),
     ...DIVISIONS.flatMap((d) => [{ url: `${base}/${d.slug}` }, { url: `${base}/portfolio/${d.slug}` }]),

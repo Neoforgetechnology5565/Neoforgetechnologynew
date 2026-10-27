@@ -11,7 +11,9 @@
     "test:cctv": "tsx src/lib/cctv/cctv.test.ts",
     "test:cctv:api": "node scripts/test-cctv-api.mjs",
     "test:cctv:ui": "node scripts/test-cctv-ui.mjs",
-    "cctv:samples": "node scripts/make-cctv-samples.mjs"
+    "cctv:samples": "node scripts/make-cctv-samples.mjs",
+    "test:biz": "tsx src/lib/biz/biz.test.ts",
+    "test:erp": "node scripts/test-erp-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
