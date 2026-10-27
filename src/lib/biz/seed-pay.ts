@@ -17,8 +17,9 @@ export const seedPay = () => {
       att.push({ id: `at${n++}`, empId: e.id, date: d, in: hm(inM), out: hm(outM) });
     }
   }
+  for (const [emp, d] of [["e08", "2026-03-11"], ["e12", "2026-03-12"], ["e19", "2026-03-05"]]) { const a = att.find((x) => x.empId === emp && x.date === d); if (a) a.out = ""; } // missing clock-outs for the exceptions queue
   const config = DEFAULT_CONFIG(); const assigns: ShiftAssign[] = [];
   const febLines = payable(h.employees, "2026-02").map((e) => payLine(e, "2026-02", att, h.leave, assigns, config, "2026-02-28"));
   const runs: PayRun[] = [{ id: "run-2026-02", period: "2026-02", status: "Finalised", createdAt: "2026-02-26", lines: febLines }];
-  return { attendance: att, shifts: assigns, config, runs };
+  return { attendance: att, shifts: assigns, config, runs, excused: [] as string[] };
 };

@@ -5,33 +5,122 @@ import { DEFAULT_CONFIG, PAY_TODAY, RULES_TEXT, SHIFTS, hoursOf, lastDay, lateMi
 import type { Employee } from "@/lib/biz/seed-hrm";
 import { DEMO_TODAY, addDays, downloadCsv, downloadJson, fmtDate, fmtShort, groupBy, isWeekend, money, moneyK, monthLabel, pct, round2, sum, uid } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { Badge, BarChart, Btn, DataTable, Donut, Empty, ErpShell, FilterSelect, HBars, Kpi, KpiRow, Modal, Notice, PageHead, Panel, PrintSheet, SelectIn, Tabs, TextIn, printNow, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Empty, FilterSelect, HBars, Kpi, KpiRow, Modal, Notice, PageHead, Panel, PrintSheet, ResetButton, Segmented, SelectIn, Tabs, TextIn, printNow, useConfirm, useToast, type Col } from "./kit";
 
-const NAV = [{ id: "dash", label: "Attendance dashboard", group: "Attendance" }, { id: "register", label: "Attendance register", group: "Attendance" }, { id: "timesheets", label: "Employee timesheets", group: "Attendance" }, { id: "shifts", label: "Shift calendar", group: "Attendance" }, { id: "overtime", label: "Overtime summary", group: "Attendance" },
-  { id: "overview", label: "Payroll overview", group: "Payroll" }, { id: "run", label: "Payroll run preview", group: "Payroll" }, { id: "payslip", label: "Payslip preview", group: "Payroll" }, { id: "reports", label: "Payroll reports", group: "Payroll" }];
+/* Attendance control room: a dark operations console. The home view is a live day board (scheduled vs actual timeline per person); exceptions, shifts, timesheets and payroll sit behind a console tab bar. */
+const NAV = [{ id: "attendance", label: "Attendance" }, { id: "shifts", label: "Shifts" }, { id: "timesheets", label: "Timesheets" }, { id: "payroll", label: "Payroll" }, { id: "exceptions", label: "Exceptions" }, { id: "reports", label: "Reports" }];
 const PERIODS = ["2026-03", "2026-02"]; const M = (n: number) => money(n);
 const RuleNote = () => <Notice tone="amber">{RULES_TEXT}</Notice>;
 const PeriodSel = ({ v, on }: { v: string; on(v: string): void }) => <select aria-label="Period" data-testid="period" value={v} onChange={(e) => on(e.target.value)} className="rounded-md border border-slate-300 bg-white px-2 py-1.5 text-sm">{PERIODS.map((p) => <option key={p} value={p}>{monthLabel(p)}{p === "2026-03" ? " (to date)" : ""}</option>)}</select>;
+const mins = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 
 export default function PayrollApp({ branding }: { branding: Branding }) {
-  const [screen, setScreen] = useState("dash"); const [period, setPeriod] = useState("2026-03"); const [slip, setSlip] = useState<{ run: string; emp: string } | null>(null);
+  const [screen, setScreen] = useState("attendance"); const [period, setPeriod] = useState("2026-03"); const [slip, setSlip] = useState<{ run: string; emp: string } | null>(null);
+  const [date, setDate] = useState("2026-03-13"); const [shift, setShift] = useState("all"); const [clock, setClock] = useState<null | { empId?: string; action?: string }>(null);
+  const { pay, hrm } = useData(); const open = exceptionsOf(pay, hrm, EXC_FROM, PAY_TODAY).filter((x) => !pay.excused.includes(x.key)).length;
   return (
-    <ErpShell branding={branding} title="NorthPeak Workforce" subtitle="Attendance, shifts & simulated payroll · fictional employees" nav={NAV} active={screen} onNav={setScreen} onReset={() => resetDb(["pay"])}
-      note="Demonstration only. Payroll rules are example assumptions, not country-specific legal compliance. No salary payment occurs and no real data is used. Stored only in this browser (localStorage); no server.">
-      {screen === "dash" && <AttDash period={period} setPeriod={setPeriod} />}
-      {screen === "register" && <Register />}
-      {screen === "timesheets" && <Timesheets />}
-      {screen === "shifts" && <Shifts />}
-      {screen === "overtime" && <Overtime period={period} setPeriod={setPeriod} />}
-      {screen === "overview" && <Overview go={(r, e) => { setSlip({ run: r, emp: e }); setScreen("payslip"); }} runPage={() => setScreen("run")} />}
-      {screen === "run" && <Run period={period} setPeriod={setPeriod} openSlip={(r, e) => { setSlip({ run: r, emp: e }); setScreen("payslip"); }} />}
-      {screen === "payslip" && <Payslip initial={slip} />}
-      {screen === "reports" && <PayReports period={period} setPeriod={setPeriod} />}
-    </ErpShell>
+    <AppProviders className="bg-slate-200 text-slate-800" note="Demonstration only. Payroll rules are example assumptions, not country-specific legal compliance. No salary payment occurs and no real data is used. Clock events are simulated. Stored only in this browser (localStorage); no server.">
+      <header className="no-print bg-slate-950 text-slate-100">
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
+          <BrandLogo branding={branding} height={28} />
+          <div><h1 className="font-display text-xl font-semibold text-white">NorthPeak Workforce · Control room</h1><p className="text-sm text-slate-300">Attendance, shifts and simulated payroll · fictional employees</p></div>
+          <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge text="Simulated clock events · local data" /><Btn kind="primary" onClick={() => setClock({})} testid="clock-btn">Clock in / out</Btn><ResetButton onReset={() => resetDb(["pay"])} /><DemoLinks compact /></div>
+        </div>
+        <div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-t border-slate-800 px-5 py-3">
+          <div className="flex items-center gap-2" role="group" aria-label="Date"><Btn small onClick={() => setDate(addDays(date, -1))} aria-label="Previous day">‹</Btn><input aria-label="Day" type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-[15px] text-white [color-scheme:dark]" /><Btn small onClick={() => setDate(addDays(date, 1))} aria-label="Next day">›</Btn><Btn small onClick={() => setDate("2026-03-13")}>Latest data</Btn></div>
+          <div role="group" aria-label="Shift filter" className="flex overflow-hidden rounded-md border border-slate-600 text-[15px]">{[["all", "All shifts"], ["Early", "Early"], ["Day", "Day"], ["Late", "Late"]].map(([id, l]) => <button key={id} type="button" aria-pressed={shift === id} onClick={() => setShift(id)} className={`px-3 py-1.5 ${shift === id ? "bg-blue-600 font-semibold text-white" : "text-slate-200 hover:bg-slate-800"}`}>{l}</button>)}</div>
+          <p className="text-sm text-slate-300">{["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date(date + "T00:00:00Z").getUTCDay()]}, {fmtDate(date)}{isWeekend(date) ? " · weekend" : ""}</p>
+        </div>
+        <nav aria-label="Control room sections" className="flex flex-wrap gap-1 border-t border-slate-800 px-4">
+          {NAV.map((n) => <button key={n.id} type="button" data-nav={n.id} aria-current={screen === n.id ? "page" : undefined} onClick={() => setScreen(n.id)} className={`border-t-[3px] px-5 py-2.5 text-[16px] font-medium ${screen === n.id ? "border-blue-500 bg-slate-200 text-slate-900" : "border-transparent text-slate-200 hover:bg-slate-900"}`}>{n.label}{n.id === "exceptions" && open > 0 && <span className="ml-2 rounded-full bg-red-600 px-2 text-[13px] font-semibold text-white">{open}</span>}</button>)}
+        </nav>
+      </header>
+      <main className="min-w-0 flex-1 p-4 sm:p-5" id="app-main">
+        {screen === "attendance" && <Attendance date={date} shift={shift} setClock={setClock} />}
+        {screen === "shifts" && <Shifts />}
+        {screen === "timesheets" && <Timesheets />}
+        {screen === "payroll" && <PayrollSection period={period} setPeriod={setPeriod} slip={slip} setSlip={setSlip} />}
+        {screen === "exceptions" && <Exceptions setClock={setClock} />}
+        {screen === "reports" && <ReportsSection period={period} setPeriod={setPeriod} />}
+      </main>
+      {clock && <ClockForm defaults={{ ...clock, date }} onClose={() => setClock(null)} />}
+    </AppProviders>
   );
 }
 const useData = () => { const [pay, setPay] = useSlice("pay"); const [hrm] = useSlice("hrm"); const name = (id: string) => hrm.employees.find((e) => e.id === id)?.name ?? "?"; return { pay, setPay, hrm, name, emps: hrm.employees.filter((e) => e.status !== "Resigned") }; };
 const statusOf = (a: Att, e: Employee | undefined, assigns: ReturnType<typeof useData>["pay"]["shifts"], grace: number) => (!a.out ? "Clocked in" : e && lateMinutes(a, shiftFor(e, a.date, assigns), grace) ? "Late" : "On time");
+
+/* ───────── Exceptions ───────── */
+/** The open pay period; lateness only becomes an exception beyond this many minutes (smaller delays still show on the board and in reports). */
+const EXC_FROM = "2026-03-01", LATE_EXC_MIN = 20;
+type Exc = { key: string; type: "Missing clock-out" | "Late arrival" | "Absent, no leave" | "Very long day"; empId: string; date: string; detail: string };
+function exceptionsOf(pay: ReturnType<typeof useData>["pay"], hrm: ReturnType<typeof useData>["hrm"], from: string, to: string): Exc[] {
+  const out: Exc[] = []; const emps = hrm.employees.filter((e) => e.status !== "Resigned");
+  for (const a of pay.attendance) { if (a.date < from || a.date > to) continue; const e = emps.find((x) => x.id === a.empId); if (!e) continue;
+    if (!a.out) out.push({ key: `miss:${a.empId}:${a.date}`, type: "Missing clock-out", empId: a.empId, date: a.date, detail: `Clocked in ${a.in}, no clock-out recorded; hours cannot be calculated` });
+    else { const l = lateMinutes(a, shiftFor(e, a.date, pay.shifts), pay.config.graceMin); if (l >= LATE_EXC_MIN) out.push({ key: `late:${a.empId}:${a.date}`, type: "Late arrival", empId: a.empId, date: a.date, detail: `${l} minutes after shift start (grace ${pay.config.graceMin} min)` }); if (hoursOf(a, pay.config.breakMin) > 11) out.push({ key: `long:${a.empId}:${a.date}`, type: "Very long day", empId: a.empId, date: a.date, detail: `${hoursOf(a, pay.config.breakMin)} paid hours in one day` }); } }
+  for (const e of emps) for (let d = from < e.hireDate ? e.hireDate : from; d <= to && d <= "2026-03-13"; d = addDays(d, 1)) if (!isWeekend(d) && !pay.attendance.some((a) => a.empId === e.id && a.date === d) && !onLeave(hrm.leave, e.id, d) && e.id !== "e29") out.push({ key: `abs:${e.id}:${d}`, type: "Absent, no leave", empId: e.id, date: d, detail: "No clock-in and no approved leave" });
+  return out.sort((a, b) => b.date.localeCompare(a.date));
+}
+function Exceptions({ setClock }: { setClock(c: { empId?: string; action?: string }): void }) {
+  const { pay, setPay, hrm, name } = useData(); const toast = useToast(); const [type, setType] = useState(""); const [show, setShow] = useState("open");
+  const all = useMemo(() => exceptionsOf(pay, hrm, EXC_FROM, PAY_TODAY), [pay, hrm]); const rows = all.filter((x) => (!type || x.type === type) && (show === "all" || (show === "open") === !pay.excused.includes(x.key)));
+  const excuse = (x: Exc) => { setPay((s) => ({ ...s, excused: [...s.excused, x.key] })); logActivity("Payroll", `Exception reviewed: ${x.type} · ${name(x.empId)}`); toast("Marked as reviewed"); };
+  const fix = (x: Exc) => { const e = hrm.employees.find((q) => q.id === x.empId)!; const end = SHIFTS[shiftFor(e, x.date, pay.shifts)].end || "17:00"; setPay((s) => ({ ...s, attendance: s.attendance.map((a) => (a.empId === x.empId && a.date === x.date ? { ...a, out: end, note: "Clock-out corrected to shift end" } : a)) })); logActivity("Payroll", `Clock-out corrected for ${e.name} on ${x.date}`); toast(`${e.name}: clock-out set to ${end}`); };
+  const cols: Col<Exc>[] = [{ key: "date", label: "Date", render: (x) => fmtDate(x.date) }, { key: "emp", label: "Employee", value: (x) => name(x.empId) }, { key: "type", label: "Exception", render: (x) => <Badge tone={x.type === "Missing clock-out" || x.type === "Absent, no leave" ? "red" : "amber"}>{x.type}</Badge> }, { key: "detail", label: "Detail" },
+    { key: "state", label: "Status", value: (x) => (pay.excused.includes(x.key) ? "Reviewed" : "Open"), render: (x) => <Badge tone={pay.excused.includes(x.key) ? "green" : "slate"}>{pay.excused.includes(x.key) ? "Reviewed" : "Open"}</Badge> },
+    { key: "act", label: "", noSort: true, noCsv: true, render: (x) => pay.excused.includes(x.key) ? null : <div className="flex flex-wrap gap-1">{x.type === "Missing clock-out" && <Btn small kind="primary" onClick={() => fix(x)} aria-label={`Set clock-out for ${name(x.empId)} ${x.date}`}>Set clock-out to shift end</Btn>}{x.type === "Absent, no leave" && <Btn small onClick={() => setClock({ empId: x.empId })}>Add record</Btn>}<Btn small onClick={() => excuse(x)} aria-label={`Mark reviewed ${name(x.empId)} ${x.date}`}>Mark reviewed</Btn></div> }];
+  const cfg = pay.config; const setCfg = (p: Partial<typeof cfg>) => setPay((s) => ({ ...s, config: { ...s.config, ...p } }));
+  return (<>
+    <PageHead title="Exceptions" sub={`Problems in the open pay period (from ${fmtDate(EXC_FROM)}) that stop hours or pay being calculated correctly: missing clock-outs, absences without leave, arrivals more than ${LATE_EXC_MIN} minutes late and very long days.`} actions={<><FilterSelect label="Type" value={type} onChange={setType} options={["Missing clock-out", "Absent, no leave", "Late arrival", "Very long day"]} /><Segmented label="Show" value={show} onChange={setShow} options={[{ id: "open", label: "Open" }, { id: "done", label: "Reviewed" }, { id: "all", label: "All" }]} /></>} />
+    <Panel title="Rules that raise exceptions (configurable)" className="mb-4"><div className="flex flex-wrap items-end gap-4"><TextIn label="Overtime starts after (paid hours / weekday)" type="number" min={1} max={12} value={cfg.dailyHours} onChange={(e) => setCfg({ dailyHours: Math.max(1, Math.min(12, Number(e.target.value) || 8)) })} className="w-72" data-testid="ot-threshold" /><TextIn label="Late grace (minutes)" type="number" min={0} max={60} value={cfg.graceMin} onChange={(e) => setCfg({ graceMin: Math.max(0, Math.min(60, Number(e.target.value) || 0)) })} className="w-44" /><p className="max-w-md text-sm text-slate-600">Changing these updates overtime hours, late flags and payroll previews immediately. Multipliers and pay items are under Payroll.</p></div></Panel>
+    <DataTable rows={rows} columns={cols} rowKey={(x) => x.key} exportName="attendance-exceptions" testid="exception-table" defaultSort={{ key: "date", dir: -1 }} pageSize={12} empty="No exceptions in this view." />
+  </>);
+}
+
+/* ───────── Attendance: day board ───────── */
+const T0 = 6 * 60, T1 = 22 * 60; const pos = (m: number) => `${Math.max(0, Math.min(100, ((m - T0) / (T1 - T0)) * 100))}%`;
+function Attendance({ date, shift, setClock }: { date: string; shift: string; setClock(c: { empId?: string; action?: string }): void }) {
+  const { pay, hrm, emps } = useData(); const [view, setView] = useState("board"); const [edit, setEdit] = useState<Att | null>(null);
+  const rows = emps.filter((e) => e.id !== "e29" || true).map((e) => { const sh = shiftFor(e, date, pay.shifts); const a = pay.attendance.find((x) => x.empId === e.id && x.date === date); const lv = onLeave(hrm.leave, e.id, date); const late = a ? lateMinutes(a, sh, pay.config.graceMin) : 0; const o = a ? overtimeOf(a, pay.config) : { wk: 0, we: 0 };
+    const st = lv ? "On leave" : a ? (!a.out ? "No clock-out" : late ? "Late" : "On time") : sh === "Off" ? "Off" : "Absent"; return { e, sh, a, lv, late, ot: o.wk + o.we, hours: a ? hoursOf(a, pay.config.breakMin) : 0, st }; }).filter((r) => shift === "all" || r.sh === shift);
+  const n = (f: (r: (typeof rows)[number]) => boolean) => rows.filter(f).length;
+  const stats = [["Scheduled", n((r) => r.sh !== "Off" && !r.lv)], ["Present", n((r) => !!r.a)], ["Late", n((r) => r.st === "Late")], ["Absent", n((r) => r.st === "Absent")], ["On leave", n((r) => r.lv)], ["No clock-out", n((r) => r.st === "No clock-out")], ["Overtime h", Number(sum(rows, (r) => r.ot).toFixed(1))]] as const;
+  const ticks = Array.from({ length: 8 }, (_, i) => 6 + i * 2);
+  return (<>
+    <ul className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-xl bg-slate-700 sm:grid-cols-4 xl:grid-cols-7" aria-label="Day summary">{stats.map(([l, v]) => <li key={l} className="bg-slate-900 px-4 py-3 text-slate-100"><p className="text-sm text-slate-300">{l}</p><p className={`font-display text-3xl font-semibold tabular-nums ${(l === "Absent" || l === "No clock-out") && v > 0 ? "text-red-300" : l === "Late" && v > 0 ? "text-amber-300" : "text-white"}`} data-testid={`stat-${l.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{v}</p></li>)}</ul>
+    <div className="mb-3 flex flex-wrap items-center gap-2"><Segmented label="Attendance view" value={view} onChange={setView} options={[{ id: "board", label: "Day timeline" }, { id: "register", label: "Register and absences" }]} />{view === "board" && <span className="text-sm text-slate-600">Outlined bar = scheduled shift · filled bar = actual clock-in to clock-out · violet = overtime · red hatch = no clock-out</span>}</div>
+    {view === "board" ? <section className="overflow-x-auto rounded-xl border border-slate-700 bg-slate-900 text-slate-100" aria-label="Day timeline" data-testid="day-board">
+      <div className="min-w-[1040px]">
+        <div className="grid grid-cols-[210px_1fr_310px] border-b border-slate-700 text-sm text-slate-300"><div className="px-3 py-2">Employee · shift</div><div className="relative h-9">{ticks.map((h) => <span key={h} className="absolute top-2 -translate-x-1/2" style={{ left: pos(h * 60) }}>{String(h).padStart(2, "0")}:00</span>)}</div><div className="grid grid-cols-[64px_44px_1fr] px-3 py-2"><span>Hours</span><span>OT</span><span>Status</span></div></div>
+        {rows.map((r) => { const s = SHIFTS[r.sh]; const inM = r.a ? mins(r.a.in) : 0; const outM = r.a ? (r.a.out ? mins(r.a.out) : s.end ? mins(s.end) : inM + 480) : 0; const shEnd = s.end ? mins(s.end) : 0; const color = r.st === "Late" ? "bg-amber-400" : r.st === "No clock-out" ? "bg-red-500/70 [background-image:repeating-linear-gradient(45deg,transparent,transparent_6px,rgba(0,0,0,.35)_6px,rgba(0,0,0,.35)_12px)]" : "bg-emerald-500";
+          return (<div key={r.e.id} className="grid grid-cols-[210px_1fr_310px] items-center border-b border-slate-800 hover:bg-slate-800/60" data-testid="board-row">
+            <div className="px-3 py-2"><p className="text-[15px] font-medium text-white">{r.e.name}</p><p className="text-sm text-slate-300">{r.e.dept} · {r.sh === "Off" ? "Off" : r.sh}</p></div>
+            <div className="relative mx-1 h-9">{ticks.map((h) => <span key={h} className="absolute top-0 h-full border-l border-slate-800" style={{ left: pos(h * 60) }} />)}
+              {s.start && <span className="absolute top-1 h-7 rounded border border-slate-400/70" style={{ left: pos(mins(s.start)), width: `calc(${pos(mins(s.end))} - ${pos(mins(s.start))})` }} title={`Scheduled ${s.label}`} />}
+              {r.a && <span className={`absolute top-2.5 h-4 rounded ${color}`} style={{ left: pos(inM), width: `calc(${pos(Math.max(outM, inM + 10))} - ${pos(inM)})` }} title={`Actual ${r.a.in}–${r.a.out || "no clock-out"}`} />}
+              {r.a?.out && shEnd > 0 && outM > shEnd + 30 && <span className="absolute top-2.5 h-4 rounded-r bg-violet-400" style={{ left: pos(shEnd + 30), width: `calc(${pos(outM)} - ${pos(shEnd + 30)})` }} title="Time beyond shift" />}
+              {!r.a && <span className="absolute inset-y-0 left-3 flex items-center text-sm text-slate-400">{r.lv ? "On approved leave" : r.sh === "Off" ? "Not scheduled" : "No clock-in recorded"}</span>}</div>
+            <div className="grid grid-cols-[64px_44px_1fr] items-center gap-1 px-3 py-2 text-[15px]"><span className="tabular-nums">{r.hours ? r.hours.toFixed(2) : "—"}</span><span className="tabular-nums text-violet-300">{r.ot ? r.ot.toFixed(1) : "—"}</span>
+              <span className="flex items-center gap-1.5"><span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[13px] font-semibold ${r.st === "Late" ? "bg-amber-400 text-slate-900" : r.st === "On time" ? "bg-emerald-500 text-slate-900" : r.st === "Absent" || r.st === "No clock-out" ? "bg-red-500 text-white" : r.st === "On leave" ? "bg-sky-400 text-slate-900" : "bg-slate-600 text-white"}`}>{r.st}</span>
+                {r.a ? <button type="button" className="rounded border border-slate-500 px-2 py-0.5 text-sm hover:bg-slate-700" onClick={() => setEdit(r.a!)} aria-label={`Edit ${r.e.name} ${date}`}>Edit</button> : r.st === "Absent" ? <button type="button" className="rounded border border-slate-500 px-2 py-0.5 text-sm hover:bg-slate-700" onClick={() => setClock({ empId: r.e.id })}>Clock in</button> : null}</span></div></div>); })}
+        {rows.length === 0 && <p className="px-4 py-8 text-center text-slate-300">No one is on this shift.</p>}
+      </div></section> : <Register />}
+    {edit && <EditAtt att={edit} onClose={() => setEdit(null)} />}</>);
+}
+
+/* ───────── Tab sections ───────── */
+function PayrollSection({ period, setPeriod, slip, setSlip }: { period: string; setPeriod(v: string): void; slip: { run: string; emp: string } | null; setSlip(s: { run: string; emp: string } | null): void }) {
+  const [v, setV] = useState("overview");
+  const openSlip = (r: string, e: string) => { setSlip({ run: r, emp: e }); setV("payslip"); };
+  return (<><div className="mb-3"><Segmented label="Payroll view" value={v} onChange={setV} options={[{ id: "overview", label: "Overview and rules" }, { id: "run", label: "Run preview" }, { id: "payslip", label: "Payslip" }]} /></div>
+    {v === "overview" && <Overview go={openSlip} runPage={() => setV("run")} />}{v === "run" && <Run period={period} setPeriod={setPeriod} openSlip={openSlip} />}{v === "payslip" && <Payslip initial={slip} />}</>);
+}
+function ReportsSection({ period, setPeriod }: { period: string; setPeriod(v: string): void }) {
+  const [v, setV] = useState("attendance");
+  return (<><div className="mb-3"><Segmented label="Report" value={v} onChange={setV} options={[{ id: "attendance", label: "Attendance analytics" }, { id: "overtime", label: "Overtime" }, { id: "payroll", label: "Payroll reports and exports" }]} /></div>
+    {v === "attendance" && <AttDash period={period} setPeriod={setPeriod} />}{v === "overtime" && <Overtime period={period} setPeriod={setPeriod} />}{v === "payroll" && <PayReports period={period} setPeriod={setPeriod} />}</>);
+}
 
 /* ───────── Dashboard ───────── */
 function AttDash({ period, setPeriod }: { period: string; setPeriod(v: string): void }) {
@@ -64,8 +153,8 @@ function Register() {
       <><div className="mb-3 flex flex-wrap gap-2">{filters}</div><DataTable rows={absences} columns={[{ key: "date", label: "Date", render: (a) => fmtDate(a.date) }, { key: "emp", label: "Employee", value: (a) => name(a.empId) }, { key: "why", label: "Reason", value: () => "No clock-in and no approved leave", noSort: true }]} rowKey={(a) => a.id} exportName="attendance-absences" testid="absence-table" /></>}</div>
     {clock && <ClockForm onClose={() => setClock(false)} />}{edit && <EditAtt att={edit} onClose={() => setEdit(null)} />}</>);
 }
-function ClockForm({ onClose }: { onClose(): void }) {
-  const { pay, setPay, hrm, emps } = useData(); const toast = useToast(); const [f, setF] = useState({ empId: emps[0]?.id ?? "", date: PAY_TODAY, time: "09:00", action: "in" }); const [err, setErr] = useState("");
+function ClockForm({ onClose, defaults }: { onClose(): void; defaults?: { empId?: string; date?: string; action?: string } }) {
+  const { pay, setPay, hrm, emps } = useData(); const toast = useToast(); const [f, setF] = useState({ empId: defaults?.empId ?? emps[0]?.id ?? "", date: defaults?.date ?? PAY_TODAY, time: "09:00", action: defaults?.action ?? "in" }); const [err, setErr] = useState("");
   const run = () => {
     const e = hrm.employees.find((x) => x.id === f.empId)!; const open = pay.attendance.find((a) => a.empId === f.empId && a.date === f.date);
     if (f.action === "in") { if (open) return setErr(`${e.name} already has a record for this date.`); if (onLeave(hrm.leave, f.empId, f.date)) return setErr(`${e.name} is on approved leave on this date.`); setPay((s) => ({ ...s, attendance: [...s.attendance, { id: uid("at"), empId: f.empId, date: f.date, in: f.time, out: "" }] })); toast(`${e.name} clocked in at ${f.time} (simulated)`); }
@@ -180,3 +269,4 @@ function PayReports({ period, setPeriod }: { period: string; setPeriod(v: string
     {!run ? <Empty>No payroll run for {monthLabel(period)}. Create one in “Payroll run preview”.</Empty> : <><Tabs value={tab} onChange={setTab} tabs={[{ id: "dept", label: "Cost by department" }, { id: "ded", label: "Deductions" }, { id: "cmp", label: "Run comparison" }]} />
       <Panel className="mt-3">{tab === "dept" && <BarChart ariaLabel="Gross and net by department" data={byDept.map((d) => ({ label: d.dept.split(" ")[0], values: { gross: d.gross, net: d.net } }))} series={[{ key: "gross", label: "Gross" }, { key: "net", label: "Net", color: "#0ea5e9" }]} fmt={moneyK} />}{tab === "ded" && <Donut slices={ded} fmt={M} center={<>{M(sum(ded, (d) => d.value)).replace(".00", "")}</>} size={170} />}{tab === "cmp" && <BarChart ariaLabel="Payroll runs" data={compare} series={[{ key: "gross", label: "Gross" }, { key: "net", label: "Net", color: "#0ea5e9" }]} fmt={moneyK} />}</Panel></>}</>);
 }
+
