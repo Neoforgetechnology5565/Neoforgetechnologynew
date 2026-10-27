@@ -9,6 +9,10 @@ export interface Template { subject: string; preheader: string; heading: string;
 export interface Exec { id: string; at: string; step: string; detail: string }
 export interface Metrics { recipients: number; delivered: number; opened: number; clicked: number; unsubscribed: number; bounced: number }
 export interface Campaign { id: string; name: string; description: string; segmentId: string; status: "Draft" | "Scheduled" | "Sent (simulated)" | "Cancelled"; scheduledFor: string; template: Template; createdAt: string; execution: Exec[]; metrics: Metrics | null }
+export interface Tpl extends Template { id: string; name: string; category: string }
+export type JType = "entry" | "email" | "wait" | "check" | "followup";
+export interface JStep { id: string; type: JType; templateId?: string; days?: number; criterion?: "opened" | "clicked" }
+export interface Journey { id: string; name: string; description: string; segmentId: string; steps: JStep[]; result: { at: string; counts: Record<string, number>; engaged: number } | null }
 const MONTHS = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"];
 export const MERGE_FIELDS = ["{{first_name}}", "{{company}}", "{{industry}}"];
 
@@ -39,5 +43,16 @@ export const seedMkt = () => {
     { id: "cp4", name: "Customer survey", description: "Annual satisfaction survey.", segmentId: "sg1", status: "Draft", scheduledFor: "", createdAt: "2026-03-12", template: tpl("Two minutes to shape our roadmap", "Tell us how we're doing", "Hi {{first_name}},\n\nYour feedback decides what we build next. The survey takes two minutes.", "Take the survey"), execution: [], metrics: null },
     { id: "cp5", name: "Webinar invite: automation in 2026", description: "Invitation to the April webinar.", segmentId: "sg4", status: "Scheduled", scheduledFor: "2026-03-25T08:00", createdAt: "2026-03-10", template: tpl("Join us: automation in {{industry}}", "Automation in 2026", "Hi {{first_name}},\n\nJoin our live session on workflow automation for {{industry}} teams. Save your seat for 9 April.", "Reserve my seat"), execution: [], metrics: null },
   ];
-  return { contacts, lists: LISTS, segments, campaigns };
+  const templates: Tpl[] = [
+    { id: "tp1", name: "Quarterly newsletter", category: "Newsletter", ...tpl("What shipped this quarter, {{first_name}}", "This quarter at NorthPeak", "Hi {{first_name}},\n\nHere is what our team shipped for {{industry}} teams this quarter.\n\nThank you for being part of it.", "Read the update") },
+    { id: "tp2", name: "Product announcement", category: "Announcement", ...tpl("The new dashboard is here", "Meet the new dashboard", "Hi {{first_name}},\n\nWe rebuilt the dashboard for {{company}}-sized teams: faster, clearer and easier to share.", "See what is new") },
+    { id: "tp3", name: "Welcome email", category: "Onboarding", ...tpl("Welcome to NorthPeak, {{first_name}}", "Glad to have you", "Hi {{first_name}},\n\nWelcome. Here are three ways {{company}} can get value in the first week.", "Start here") },
+    { id: "tp4", name: "Gentle follow-up", category: "Follow-up", ...tpl("Did you get a chance to look, {{first_name}}?", "A quick follow-up", "Hi {{first_name}},\n\nJust checking in in case my last note got buried. Happy to answer questions for {{company}}.", "Reply to us") },
+    { id: "tp5", name: "Event invitation", category: "Event", ...tpl("Join us: automation in {{industry}}", "You are invited", "Hi {{first_name}},\n\nJoin our live session on practical automation. Seats are limited.", "Save my seat") },
+  ];
+  const journeys: Journey[] = [
+    { id: "jr1", name: "Welcome series", description: "Greet new subscribers, wait, then follow up with anyone who has not opened.", segmentId: "sg3", result: null, steps: [{ id: "js1", type: "entry" }, { id: "js2", type: "email", templateId: "tp3" }, { id: "js3", type: "wait", days: 3 }, { id: "js4", type: "check", criterion: "opened" }, { id: "js5", type: "followup", templateId: "tp4" }] },
+    { id: "jr2", name: "Webinar nurture", description: "Invite, wait two days, then nudge the people who did not click.", segmentId: "sg4", result: null, steps: [{ id: "js6", type: "entry" }, { id: "js7", type: "email", templateId: "tp5" }, { id: "js8", type: "wait", days: 2 }, { id: "js9", type: "check", criterion: "clicked" }, { id: "js10", type: "followup", templateId: "tp4" }] },
+  ];
+  return { contacts, lists: LISTS, segments, campaigns, templates, journeys };
 };
