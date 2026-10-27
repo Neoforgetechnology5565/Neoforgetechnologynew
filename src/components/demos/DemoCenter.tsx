@@ -40,11 +40,9 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
         </ul>
       </section>
       <section id="full-stack-suite" className="scroll-mt-24 border-t border-stone-200 bg-stone-50/60">
-        <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
-          <h2 className="font-display text-4xl font-semibold text-stone-900 sm:text-5xl">Full-stack CAD / BIM suite · demonstrations 11–21</h2>
-          <p className="mt-3 font-display text-xl font-medium text-blue-700">Applications with a real backend</p>
-          <p className="mt-3 max-w-3xl text-stone-600">Demos 11–21 are sample projects, not finished commercial products. Try them with your own files (DXF, SVG, images, IFC, point clouds) or the bundled samples: they run on a real server and produce downloads such as IFC, GLB, DXF, CSV and PDF. Use them as proof of the kind of work we can do on your project.</p>
-                  </div>
+        <div className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+          <p className="rounded-xl border-2 border-amber-500 bg-amber-50 px-5 py-4 text-base font-bold uppercase tracking-wide text-amber-900 sm:text-lg"><span className="rounded bg-amber-500 px-2 py-0.5 text-white">PROTOTYPE</span> The demos below (11–21) are prototypes: you can open them and test them, but they are not fully working products.</p>
+        </div>
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {SUITE.map((d) => (
