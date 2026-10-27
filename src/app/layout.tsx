@@ -32,7 +32,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [contact, categories, branding] = await Promise.all([getContactSettings(), getCategories(), getBranding()]);
   return (
     <html lang="en" className={GeistMono.variable} data-scroll-behavior="smooth">
-      <body className="min-h-screen font-sans">
+      <body className="app-readable min-h-screen font-sans">
         <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[60] focus:rounded-full focus:bg-blue-600 focus:px-4 focus:py-2 focus:text-white">Skip to content</a>
         <JsonLd data={[organizationLd(contact, branding), websiteLd()]} />
         <Navbar categories={categories} branding={branding} />

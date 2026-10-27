@@ -87,7 +87,7 @@ export const PageHead = ({ title, sub, actions }: { title: string; sub?: string;
 );
 export const Empty = ({ children }: { children: ReactNode }) => <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">{children}</p>;
 export const Notice = ({ tone = "amber", children }: { tone?: Tone; children: ReactNode }) => <p className={`rounded-lg border px-3 py-2 text-xs ${tone === "amber" ? "border-amber-300 bg-amber-50 text-amber-900" : tone === "red" ? "border-red-300 bg-red-50 text-red-800" : "border-blue-200 bg-blue-50 text-blue-900"}`}>{children}</p>;
-export const Avatar = ({ name, size = 28 }: { name: string; size?: number }) => <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-800" style={{ width: size, height: size, fontSize: size * 0.38 }} aria-hidden>{name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}</span>;
+export const Avatar = ({ name, size = 28 }: { name: string; size?: number }) => { const d = Math.max(size, 28); return <span className="inline-flex shrink-0 items-center justify-center rounded-full bg-blue-100 font-semibold text-blue-800" style={{ width: d, height: d, fontSize: Math.max(13, d * 0.38) }} aria-hidden>{name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase()}</span>; };
 
 /* ───────────────────────── Forms ───────────────────────── */
 export const INPUT = "w-full rounded-md border border-slate-300 bg-white px-2.5 py-1.5 text-sm text-slate-900 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:bg-slate-100";

@@ -236,29 +236,29 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
       back={{ href: "/portfolio/computer-vision", label: "Computer Vision portfolio", all: "← All demos" }} contact="/contact?division=computer-vision" badge="Computer vision demo"
       footer={`${CV_DISCLAIMER} Use only fictional, licensed or authorised footage. No face recognition or identity matching. Weapon detection is not supported.`}
       actions={<>{link("csv") ? <a href={link("csv")} className={BTN} download>Export CSV</a> : <button className={BTN} disabled>Export CSV</button>}{link("json") ? <a href={link("json")} className={BTN} download>Export JSON</a> : <button className={BTN} disabled>Export JSON</button>}<button type="button" className={BTN} onClick={reset}>Reset</button></>}>
-      <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[250px_minmax(0,1fr)_360px]">
+      <div className="flex flex-col gap-4 p-3 sm:p-4">
         {/* Sources */}
-        <aside className={`space-y-3 ${src ? "order-2 lg:order-none" : ""}`} aria-label="Video sources">
-          <div className={CARD}>
-            <h2 className={H3}>Sources</h2>
-            <ul className="mt-2 space-y-2">
+        <aside className="flex flex-wrap items-start gap-3" aria-label="Video sources">
+          <div className={`${CARD} min-w-0 flex-[3_1_480px]`}>
+            <h2 className={H3}>Camera and source strip</h2>
+            <ul className="mt-2 flex flex-wrap gap-2">
               {samples.map((s) => (
-                <li key={s.id}><button type="button" onClick={() => chooseSample(s)} disabled={running} className={`w-full rounded-lg border p-2.5 text-left text-xs ${src?.id === s.id ? "border-blue-500 bg-slate-800" : "border-slate-700 hover:border-slate-500"}`}>
+                <li key={s.id} className="w-56 shrink-0"><button type="button" onClick={() => chooseSample(s)} disabled={running} className={`w-full rounded-lg border p-2.5 text-left text-xs ${src?.id === s.id ? "border-blue-500 bg-slate-800" : "border-slate-700 hover:border-slate-500"}`}>
                   <span className="block font-medium text-slate-100">{s.name}</span><span className="mt-0.5 block text-[10px] text-slate-400">Sample file · {s.durationSec}s · reference annotations</span></button></li>
               ))}
-              <li>
+              <li className="w-56 shrink-0">
                 <label className={`block cursor-pointer rounded-lg border border-dashed p-2.5 text-xs ${src?.kind === "upload" ? "border-blue-500 bg-slate-800" : "border-slate-600 hover:border-slate-400"}`}>
                   <span className="block font-medium text-slate-100">{src?.kind === "upload" ? src.name : "Upload a video file"}</span>
                   <span className="mt-0.5 block text-[10px] text-slate-400">MP4 or WebM · max {LIMITS.maxUploadMb} MB · 180 s · fictional or authorised footage only</span>
                   <input type="file" accept="video/mp4,video/webm,.mp4,.webm" className="sr-only" data-testid="file-input" disabled={running} onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
                 </label>
               </li>
-              <li className="rounded-lg border border-slate-800 p-2.5 text-xs opacity-70"><span className="block font-medium text-slate-300">RTSP / IP camera</span><span className="mt-0.5 block text-[10px] text-slate-500">Not connected. {caps?.rtsp.reason ?? "Live camera ingest is not implemented."}</span></li>
-              <li className="rounded-lg border border-slate-800 p-2.5 text-xs opacity-70"><span className="block font-medium text-slate-300">Webcam / live stream</span><span className="mt-0.5 block text-[10px] text-slate-500">Not implemented. This demo analyses recorded clips only.</span></li>
+              <li className="w-56 shrink-0 rounded-lg border border-slate-800 p-2.5 text-xs opacity-70"><span className="block font-medium text-slate-300">RTSP / IP camera</span><span className="mt-0.5 block text-[10px] text-slate-500">Not connected. {caps?.rtsp.reason ?? "Live camera ingest is not implemented."}</span></li>
+              <li className="w-56 shrink-0 rounded-lg border border-slate-800 p-2.5 text-xs opacity-70"><span className="block font-medium text-slate-300">Webcam / live stream</span><span className="mt-0.5 block text-[10px] text-slate-500">Not implemented. This demo analyses recorded clips only.</span></li>
             </ul>
           </div>
           {src && (
-            <div className={CARD}>
+            <div className={`${CARD} flex-[1_1_300px]`}>
               <h2 className={H3}>Run detection</h2>
               {src.kind === "upload" || (src.kind === "sample" && mode === "reference") ? (
                 <>
@@ -271,12 +271,12 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
               {running && <button type="button" className={`${BTN} mt-2 w-full`} onClick={() => { cancelRef.current = true; }}>Stop</button>}
             </div>
           )}
-          <div className={`${CARD} text-[11px] leading-snug text-slate-400`}>
+          <div className={`${CARD} flex-[1_1_300px] text-[11px] leading-snug text-slate-400`}>
             <h2 className={H3}>Honest status</h2>
             <ul className="mt-2 space-y-1"><li>Detector: {caps?.detector.name ?? "…"}</li><li>Speed: offline, a few frames per second on CPU. Not real-time.</li><li>GPU on server: no</li><li>Live cameras: no</li><li>Weapon detection: no</li><li>Face recognition: never</li></ul>
           </div>
         </aside>
-
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         {/* Video workspace */}
         <section className={`min-w-0 space-y-3 ${src ? "order-1 lg:order-none" : ""}`} aria-label="Video workspace">
           <div className={`rounded-lg border px-3 py-2 text-xs ${toneCls[banner.tone]}`} role="status" data-testid="mode-banner">{banner.text}</div>
@@ -305,6 +305,13 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
               <p className="text-[10px] text-slate-500">Boxes update at the analysis rate ({fps} analysed frames per second), not on every video frame. “Frame” steps jump between analysed frames.</p>
             </div>
           </div>
+          {results && results.events.some((e) => e.type !== "object_first_seen") && (
+            <div className={CARD} data-testid="event-lanes"><h2 className={H3}>Event lanes</h2>
+              <ul className="mt-2 space-y-1.5">{[...new Set(results.events.filter((e) => e.type !== "object_first_seen").map((e) => e.type))].map((type) => (
+                <li key={type} className="flex items-center gap-3"><span className="w-40 shrink-0 text-xs capitalize text-slate-300">{type.replace(/_/g, " ")}</span>
+                  <div className="relative h-6 flex-1 rounded bg-slate-900">{results.events.filter((e) => e.type === type).map((e) => <button key={e.id} type="button" onClick={() => seek(e.t)} title={`${mmss(e.t)} · ${e.severity}`} aria-label={`${type.replace(/_/g, " ")} at ${mmss(e.t)}`} className="absolute top-1 h-4 w-2 -translate-x-1/2 rounded-sm" style={{ left: `${(e.t / Math.max(0.01, dur)) * 100}%`, background: SEV_COLOR[e.severity] }} />)}</div></li>))}</ul>
+              <p className="mt-1 text-[10px] text-slate-500">Each marker is one event. Select a marker to jump to that moment.</p></div>
+          )}
           {/* quick filters + editors */}
           <div className={`${CARD} flex flex-wrap items-center gap-x-5 gap-y-3`}>
             <div><span className={LBL}>Classes</span><div className="flex flex-wrap gap-1">{SUPPORTED_CLASSES.map((c) => <Chip key={c} testid={`cls-${c}`} on={settings.classes.includes(c)} onClick={() => { const n = settings.classes.includes(c) ? settings.classes.filter((x) => x !== c) : [...settings.classes, c]; update({ classes: n.length ? n : [c] }); }}>{c}</Chip>)}</div></div>
@@ -335,7 +342,7 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
             {tab === "settings" && <SettingsPanel s={settings} caps={caps} mode={mode ?? ""} update={update} reset={resetSettings} setTool={(t) => { setTool(t); setDraft([]); }} busy={busy} />}
           </div>
         </aside>
-      </div>
+      </div></div>
     </DemoShell>
   );
 }

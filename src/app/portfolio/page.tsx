@@ -4,6 +4,11 @@ import { CtaBand } from "@/components/Blocks";
 import ProjectCard from "@/components/ProjectCard";
 import { getCategories, getPublishedProjects } from "@/lib/db";
 import { DIVISIONS } from "@/lib/divisions";
+import PortfolioGallery, { type GalleryItem } from "@/components/PortfolioGallery";
+import { previewFor } from "@/components/DemoPreview";
+import { ERP_DEMOS } from "@/lib/erp-demos";
+import { CV_DEMOS } from "@/lib/cv-demos";
+import { DEMOS } from "@/lib/demos";
 
 export const metadata: Metadata = {
   title: "Portfolio",
@@ -13,18 +18,25 @@ export const metadata: Metadata = {
 
 export default async function Portfolio() {
   const [projects, cats] = await Promise.all([getPublishedProjects(), getCategories()]);
+  const items: GalleryItem[] = [
+    ...ERP_DEMOS.map((d): GalleryItem => ({ id: `erp-${d.slug}`, group: "crm-hrm-erp", no: d.no, title: d.title, desc: d.problem, tags: d.tags, href: `/erp-demos/${d.slug}`, appHref: `/erp-demos/${d.slug}/app`, status: "live", layout: d.layout, preview: previewFor("crm-hrm-erp", d.slug) })),
+    ...CV_DEMOS.map((d): GalleryItem => ({ id: `cv-${d.slug}`, group: "computer-vision", no: d.no, title: d.title, desc: d.problem, tags: d.tags, href: `/ai-demos/${d.slug}`, appHref: d.status === "live" ? `/ai-demos/${d.slug}/app` : undefined, status: d.status, layout: d.layout, preview: previewFor("computer-vision", d.slug) })),
+    ...DEMOS.map((d): GalleryItem => ({ id: `cad-${d.slug}`, group: "cad-bim", no: d.no, title: d.title, desc: d.problem, tags: d.tags, href: `/demos/${d.slug}`, appHref: d.status === "live" ? `/demos/${d.slug}/app` : undefined, status: d.status, preview: previewFor("cad-bim", d.slug) })),
+  ];
   return (
     <>
       <section className="bg-slate-950 py-16 text-white sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">Portfolio</p>
           <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Work, organised by technology area.</h1>
-          <p className="mt-4 max-w-2xl text-slate-300">Three divisions, three portfolios. Choose where to start.</p>
+          <p className="mt-4 max-w-2xl text-slate-300">A gallery of interactive demonstrations across three divisions, each with its own workspace layout. Search, filter, and open any demo. Items marked “In development” have no working app yet.</p>
           <nav aria-label="Portfolio divisions" className="mt-8 flex flex-wrap gap-2">
             {DIVISIONS.map((d) => <a key={d.slug} href={`#${d.slug}`} className="rounded-full border border-slate-600 px-4 py-1.5 text-sm font-medium hover:border-blue-400 hover:text-blue-300">{d.short}</a>)}
           </nav>
         </div>
       </section>
+      <PortfolioGallery items={items} />
+      <div className="border-t border-stone-200 bg-stone-50 py-10 text-center"><h2 className="font-display text-2xl font-semibold text-stone-900">Case studies by division</h2></div>
       {DIVISIONS.map((d, i) => {
         const list = projects.filter((p) => p.division === d.slug);
         const subs = cats.filter((c) => c.division === d.slug && c.enabled && list.some((p) => p.categoryId === c.id));

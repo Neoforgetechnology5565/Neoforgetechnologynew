@@ -70,7 +70,7 @@ await t("draw a zone on the video; zone events appear", async () => {
   ok(await p.getByText(/entered Zone 1/).first().isVisible(), "zone entry event");
 });
 await t("virtual line can be drawn with two clicks", async () => {
-  await p.locator("[data-testid=draw-line]").click(); const box = await p.locator("[data-testid=overlay]").boundingBox();
+  await p.locator("[data-testid=draw-line]").click(); await p.locator("[data-testid=overlay]").scrollIntoViewIfNeeded(); const box = await p.locator("[data-testid=overlay]").boundingBox();
   await p.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.2); await p.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.9); await p.waitForTimeout(1200);
   await p.getByRole("tab", { name: "Settings" }).click(); ok(await p.getByLabel("Line name").first().isVisible(), "line listed");
 });
