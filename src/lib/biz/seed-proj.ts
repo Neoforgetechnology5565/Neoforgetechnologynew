@@ -47,5 +47,5 @@ export const seedProj = () => {
   // Budgets are set so the sample portfolio shows a realistic spread: one overrun, one at risk, the rest within budget.
   const target: Record<string, number> = { pr1: 0.46, pr2: 0.6, pr3: 1.07, pr4: 0.38, pr5: 0.93, pr7: 0.96 };
   for (const p of projects) if (target[p.id]) { const cost = time.filter((x) => x.projectId === p.id).reduce((a, x) => a + x.hours * (rates[x.empId] ?? 65), 0); p.budget = Math.round(cost / target[p.id] / 1000) * 1000; }
-  return { projects, tasks, milestones, time, rates, nextNo: { project: 108 } };
+  return { projects, tasks, milestones, time, rates, nextNo: { project: 108 }, board: { groupBy: "status" as "status" | "assignee" | "priority", hidden: [] as string[], wip: {} as Record<string, number> } };
 };

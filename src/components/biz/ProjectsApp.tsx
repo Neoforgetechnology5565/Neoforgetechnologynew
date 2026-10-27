@@ -1,40 +1,127 @@
 "use client";
-import { useState } from "react";
+import { createContext, useContext, useState } from "react";
 import { logActivity, resetDb, useSlice } from "@/lib/biz/db";
 import { budgetState, costOf, forecastCost, hoursOf, progressOf, rateOf, taskOverdue } from "@/lib/biz/proj-calc";
 import { TASK_STATUSES, type PStatus, type Project, type Task, type TaskPriority, type TaskStatus, type TimeEntry } from "@/lib/biz/seed-proj";
 import { DEMO_TODAY, addDays, downloadCsv, fmtDate, fmtShort, isWeekend, money, moneyK, monthLabel, num, pct, round2, sum, uid, daysBetween } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { AreaIn, Avatar, Badge, BarChart, Btn, DataTable, Donut, Empty, ErpShell, FilterSelect, HBars, Kanban, Kpi, KpiRow, Modal, Notice, PageHead, Panel, Progress, SelectIn, TextIn, Timeline, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, AreaIn, Avatar, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Drawer, Empty, FilterSelect, HBars, Kanban, Kpi, KpiRow, Modal, Notice, PageHead, Panel, Progress, ResetButton, Segmented, SelectIn, TextIn, Timeline as TimelineList, useConfirm, useToast, type Col } from "./kit";
 
-const NAV = [{ id: "dash", label: "Project dashboard", group: "Overview" }, { id: "projects", label: "Project directory", group: "Projects" }, { id: "board", label: "Kanban task board", group: "Work" }, { id: "tasks", label: "Task list", group: "Work" }, { id: "milestones", label: "Milestone timeline", group: "Work" }, { id: "calendar", label: "Calendar", group: "Work" },
-  { id: "timesheets", label: "Timesheets", group: "Time & cost" }, { id: "resources", label: "Resource allocation", group: "Time & cost" }, { id: "budget", label: "Budget reports", group: "Time & cost" }];
+/* Project workspace: a project strip across the top scopes every view; the view switcher (Board, Timeline, Calendar, List, Team, Reports) changes how the same work is shown. */
+const VIEWS = [{ id: "board", label: "Board" }, { id: "timeline", label: "Timeline" }, { id: "calendar", label: "Calendar" }, { id: "list", label: "List" }, { id: "team", label: "Team" }, { id: "reports", label: "Reports" }];
 const PRIOS: TaskPriority[] = ["Critical", "High", "Medium", "Low"]; const PSTAT: PStatus[] = ["Planning", "Active", "On hold", "Completed"];
 const prTone = (p: TaskPriority) => (p === "Critical" ? "red" : p === "High" ? "amber" : p === "Medium" ? "blue" : "slate") as "red" | "amber" | "blue" | "slate";
 const psTone = (s: PStatus) => (s === "Active" ? "green" : s === "Planning" ? "blue" : s === "On hold" ? "amber" : "slate") as "green" | "blue" | "amber" | "slate";
 const tsTone = (s: TaskStatus) => (s === "Done" ? "green" : s === "In progress" ? "blue" : s === "Review" ? "violet" : s === "To do" ? "amber" : "slate") as "green" | "blue" | "violet" | "amber" | "slate";
 const bsTone = (s: string) => (s === "Over budget" ? "red" : s === "At risk" ? "amber" : "green") as "red" | "amber" | "green";
 const M0 = (n: number) => money(n, "USD", 0);
+const Scope = createContext("");
 
 export default function ProjectsApp({ branding }: { branding: Branding }) {
-  const [proj] = useSlice("proj"); const [screen, setScreen] = useState("dash"); const [pid, setPid] = useState<string | null>(null);
-  const od = proj.tasks.filter(taskOverdue).length; const open = (id: string) => { setPid(id); setScreen("project"); };
   return (
-    <ErpShell branding={branding} title="NorthPeak Projects" subtitle={`Project, task & resource management · demo date ${fmtDate(DEMO_TODAY)}`} nav={NAV.map((n) => (n.id === "tasks" ? { ...n, badge: od || undefined } : n))} active={screen === "project" ? "projects" : screen} onNav={(s) => { setScreen(s); setPid(null); }} onReset={() => resetDb(["proj"])}
-      note="Demonstration project software with fictional projects, rates and hours. Costs are hours × sample hourly rates; the progress and budget figures are calculated from the task and time records. Stored only in this browser (localStorage); no server.">
-      {screen === "dash" && <Dash open={open} go={setScreen} />}
-      {screen === "projects" && <Projects open={open} />}
-      {screen === "project" && pid && <ProjectView id={pid} back={() => setScreen("projects")} />}
-      {screen === "board" && <Board />}
-      {screen === "tasks" && <Tasks />}
-      {screen === "milestones" && <Milestones open={open} />}
-      {screen === "calendar" && <CalendarView />}
-      {screen === "timesheets" && <Timesheets />}
-      {screen === "resources" && <Resources />}
-      {screen === "budget" && <Budget open={open} />}
-    </ErpShell>
+    <AppProviders className="bg-sky-50 text-slate-800" note="Demonstration project software with fictional projects, rates and hours. Costs are hours × sample hourly rates; the progress and budget figures are calculated from the task and time records. Stored only in this browser (localStorage); no server.">
+      <Workspace branding={branding} />
+    </AppProviders>
   );
 }
+function Workspace({ branding }: { branding: Branding }) {
+  const { proj, setProj, stats } = usePj(); const toast = useToast(); const [view, setView] = useState("board"); const [scope, setScope] = useState(""); const [detail, setDetail] = useState<string | null>(null); const [newProj, setNewProj] = useState(false); const [newTask, setNewTask] = useState(false);
+  const od = proj.tasks.filter(taskOverdue).length;
+  return (<>
+    <header className="no-print border-b border-sky-200 bg-white">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
+        <BrandLogo branding={branding} dark={false} height={28} />
+        <div className="border-l border-sky-200 pl-5"><h1 className="font-display text-xl font-semibold leading-tight text-slate-900">NorthPeak Projects</h1><p className="text-sm text-slate-600">Project, task & resource management · demo date {fmtDate(DEMO_TODAY)}</p></div>
+        <div className="ml-auto flex flex-wrap items-center gap-2"><Btn kind="primary" onClick={() => setNewTask(true)} testid="new-task">+ New task</Btn><Btn onClick={() => setNewProj(true)} testid="new-project">+ New project</Btn><DemoBadge /><ResetButton onReset={() => resetDb(["proj"])} className="rounded-md border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:border-blue-500" /><span className="flex gap-2 text-slate-700 [&_a]:border-slate-300"><DemoLinks compact /></span></div>
+      </div>
+      <div className="flex gap-3 overflow-x-auto px-5 pb-3" role="group" aria-label="Project scope">
+        <button type="button" aria-pressed={scope === ""} onClick={() => setScope("")} data-testid="scope-all" className={`w-44 shrink-0 rounded-xl border-2 px-3 py-2 text-left ${scope === "" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white hover:border-slate-500"}`}><span className="block text-[15px] font-semibold">All projects</span><span className="text-sm opacity-80">{proj.projects.length} projects · {proj.tasks.length} tasks</span></button>
+        {proj.projects.map((p) => { const s = stats(p.id); return (<button key={p.id} type="button" aria-pressed={scope === p.id} onClick={() => setScope(scope === p.id ? "" : p.id)} data-testid={`scope-${p.id}`} className={`w-60 shrink-0 rounded-xl border-2 px-3 py-2 text-left ${scope === p.id ? "border-blue-600 bg-blue-50" : "border-slate-200 bg-white hover:border-blue-400"}`}>
+          <span className="flex items-center justify-between gap-2"><span className="text-sm font-semibold text-slate-600">{p.code}</span><Badge tone={psTone(p.status)}>{p.status}</Badge></span><span className="block truncate text-[15px] font-semibold text-slate-900">{p.name}</span>
+          <span className="mt-1 flex items-center gap-2"><span className="flex-1"><Progress value={s.progress * 100} label={`${p.name} progress`} /></span><span className="text-sm tabular-nums text-slate-700">{Math.round(s.progress * 100)}%</span></span><span className="mt-0.5 flex items-center justify-between text-sm text-slate-600"><span>{M0(s.cost)} of {moneyK(p.budget)}</span><span className={s.state === "Over budget" ? "font-semibold text-red-700" : s.state === "At risk" ? "text-amber-700" : ""}>{s.state}</span></span></button>); })}
+      </div>
+      <nav aria-label="Project views" className="flex flex-wrap items-center gap-2 border-t border-sky-100 bg-sky-50 px-5 py-2">
+        <div role="group" aria-label="View" className="flex overflow-hidden rounded-lg border border-slate-300 bg-white">{VIEWS.map((v) => <button key={v.id} type="button" data-nav={v.id} aria-current={view === v.id ? "page" : undefined} onClick={() => setView(v.id)} className={`px-4 py-2 text-[15px] font-medium ${view === v.id ? "bg-blue-600 text-white" : "text-slate-700 hover:bg-slate-100"}`}>{v.label}{v.id === "list" && od > 0 && <span className={`ml-1.5 rounded-full px-1.5 text-[13px] ${view === v.id ? "bg-white/25" : "bg-red-100 text-red-700"}`}>{od}</span>}</button>)}</div>
+        {scope && <Btn small onClick={() => setDetail(scope)} testid="project-details">Project details</Btn>}
+      </nav>
+    </header>
+    <Scope.Provider value={scope}>
+      <main className="min-w-0 flex-1 p-4 sm:p-5" id="app-main" key={`${view}-${scope}`}>
+        {view === "board" && <Board />}
+        {view === "timeline" && <GanttView />}
+        {view === "calendar" && <CalendarView />}
+        {view === "list" && <ListView open={setDetail} />}
+        {view === "team" && <TeamView />}
+        {view === "reports" && <ReportsView open={setDetail} setView={setView} />}
+      </main>
+    </Scope.Provider>
+    {detail && <Drawer wide title="Project details" onClose={() => setDetail(null)}><ProjectView id={detail} back={() => setDetail(null)} /></Drawer>}
+    {newProj && <ProjectForm onClose={() => setNewProj(false)} onSave={(rec) => { const n = proj.nextNo.project; const id = uid("pr"); setProj((s) => ({ ...s, nextNo: { project: n + 1 }, projects: [{ id, code: `PRJ-${n}`, ...rec }, ...s.projects] })); logActivity("Projects", `Project created: PRJ-${n} ${rec.name}`); toast(`Project PRJ-${n} created`); setNewProj(false); setScope(id); }} />}
+    {newTask && <TaskForm projectId={scope || undefined} onClose={() => setNewTask(false)} />}
+  </>);
+}
+
+/* ───────── Board (configurable) ───────── */
+function Board() {
+  const { proj, setProj, eName, pCode, stats } = usePj(); const toast = useToast(); const { tasks, filters } = useTaskFilters(); const [form, setForm] = useState<Task | "new" | null>(null); const [cfg, setCfg] = useState(false);
+  const b = proj.board ?? { groupBy: "status" as const, hidden: [], wip: {} }; const setBoard = (p: Partial<typeof b>) => setProj((s) => ({ ...s, board: { ...(s.board ?? b), ...p } }));
+  const colOf = (t: Task) => (b.groupBy === "status" ? t.status : b.groupBy === "priority" ? t.priority : t.assigneeId);
+  const cols = b.groupBy === "status" ? TASK_STATUSES.filter((s) => !b.hidden.includes(s)).map((s) => ({ id: s as string, label: s as string, tone: tsTone(s) })) : b.groupBy === "priority" ? PRIOS.map((p) => ({ id: p as string, label: p as string, tone: prTone(p) })) : [...new Set(tasks.map((t) => t.assigneeId))].map((id) => ({ id, label: eName(id), tone: "slate" as const }));
+  const move = (id: string, col: string) => { const t = proj.tasks.find((x) => x.id === id); if (!t || colOf(t) === col) return;
+    if (b.groupBy === "status") { const lim = b.wip[col] ?? 0; if (lim > 0 && tasks.filter((x) => x.status === col).length >= lim) return toast(`“${col}” is at its work-in-progress limit of ${lim}. Finish or move something out first.`, "red"); }
+    setProj((s) => ({ ...s, tasks: s.tasks.map((x) => (x.id === id ? (b.groupBy === "status" ? { ...x, status: col as TaskStatus } : b.groupBy === "priority" ? { ...x, priority: col as TaskPriority } : { ...x, assigneeId: col }) : x)) })); logActivity("Projects", `${t.title}: ${b.groupBy} → ${col}`); toast(`${t.title} → ${b.groupBy === "assignee" ? eName(col) : col}`); };
+  return (<>
+    <PageHead title="Board" sub={`Group the board by status, assignee or priority. Drag cards (or use the menu) to change the field you grouped by.`} actions={<>{filters}<Btn onClick={() => setCfg(!cfg)} aria-expanded={cfg} testid="board-config">Configure board</Btn></>} />
+    {cfg && <Panel title="Board settings" className="mb-3"><div className="grid gap-4 lg:grid-cols-3">
+      <SelectIn label="Group columns by" value={b.groupBy} onChange={(e) => setBoard({ groupBy: e.target.value as typeof b.groupBy })} options={[{ value: "status", label: "Status" }, { value: "assignee", label: "Assignee" }, { value: "priority", label: "Priority" }]} />
+      <fieldset><legend className="mb-1 text-sm font-semibold text-slate-600">Visible status columns</legend><div className="flex flex-wrap gap-x-4 gap-y-1">{TASK_STATUSES.map((s) => <label key={s} className="flex items-center gap-1.5 text-[15px]"><input type="checkbox" disabled={b.groupBy !== "status"} checked={!b.hidden.includes(s)} onChange={() => setBoard({ hidden: b.hidden.includes(s) ? b.hidden.filter((x) => x !== s) : [...b.hidden, s] })} />{s}</label>)}</div></fieldset>
+      <fieldset><legend className="mb-1 text-sm font-semibold text-slate-600">Work-in-progress limits (0 = none)</legend><div className="flex flex-wrap gap-2">{TASK_STATUSES.filter((s) => s !== "Done" && s !== "Backlog").map((s) => <label key={s} className="text-sm">{s}<input type="number" min={0} max={50} disabled={b.groupBy !== "status"} aria-label={`WIP limit for ${s}`} value={b.wip[s] ?? 0} onChange={(e) => setBoard({ wip: { ...b.wip, [s]: Math.max(0, Number(e.target.value) || 0) } })} className="ml-1 w-16 rounded border border-slate-300 px-1.5 py-1" /></label>)}</div></fieldset></div></Panel>}
+    <div className="mb-3 flex flex-wrap gap-3 text-sm text-slate-700" data-testid="board-progress">{proj.projects.filter((p) => p.status !== "Completed").map((p) => <span key={p.id} className="rounded-full bg-white px-3 py-1 shadow-sm">{p.code}: <b data-testid={`prog-${p.id}`}>{Math.round(stats(p.id).progress * 100)}%</b></span>)}</div>
+    <Kanban colWidth="w-72" columns={cols} items={tasks} colOf={colOf} idOf={(t) => t.id} onMove={move}
+      colFooter={(c, its) => { const lim = b.groupBy === "status" ? b.wip[c] ?? 0 : 0; return <span className={lim && its.length > lim ? "font-semibold text-red-700" : ""}>{its.length}{lim ? ` of ${lim} (limit)` : ""} · {sum(its, (t) => t.est)} h estimated</span>; }}
+      renderCard={(t) => <><button type="button" className="text-left text-[15px] font-semibold leading-snug text-slate-900 hover:text-blue-700" onClick={() => setForm(t)}>{t.title}</button><p className="text-sm text-slate-500">{pCode(t.projectId)}</p><div className="mt-1 flex flex-wrap items-center gap-1"><Badge tone={prTone(t.priority)}>{t.priority}</Badge>{b.groupBy !== "status" && <Badge tone={tsTone(t.status)}>{t.status}</Badge>}{taskOverdue(t) && <Badge tone="red">Overdue</Badge>}</div><p className="mt-1 flex items-center gap-1.5 text-sm text-slate-600"><Avatar name={eName(t.assigneeId)} size={22} />{eName(t.assigneeId)} · due {fmtShort(t.due)}</p></>} />
+    {form && <TaskForm existing={form === "new" ? undefined : form} onClose={() => setForm(null)} />}</>);
+}
+
+/* ───────── Timeline (Gantt) ───────── */
+const WINDOWS: Record<string, { from: string; to: string; label: string }> = { q: { from: "2026-02-01", to: "2026-05-01", label: "3 months" }, h: { from: "2025-12-01", to: "2026-06-01", label: "6 months" }, y: { from: "2025-09-01", to: "2026-09-01", label: "Full year" } };
+function GanttView() {
+  const { proj, setProj, eName, stats } = usePj(); const scope = useContext(Scope); const toast = useToast(); const [win, setWin] = useState("h"); const [open, setOpen] = useState<string[]>(scope ? [scope] : [proj.projects[0]?.id ?? ""]); const [task, setTask] = useState<Task | null>(null); const [ms, setMs] = useState(false);
+  const w = WINDOWS[win]; const span = daysBetween(w.from, w.to); const pos = (d: string) => `${Math.max(0, Math.min(100, (daysBetween(w.from, d) / span) * 100))}%`; const inWin = (d: string) => d >= w.from && d <= w.to;
+  const months = Array.from({ length: Math.ceil(span / 30) + 1 }, (_, i) => new Date(Date.UTC(Number(w.from.slice(0, 4)), Number(w.from.slice(5, 7)) - 1 + i, 1)).toISOString().slice(0, 10)).filter((m) => m <= w.to);
+  const projects = proj.projects.filter((p) => !scope || p.id === scope);
+  const taskStart = (t: Task) => addDays(t.due, -Math.max(2, Math.round(t.est / 5)));
+  return (<>
+    <PageHead title="Timeline" sub="Project bars show progress; expand a project for its tasks. Diamonds are milestones and the line is the demo date. Task bars end on the due date and are sized from the estimate." actions={<><Segmented label="Timeline window" value={win} onChange={setWin} options={Object.entries(WINDOWS).map(([id, x]) => ({ id, label: x.label }))} /><Btn onClick={() => setOpen(open.length ? [] : projects.map((p) => p.id))}>{open.length ? "Collapse all" : "Expand all"}</Btn><Btn kind="primary" onClick={() => setMs(true)} testid="new-milestone">+ New milestone</Btn></>} />
+    <section className="overflow-x-auto rounded-xl border border-slate-300 bg-white" aria-label="Gantt timeline" data-testid="gantt"><div className="min-w-[900px]">
+      <div className="relative ml-60 h-8 border-b border-slate-200 text-sm text-slate-600">{months.map((m) => <span key={m} className="absolute top-1.5 border-l border-slate-200 pl-1" style={{ left: pos(m) }}>{monthLabel(m.slice(0, 7))}</span>)}</div>
+      {projects.map((p) => { const exp = open.includes(p.id); const tasks = proj.tasks.filter((t) => t.projectId === p.id).sort((a, b) => a.due.localeCompare(b.due)); const prog = stats(p.id).progress;
+        return (<div key={p.id} className="border-b border-slate-100">
+          <div className="flex items-center py-2"><button type="button" aria-expanded={exp} onClick={() => setOpen(exp ? open.filter((x) => x !== p.id) : [...open, p.id])} className="flex w-60 shrink-0 items-center gap-2 px-3 text-left text-[15px] font-semibold text-slate-900"><span className="inline-block w-4 text-slate-500">{exp ? "▾" : "▸"}</span><span className="truncate">{p.code} {p.name}</span></button>
+            <div className="relative h-8 flex-1">{inWin(DEMO_TODAY) && <span className="absolute inset-y-[-8px] w-px bg-red-400" style={{ left: pos(DEMO_TODAY) }} title="Demo date" />}
+              <span className={`absolute top-2 h-4 overflow-hidden rounded ${p.status === "Completed" ? "bg-slate-300" : "bg-blue-200"}`} style={{ left: pos(p.start), width: `calc(${pos(p.deadline)} - ${pos(p.start)})` }} title={`${p.name}: ${fmtDate(p.start)} to ${fmtDate(p.deadline)}`}><span className="block h-full bg-blue-600" style={{ width: `${Math.round(prog * 100)}%` }} /></span>
+              {proj.milestones.filter((m) => m.projectId === p.id && inWin(m.date)).map((m) => <button key={m.id} type="button" onClick={() => { setProj((s) => ({ ...s, milestones: s.milestones.map((x) => (x.id === m.id ? { ...x, done: !x.done } : x)) })); toast(`${m.name}: ${m.done ? "marked not done" : "marked done"}`); }} className={`absolute top-1 text-xl leading-none ${m.done ? "text-blue-700" : m.date < DEMO_TODAY ? "text-red-500" : "text-amber-500"}`} style={{ left: pos(m.date) }} title={`${m.name} · ${fmtDate(m.date)} (click to toggle done)`} aria-label={`Milestone ${m.name}, ${m.done ? "done" : "not done"}. Toggle`}>◆</button>)}</div></div>
+          {exp && tasks.map((t) => { const s = taskStart(t); const barLeft = pos(s < w.from ? w.from : s); return (<div key={t.id} className="flex items-center py-1"><button type="button" onClick={() => setTask(t)} className="w-60 shrink-0 truncate pl-9 pr-3 text-left text-[15px] text-slate-700 hover:text-blue-700" title={`${t.title} · ${eName(t.assigneeId)}`}>{t.title}</button>
+            <div className="relative h-6 flex-1">{inWin(t.due) || inWin(s) ? <span className={`absolute top-1 h-4 rounded ${t.status === "Done" ? "bg-emerald-500" : taskOverdue(t) ? "bg-red-500" : t.status === "In progress" ? "bg-blue-500" : t.status === "Review" ? "bg-violet-500" : "bg-slate-400"}`} style={{ left: barLeft, width: `calc(${pos(t.due)} - ${barLeft} + 3px)` }} title={`${t.status} · due ${fmtDate(t.due)} · ${t.est} h`} /> : null}</div></div>); })}</div>); })}
+    </div></section>
+    <p className="mt-2 text-sm text-slate-600"><span className="text-blue-700">◆</span> done <span className="ml-3 text-amber-500">◆</span> upcoming <span className="ml-3 text-red-500">◆</span> late · task bars: <span className="text-slate-500">■</span> to do <span className="text-blue-500">■</span> in progress <span className="text-violet-500">■</span> review <span className="text-emerald-600">■</span> done <span className="text-red-500">■</span> overdue</p>
+    {task && <TaskForm existing={task} onClose={() => setTask(null)} />}{ms && <MilestoneForm projectId={scope || undefined} onClose={() => setMs(false)} />}</>);
+}
+
+/* ───────── List / Team / Reports wrappers ───────── */
+function ListView({ open }: { open(id: string): void }) {
+  const [v, setV] = useState("tasks");
+  return (<><div className="mb-3"><Segmented label="List view" value={v} onChange={setV} options={[{ id: "tasks", label: "Tasks" }, { id: "projects", label: "Projects" }]} /></div>{v === "tasks" ? <Tasks /> : <Projects open={open} />}</>);
+}
+function TeamView() {
+  const [v, setV] = useState("allocation");
+  return (<><div className="mb-3"><Segmented label="Team view" value={v} onChange={setV} options={[{ id: "allocation", label: "Resource allocation" }, { id: "timesheets", label: "Timesheets" }]} /></div>{v === "allocation" ? <Resources /> : <Timesheets />}</>);
+}
+function ReportsView({ open, setView }: { open(id: string): void; setView(v: string): void }) {
+  const [v, setV] = useState("dashboard");
+  return (<><div className="mb-3"><Segmented label="Report" value={v} onChange={setV} options={[{ id: "dashboard", label: "Portfolio dashboard" }, { id: "budget", label: "Budget reports" }]} /></div>{v === "dashboard" ? <Dash open={open} go={(s) => setView(s === "projects" ? "list" : "list")} /> : <Budget open={open} />}</>);
+}
+
 function usePj() {
   const [proj, setProj] = useSlice("proj"); const [crm] = useSlice("crm"); const [hrm] = useSlice("hrm");
   const team = hrm.employees.filter((e) => e.status !== "Resigned"); const eName = (id: string) => hrm.employees.find((e) => e.id === id)?.name ?? "Unassigned"; const client = (id: string) => crm.companies.find((c) => c.id === id)?.name ?? "—"; const pName = (id: string) => proj.projects.find((p) => p.id === id)?.name ?? "?"; const pCode = (id: string) => proj.projects.find((p) => p.id === id)?.code ?? "?";
@@ -101,24 +188,15 @@ function ProjectView({ id, back }: { id: string; back(): void }) {
     <KpiRow><Kpi label="Progress" value={`${Math.round(s.progress * 100)}%`} sub="by completed task estimates" testid="pv-progress" /><Kpi label="Budget" value={M0(p.budget)} /><Kpi label="Cost to date" value={M0(s.cost)} sub={`${s.hours} h logged`} testid="pv-cost" /><Kpi label="Remaining" value={M0(p.budget - s.cost)} tone={p.budget - s.cost < 0 ? "red" : undefined} /><Kpi label="Forecast at completion" value={s.forecast ? M0(s.forecast) : "n/a"} sub={s.forecast && s.forecast > p.budget ? "above budget" : "cost ÷ progress"} /><Kpi label="Overdue tasks" value={s.overdue} tone={s.overdue ? "red" : undefined} /></KpiRow>
     <div className="mt-3"><div className="flex items-center justify-between text-xs text-slate-500"><span>Budget used {pct(s.cost / p.budget)}</span><Badge tone={bsTone(s.state)}>{s.state}</Badge></div><Progress value={(s.cost / p.budget) * 100} tone={s.state === "Over budget" ? "red" : s.state === "At risk" ? "amber" : "green"} label="Budget used" /></div>
     <div className="mt-4 grid gap-4 lg:grid-cols-3"><Panel title={`Tasks (${tasks.length})`} className="lg:col-span-2" actions={<Btn small onClick={() => setTask("new")} testid="pv-add-task">+ Add task</Btn>} pad={false}><ul className="divide-y divide-slate-100">{tasks.map((t) => <li key={t.id} className="flex flex-wrap items-center gap-2 px-4 py-2 text-sm"><button className="min-w-0 flex-1 truncate text-left font-medium hover:text-blue-700" onClick={() => setTask(t)}>{t.title}</button><span className="text-xs text-slate-500">{eName(t.assigneeId)}</span><Badge tone={prTone(t.priority)}>{t.priority}</Badge><select aria-label={`Status of ${t.title}`} value={t.status} onChange={(e) => { setProj((st) => ({ ...st, tasks: st.tasks.map((x) => (x.id === t.id ? { ...x, status: e.target.value as TaskStatus } : x)) })); }} className="rounded border border-slate-200 px-1 py-0.5 text-xs">{TASK_STATUSES.map((x) => <option key={x}>{x}</option>)}</select>{taskOverdue(t) && <Badge tone="red">Overdue</Badge>}</li>)}</ul></Panel>
-      <Panel title="Milestones" actions={<Btn small onClick={() => setMs(true)}>+ Add</Btn>}><Timeline items={mss.map((m) => ({ id: m.id, at: fmtDate(m.date), tone: !m.done && m.date < DEMO_TODAY ? "red" : undefined, title: <label className="flex items-center gap-2"><input type="checkbox" checked={m.done} onChange={() => setProj((st) => ({ ...st, milestones: st.milestones.map((x) => (x.id === m.id ? { ...x, done: !x.done } : x)) }))} aria-label={`Complete ${m.name}`} />{m.name}</label> }))} /></Panel>
+      <Panel title="Milestones" actions={<Btn small onClick={() => setMs(true)}>+ Add</Btn>}><TimelineList items={mss.map((m) => ({ id: m.id, at: fmtDate(m.date), tone: !m.done && m.date < DEMO_TODAY ? "red" : undefined, title: <label className="flex items-center gap-2"><input type="checkbox" checked={m.done} onChange={() => setProj((st) => ({ ...st, milestones: st.milestones.map((x) => (x.id === m.id ? { ...x, done: !x.done } : x)) }))} aria-label={`Complete ${m.name}`} />{m.name}</label> }))} /></Panel>
       <Panel title="Cost by team member" className="lg:col-span-2" actions={<Btn small onClick={() => setTime(true)}>Log hours</Btn>}><HBars items={byMember} fmt={M0} /></Panel>
       <Panel title="About"><p className="text-sm text-slate-600">{p.description}</p></Panel></div>
     {edit && <ProjectForm existing={p} onClose={() => setEdit(false)} onSave={(rec) => { setProj((st) => ({ ...st, projects: st.projects.map((x) => (x.id === id ? { ...x, ...rec } : x)) })); toast("Project updated"); setEdit(false); }} />}{task && <TaskForm existing={task === "new" ? undefined : task} projectId={id} onClose={() => setTask(null)} />}{ms && <MilestoneForm projectId={id} onClose={() => setMs(false)} />}{time && <TimeForm projectId={id} onClose={() => setTime(false)} />}</>);
 }
 
 /* ───────── Board & tasks ───────── */
-function useTaskFilters() { const { proj, team } = usePj(); const [pr, setPr] = useState(""); const [as, setAs] = useState(""); const [pri, setPri] = useState(""); const tasks = proj.tasks.filter((t) => (!pr || t.projectId === pr) && (!as || t.assigneeId === as) && (!pri || t.priority === pri));
+function useTaskFilters() { const { proj, team } = usePj(); const scope = useContext(Scope); const [pr, setPr] = useState(scope); const [as, setAs] = useState(""); const [pri, setPri] = useState(""); const tasks = proj.tasks.filter((t) => (!pr || t.projectId === pr) && (!as || t.assigneeId === as) && (!pri || t.priority === pri));
   const filters = <><FilterSelect label="Project" value={pr} onChange={setPr} options={proj.projects.map((p) => ({ value: p.id, label: p.code }))} /><FilterSelect label="Assignee" value={as} onChange={setAs} options={team.filter((m) => proj.tasks.some((t) => t.assigneeId === m.id)).map((m) => ({ value: m.id, label: m.name }))} /><FilterSelect label="Priority" value={pri} onChange={setPri} options={PRIOS} /></>; return { tasks, filters }; }
-function Board() {
-  const { proj, setProj, eName, pCode, stats } = usePj(); const toast = useToast(); const { tasks, filters } = useTaskFilters(); const [form, setForm] = useState<Task | "new" | null>(null);
-  const move = (id: string, status: string) => { const t = proj.tasks.find((x) => x.id === id); if (!t || t.status === status) return; setProj((s) => ({ ...s, tasks: s.tasks.map((x) => (x.id === id ? { ...x, status: status as TaskStatus } : x)) })); logActivity("Projects", `${t.title}: ${t.status} → ${status}`); toast(`${t.title} → ${status}`); };
-  return (<><PageHead title="Kanban task board" sub="Drag cards between columns (or use the menu). Project progress follows task completion." actions={<>{filters}<Btn kind="primary" onClick={() => setForm("new")} testid="new-task">+ New task</Btn></>} />
-    <div className="mb-3 flex flex-wrap gap-3 text-xs text-slate-600" data-testid="board-progress">{proj.projects.filter((p) => p.status !== "Completed").map((p) => <span key={p.id} className="rounded-full bg-white px-2.5 py-1 shadow-sm">{p.code}: <b data-testid={`prog-${p.id}`}>{Math.round(stats(p.id).progress * 100)}%</b></span>)}</div>
-    <Kanban columns={TASK_STATUSES.map((s) => ({ id: s, label: s, tone: tsTone(s) }))} items={tasks} colOf={(t) => t.status} idOf={(t) => t.id} onMove={move} colFooter={(_, its) => <span>{sum(its, (t) => t.est)} h estimated</span>}
-      renderCard={(t) => <><button type="button" className="text-left text-sm font-semibold text-slate-900 hover:text-blue-700" onClick={() => setForm(t)}>{t.title}</button><p className="text-[11px] text-slate-500">{pCode(t.projectId)}</p><div className="mt-1 flex flex-wrap items-center gap-1"><Badge tone={prTone(t.priority)}>{t.priority}</Badge>{taskOverdue(t) && <Badge tone="red">Overdue</Badge>}</div><p className="mt-1 flex items-center gap-1 text-[11px] text-slate-500"><Avatar name={eName(t.assigneeId)} size={18} />{eName(t.assigneeId)} · due {fmtShort(t.due)} · {t.est} h</p></>} />
-    {form && <TaskForm existing={form === "new" ? undefined : form} onClose={() => setForm(null)} />}</>);
-}
 function Tasks() {
   const { setProj, eName, pCode } = usePj(); const toast = useToast(); const confirm = useConfirm(); const { tasks, filters } = useTaskFilters(); const [status, setStatus] = useState(""); const [od, setOd] = useState(false); const [form, setForm] = useState<Task | "new" | null>(null);
   const rows = tasks.filter((t) => (!status || t.status === status) && (!od || taskOverdue(t)));
@@ -128,19 +206,11 @@ function Tasks() {
 }
 
 /* ───────── Milestones & calendar ───────── */
-function Milestones({ open }: { open(id: string): void }) {
-  const { proj, setProj } = usePj(); const [form, setForm] = useState(false); const lo = "2025-09-01", hi = "2026-08-31"; const span = daysBetween(lo, hi); const pos = (d: string) => `${Math.max(0, Math.min(100, (daysBetween(lo, d) / span) * 100))}%`;
-  return (<><PageHead title="Milestone timeline" sub="Project bars run from start to deadline; diamonds are milestones. The vertical line is the demo date." actions={<Btn kind="primary" onClick={() => setForm(true)} testid="new-milestone">+ New milestone</Btn>} />
-    <Panel pad={false}><div className="overflow-x-auto p-4"><div className="min-w-[760px]" data-testid="gantt"><div className="relative ml-44 h-6 text-[10px] text-slate-400">{Array.from({ length: 12 }, (_, i) => { const m = new Date(Date.UTC(2025, 8 + i, 1)).toISOString().slice(0, 10); return <span key={m} className="absolute" style={{ left: pos(m) }}>{monthLabel(m.slice(0, 7))}</span>; })}</div>
-      {proj.projects.map((p) => <div key={p.id} className="flex items-center border-t border-slate-100 py-2"><button className="w-44 shrink-0 truncate pr-3 text-left text-sm font-medium hover:text-blue-700" onClick={() => open(p.id)}>{p.code} {p.name}</button><div className="relative h-7 flex-1"><div className={`absolute top-2 h-3 rounded ${p.status === "Completed" ? "bg-slate-300" : "bg-blue-200"}`} style={{ left: pos(p.start), width: `calc(${pos(p.deadline)} - ${pos(p.start)})` }} />{proj.milestones.filter((m) => m.projectId === p.id).map((m) => <span key={m.id} title={`${m.name} · ${fmtDate(m.date)}${m.done ? " (done)" : ""}`} className={`absolute top-1 h-5 w-5 -translate-x-1/2 rotate-45 rounded-sm border-2 border-white ${m.done ? "bg-blue-700" : m.date < DEMO_TODAY ? "bg-red-500" : "bg-amber-400"}`} style={{ left: pos(m.date), transform: "translateX(-50%) rotate(45deg) scale(.6)" }} />)}<span className="absolute inset-y-0 w-px bg-red-400" style={{ left: pos(DEMO_TODAY) }} /></div></div>)}</div></div></Panel>
-    <p className="mt-2 text-xs text-slate-500"><span className="text-blue-700">◆</span> done <span className="ml-3 text-amber-500">◆</span> upcoming <span className="ml-3 text-red-500">◆</span> late</p>
-    <Panel title="All milestones" className="mt-4" pad={false}><ul className="divide-y divide-slate-100">{[...proj.milestones].sort((a, b) => a.date.localeCompare(b.date)).map((m) => <li key={m.id} className="flex items-center gap-3 px-4 py-2 text-sm"><input type="checkbox" checked={m.done} onChange={() => setProj((s) => ({ ...s, milestones: s.milestones.map((x) => (x.id === m.id ? { ...x, done: !x.done } : x)) }))} aria-label={`Complete ${m.name} (${proj.projects.find((p) => p.id === m.projectId)?.code})`} /><span className="font-medium">{m.name}</span><span className="text-slate-500">{proj.projects.find((p) => p.id === m.projectId)?.name}</span><span className="ml-auto text-xs text-slate-500">{fmtDate(m.date)}</span>{!m.done && m.date < DEMO_TODAY && <Badge tone="red">Late</Badge>}</li>)}</ul></Panel>{form && <MilestoneForm onClose={() => setForm(false)} />}</>);
-}
 function CalendarView() {
-  const { proj, pCode } = usePj(); const [month, setMonth] = useState("2026-03"); const [y, m] = month.split("-").map(Number); const first = new Date(Date.UTC(y, m - 1, 1)); const dim = new Date(Date.UTC(y, m, 0)).getUTCDate(); const lead = (first.getUTCDay() + 6) % 7; const cells = Array.from({ length: lead + dim }, (_, i) => (i < lead ? null : `${month}-${String(i - lead + 1).padStart(2, "0")}`)); const shift = (d: number) => setMonth(new Date(Date.UTC(y, m - 1 + d, 1)).toISOString().slice(0, 7));
+  const { proj, pCode } = usePj(); const scope = useContext(Scope); const [month, setMonth] = useState("2026-03"); const [y, m] = month.split("-").map(Number); const first = new Date(Date.UTC(y, m - 1, 1)); const dim = new Date(Date.UTC(y, m, 0)).getUTCDate(); const lead = (first.getUTCDay() + 6) % 7; const cells = Array.from({ length: lead + dim }, (_, i) => (i < lead ? null : `${month}-${String(i - lead + 1).padStart(2, "0")}`)); const shift = (d: number) => setMonth(new Date(Date.UTC(y, m - 1 + d, 1)).toISOString().slice(0, 7));
   return (<><PageHead title="Calendar" sub="Task due dates and milestones." actions={<><Btn onClick={() => shift(-1)}>‹ Prev</Btn><span className="px-2 text-sm font-semibold">{monthLabel(month)}</span><Btn onClick={() => shift(1)}>Next ›</Btn></>} />
     <div className="grid grid-cols-7 gap-px overflow-hidden rounded-lg border border-slate-200 bg-slate-200 text-xs" data-testid="calendar">{["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => <div key={d} className="bg-slate-50 p-1 text-center font-semibold text-slate-500">{d}</div>)}
-      {cells.map((d, i) => <div key={i} className={`min-h-[92px] bg-white p-1 ${d === DEMO_TODAY ? "ring-2 ring-inset ring-blue-500" : ""} ${d && isWeekend(d) ? "bg-slate-50" : ""}`}>{d && <><span className="text-slate-400">{Number(d.slice(8))}</span>{proj.milestones.filter((x) => x.date === d).map((x) => <div key={x.id} className="mt-0.5 truncate rounded bg-amber-100 px-1 text-amber-900" title={x.name}>◆ {x.name}</div>)}{proj.tasks.filter((x) => x.due === d).slice(0, 3).map((x) => <div key={x.id} title={`${x.title} (${pCode(x.projectId)})`} className={`mt-0.5 truncate rounded px-1 ${taskOverdue(x) ? "bg-red-100 text-red-800" : x.status === "Done" ? "bg-slate-100 text-slate-500 line-through" : "bg-blue-100 text-blue-800"}`}>{x.title}</div>)}</>}</div>)}</div></>);
+      {cells.map((d, i) => <div key={i} className={`min-h-[92px] bg-white p-1 ${d === DEMO_TODAY ? "ring-2 ring-inset ring-blue-500" : ""} ${d && isWeekend(d) ? "bg-slate-50" : ""}`}>{d && <><span className="text-slate-400">{Number(d.slice(8))}</span>{proj.milestones.filter((x) => x.date === d && (!scope || x.projectId === scope)).map((x) => <div key={x.id} className="mt-0.5 truncate rounded bg-amber-100 px-1 text-amber-900" title={x.name}>◆ {x.name}</div>)}{proj.tasks.filter((x) => x.due === d && (!scope || x.projectId === scope)).slice(0, 3).map((x) => <div key={x.id} title={`${x.title} (${pCode(x.projectId)})`} className={`mt-0.5 truncate rounded px-1 ${taskOverdue(x) ? "bg-red-100 text-red-800" : x.status === "Done" ? "bg-slate-100 text-slate-500 line-through" : "bg-blue-100 text-blue-800"}`}>{x.title}</div>)}</>}</div>)}</div></>);
 }
 
 /* ───────── Timesheets, resources, budget ───────── */
@@ -171,3 +241,4 @@ function Budget({ open }: { open(id: string): void }) {
     <Panel title="Budget vs cost" className="mt-4"><BarChart ariaLabel="Budget vs cost" data={shown.map((r) => ({ label: r.p.code.slice(4), values: { budget: r.budget, cost: r.cost } }))} series={[{ key: "budget", label: "Budget", color: "#94a3b8" }, { key: "cost", label: "Cost to date" }]} fmt={moneyK} /></Panel>
     <div className="mt-4"><DataTable rows={shown} columns={cols} rowKey={(r) => r.p.id} search={false} testid="budget-table" /></div><Notice tone="blue">Rates and hours are fictional sample data.</Notice></>);
 }
+
