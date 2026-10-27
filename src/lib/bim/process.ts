@@ -1,7 +1,8 @@
 import "server-only";
-import { type ProjectDoc, type JobMeta, deleteBlob, getBlob, putBlob, saveProject, stager } from "./server";
-import { runPlan3d, type InFile } from "./pipeline";
+import { HttpError, type ProjectDoc, type JobMeta, deleteBlob, getBlob, putBlob, saveProject, stager } from "./server";
+import type { InFile } from "./pipeline";
 import type { Plan3dModel } from "./pipeline-types";
+import { runDemo, modelSummary, isPlan3d, type AnyModel } from "./demos";
 
 export const SETTINGS_HISTORY_MAX = 8;
 export async function loadFiles(p: ProjectDoc): Promise<InFile[]> { return Promise.all(p.files.map(async (f) => ({ name: f.name, format: f.format, support: f.validation.support, role: f.role, sample: f.sample, buf: (await getBlob(f.blob)).data }))); }
@@ -12,13 +13,14 @@ export async function processProject(p: ProjectDoc, settingsPatch?: Record<strin
   if (settingsPatch) { (p as ProjectDoc & { history?: unknown[] }).history = [...(((p as ProjectDoc & { history?: unknown[] }).history) ?? []), { version: p.version, at: Date.now(), settings: p.settings }].slice(-SETTINGS_HISTORY_MAX); p.settings = replace ? { ...settingsPatch } : { ...p.settings, ...settingsPatch}; }
   try {
     const files = await loadFiles(p); S.stage("Loaded stored files", `${files.length} file(s)`);
-    if (p.demo !== "plan3d") throw new Error(`Processing for the "${p.demo}" application is not available yet.`);
-    const model: Plan3dModel = await runPlan3d(files, p.settings, S.stage, p.version + 1);
-    const blob = await putBlob(Buffer.from(JSON.stringify(model)), { mime: "application/json" }); S.stage("Stored model", `${(Buffer.byteLength(JSON.stringify(model.meshes)) / 1024).toFixed(0)} KB of meshes`);
+    const model: AnyModel = await runDemo(p.demo, files, p.settings, S.stage, p.version + 1, p.name);
+    const json = Buffer.from(JSON.stringify(model)); const blob = await putBlob(json, { mime: "application/json" }); S.stage("Stored model", `${(json.length / 1024).toFixed(0)} KB of result data`);
     const old = p.modelBlob; p.modelBlob = blob; p.version += 1;
-    p.modelMeta = { version: p.version, generatedAt: model.generatedAt, walls: model.building?.stats.walls ?? 0, rooms: model.building?.stats.rooms ?? 0, mepElements: model.mep.elements.length, clashes: model.clashes.length, warnings: model.warnings.length, needsInput: model.needsInput.length, sample: model.sample };
+    p.modelMeta = modelSummary(model);
     if (old) await deleteBlob(old);
     const job = S.done({ ...p.modelMeta }); p.jobs = [job, ...p.jobs].slice(0, 20); await saveProject(p); return job;
   } catch (e) { const job = S.fail((e as Error).message || "Processing failed"); p.jobs = [job, ...p.jobs].slice(0, 20); await saveProject(p); return job; }
 }
-export async function loadModel(p: ProjectDoc): Promise<Plan3dModel> { if (!p.modelBlob) throw new Error("No model has been generated yet."); return JSON.parse((await getBlob(p.modelBlob)).data.toString("utf8")) as Plan3dModel; }
+export async function loadAnyModel(p: ProjectDoc): Promise<AnyModel> { if (!p.modelBlob) throw new Error("No model has been generated yet."); return JSON.parse((await getBlob(p.modelBlob)).data.toString("utf8")) as AnyModel; }
+/** The shared plan/IFC model; applications that produce an analysis without a building return a 422 here. */
+export async function loadModel(p: ProjectDoc): Promise<Plan3dModel> { const m = await loadAnyModel(p); if (!isPlan3d(m)) throw new HttpError(422, "This operation is not available for this application's results."); return m; }

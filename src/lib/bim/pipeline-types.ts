@@ -1,6 +1,7 @@
 import type { DocAnalysis } from "./analysis";
 import type { Building, Clash, MepElement, MepLayerConfig, MeshEl, Settings } from "./model";
 import type { IfcEl, IfcNode } from "./ifcread";
+import type { Ext } from "./demos/types";
 
 export interface NeedsInput { field: "unitsOverride" | "svgUnitsPerMetre" | "rasterPxPerMetre" | "mep"; question: string; options?: { label: string; value: number }[] }
 export interface Plan3dModel {
@@ -10,6 +11,8 @@ export interface Plan3dModel {
   ifc: { schema: string; project: string; lengthUnit: string; storeys: { id: number; name: string; elevation: number | null; count: number }[]; elements: IfcEl[]; tree: IfcNode | null; classes: Record<string, number>; triangles: number; systems: { id: number; name: string; count: number }[] } | null;
   meshes: MeshEl[]; clashes: Clash[]; clashInfo: { tested: number; method: string[]; clearance: number; tolerance: number; level: string };
   warnings: string[]; assumptions: string[]; limitations: string[]; provenance: { architecture: string; mep: string };
+  /** Analysis added by demonstrations 3, 5, 6, 8, 9 and 10 on top of the shared model. */
+  ext?: Ext;
 }
 export const PLAN3D_LIMITATIONS = [
   "Geometry comes from the uploaded drawing; wall heights, door/window heights and sills, slab thickness and roof are configurable assumptions because a 2D plan does not carry them.",

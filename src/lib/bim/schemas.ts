@@ -9,4 +9,7 @@ export const settingsPatchSchema = z.object({
   mep: z.array(mepCfg).max(60).optional(), clearance: num(0, 1).optional(), clashTolerance: num(0, 0.05).optional(), svgUnitsPerMetre: num(0.001, 1e6).optional(), rasterPxPerMetre: num(1, 20000).optional(),
   overrides: z.record(z.string().max(40), z.record(z.string().max(20), num(-100, 100))).optional(),
 }).strict();
-export type SettingsPatch = z.infer<typeof settingsPatchSchema>;
+/** Per-demonstration parameters (rule sets, rates, thresholds). Bounded in size; each processor validates the keys it reads. */
+const paramsSchema = z.record(z.string().max(40), z.unknown()).refine((o) => JSON.stringify(o).length <= 40_000, "Parameters are too large");
+export const anySettingsSchema = settingsPatchSchema.extend({ params: paramsSchema.optional() });
+export type SettingsPatch = z.infer<typeof anySettingsSchema>;
