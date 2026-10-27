@@ -3,9 +3,9 @@ import { useState } from "react";
 import { logActivity, resetDb, useSlice } from "@/lib/biz/db";
 import { MERGE_FIELDS, type Campaign, type JStep, type JType, type Journey, type MContact, type Rule, type Segment, type Template, type Tpl } from "@/lib/biz/seed-mkt";
 import { audience, campaignAudience, merge, rate, simulateMetrics, unknownFields } from "@/lib/biz/mkt-calc";
-import { DEMO_NOW, DEMO_TODAY, addDays, downloadJson, emailOk, fmtDt, lastNMonths, monthKey, monthLabel, pct, uid } from "@/lib/biz/util";
+import { DEMO_NOW, DEMO_TODAY, addDays, downloadJson, emailOk, fmtDt, monthLabel, pct, uid } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { AppProviders, AreaIn, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Empty, FilterSelect, HBars, Kpi, KpiRow, Modal, Notice, PageHead, Panel, ResetButton, Segmented, SelectIn, Tabs, TextIn, Timeline, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, AreaIn, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Empty, FilterSelect, Kpi, KpiRow, Modal, Notice, PageHead, Panel, ResetButton, Segmented, SelectIn, Tabs, TextIn, Timeline, useConfirm, useToast, type Col } from "./kit";
 
 /* Campaign studio: a violet, canvas-style workspace. Big section tabs, campaign cards with live email thumbnails, a side-by-side email editor, and a visual journey builder. */
 const SECTIONS = [{ id: "campaigns", label: "Campaigns", hint: "Plan and send" }, { id: "audience", label: "Audience", hint: "Contacts and segments" }, { id: "templates", label: "Templates", hint: "Reusable emails" }, { id: "journeys", label: "Journeys", hint: "Automated flows" }, { id: "analytics", label: "Analytics", hint: "Simulated results" }];

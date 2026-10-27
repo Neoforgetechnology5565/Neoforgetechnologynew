@@ -6,7 +6,6 @@ import type { Branding } from "@/lib/types";
 import { downloadCsv, num } from "@/lib/biz/util";
 
 /* ───────────────────────── Shell ───────────────────────── */
-export interface NavItem { id: string; label: string; badge?: number | string; group?: string }
 type Tone = "green" | "amber" | "red" | "blue" | "slate" | "violet";
 const ToastCtx = createContext<(msg: string, tone?: Tone) => void>(() => undefined);
 const ConfirmCtx = createContext<(msg: string, opts?: { yes?: string; danger?: boolean }) => Promise<boolean>>(async () => false);
@@ -49,18 +48,6 @@ export function DemoLinks({ back = "/portfolio/crm-hrm-erp", compact }: { back?:
   return <><Link href={back} className={c}>{compact ? "← Demos" : "← All demos"}</Link><Link href="/contact?division=crm-hrm-erp" className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-blue-500">{compact ? "Request similar" : "Request similar software"}</Link></>;
 }
 export const DemoBadge = ({ text = "Demonstration · local sample data" }: { text?: string }) => <span className="rounded-full border border-amber-500/50 bg-amber-500/10 px-2.5 py-0.5 text-[13px] font-semibold text-amber-600">{text}</span>;
-
-/** Legacy sidebar layout (no demo uses it any more; kept for reference). */
-export function ErpShell({ branding, title, subtitle, nav, active, onNav, actions, onReset, resetLabel = "Reset demo data", back = { href: "/portfolio/crm-hrm-erp", label: "← All demos" }, children, note }: {
-  branding: Branding; title: string; subtitle: string; nav: NavItem[]; active: string; onNav(id: string): void; actions?: ReactNode; onReset(): void; resetLabel?: string; back?: { href: string; label: string }; children: ReactNode; note?: string;
-}) {
-  return (
-    <AppProviders note={note} className="bg-slate-100 text-slate-800">
-      <header className="no-print flex flex-wrap items-center gap-3 border-b border-slate-800 bg-slate-900 px-4 py-2.5 text-slate-200"><BrandLogo branding={branding} back={back.href} /><div><h1 className="text-base font-semibold text-white">{title}</h1><p className="text-sm text-slate-400">{subtitle}</p></div><DemoBadge /><div className="ml-auto flex flex-wrap items-center gap-2">{actions}<ResetButton onReset={onReset} label={resetLabel} /><DemoLinks back={back.href} /></div></header>
-      <div className="flex flex-1 flex-col lg:flex-row"><nav className="no-print shrink-0 bg-slate-950 p-2 lg:w-60">{nav.map((n) => <button key={n.id} type="button" data-nav={n.id} aria-current={n.id === active ? "page" : undefined} onClick={() => onNav(n.id)} className={`block w-full rounded-md px-3 py-2 text-left text-[15px] ${n.id === active ? "bg-blue-600 text-white" : "text-slate-300 hover:bg-slate-800"}`}>{n.label}</button>)}</nav><main className="min-w-0 flex-1 p-5" id="app-main">{children}</main></div>
-    </AppProviders>
-  );
-}
 
 /* ───────────────────────── Primitives ───────────────────────── */
 export const TONE: Record<Tone, string> = { green: "bg-blue-100 text-blue-800", amber: "bg-amber-100 text-amber-800", red: "bg-red-100 text-red-700", blue: "bg-sky-100 text-sky-800", slate: "bg-slate-200 text-slate-700", violet: "bg-violet-100 text-violet-800" };

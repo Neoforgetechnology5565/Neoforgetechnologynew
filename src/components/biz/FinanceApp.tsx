@@ -5,7 +5,7 @@ import { AGE_BUCKETS, BANK_ONLY, PERIODS, ageBucket, balanceOf, balanceSheet, bi
 import type { Bill, Expense, FinLine, Invoice } from "@/lib/biz/seed-fin";
 import { DEMO_CURRENCY, DEMO_TODAY, addDays, downloadCsv, fmtDate, groupBy, monthLabel, money, moneyK, pct, round2, sum, uid } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { AppProviders, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Empty, FilterSelect, HBars, Kpi, KpiRow, LineChart, Modal, Notice, PageHead, Panel, PrintSheet, ResetButton, SelectIn, Segmented, Tabs, TextIn, printNow, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Empty, FilterSelect, HBars, Kpi, KpiRow, Modal, Notice, PageHead, Panel, PrintSheet, ResetButton, SelectIn, Segmented, Tabs, TextIn, printNow, useConfirm, useToast, type Col } from "./kit";
 
 /* Ledger workbook: a paper-and-ink accounting workspace. Underlined tabs across a title block, double-entry ledger as the working view, account balances always at the right. */
 const TABS = [{ id: "overview", label: "Overview" }, { id: "transactions", label: "Transactions" }, { id: "invoices", label: "Invoices" }, { id: "expenses", label: "Expenses" }, { id: "accounts", label: "Accounts" }, { id: "reconciliation", label: "Reconciliation" }, { id: "reports", label: "Reports" }];
@@ -322,7 +322,7 @@ function Accounts({ period, toLedger }: { period: string; toLedger(id: string): 
 }
 
 /* ───────── Reports ───────── */
-function PnL({ period, setPeriod }: { period: string; setPeriod(v: string): void }) {
+function PnL({ period }: { period: string; setPeriod(v: string): void }) {
   const [fin] = useSlice("fin"); const pr = periodOf(period); const pl = profitAndLoss(fin, pr.from, pr.to);
   const exp = () => downloadCsv(`profit-and-loss-${pr.id}`, [["Section", "Account", `Amount (${DEMO_CURRENCY})`], ...pl.revenue.map((r) => ["Revenue", r.name, r.amount]), ["Revenue", "Total revenue", pl.totalRevenue], ...pl.expenses.map((r) => ["Expenses", r.name, r.amount]), ["Expenses", "Total expenses", pl.totalExpenses], ["Result", "Net profit", pl.netProfit]]);
   const Row = ({ l, v, bold }: { l: string; v: number; bold?: boolean }) => <tr className={bold ? "border-t-2 border-slate-300 font-semibold" : "border-t border-slate-100"}><td className="py-1.5">{l}</td><td className="text-right tabular-nums">{M(v)}</td></tr>;
@@ -331,7 +331,7 @@ function PnL({ period, setPeriod }: { period: string; setPeriod(v: string): void
       <table className="mt-4 w-full text-sm"><tbody><tr><td colSpan={2} className="pt-2 text-xs font-semibold uppercase text-slate-500">Revenue</td></tr>{pl.revenue.map((r) => <Row key={r.id} l={r.name} v={r.amount} />)}<Row l="Total revenue" v={pl.totalRevenue} bold />
         <tr><td colSpan={2} className="pt-4 text-xs font-semibold uppercase text-slate-500">Expenses</td></tr>{pl.expenses.map((r) => <Row key={r.id} l={r.name} v={r.amount} />)}<Row l="Total expenses" v={pl.totalExpenses} bold /><Row l="Gross profit (revenue less cost of sales)" v={pl.grossProfit} /><tr className="border-t-2 border-slate-800 text-base font-semibold"><td className="py-2">Net profit</td><td className="text-right tabular-nums" data-testid="net-profit">{M(pl.netProfit)}</td></tr></tbody></table></PrintSheet></>);
 }
-function BalanceSheetScreen({ period, setPeriod }: { period: string; setPeriod(v: string): void }) {
+function BalanceSheetScreen({ period }: { period: string; setPeriod(v: string): void }) {
   const [fin] = useSlice("fin"); const pr = periodOf(period); const b = balanceSheet(fin, pr.to);
   const exp = () => downloadCsv(`balance-sheet-${pr.id}`, [["Section", "Line", `Amount (${DEMO_CURRENCY})`], ["Assets", "Cash at bank", b.assets.cash], ["Assets", "Accounts receivable", b.assets.ar], ["Assets", "Equipment (net)", b.assets.equipment], ["Assets", "Total assets", b.totalAssets], ["Liabilities", "Accounts payable", b.liabilities.ap], ["Liabilities", "Sales tax payable (net)", b.liabilities.tax], ["Liabilities", "Bank loan", b.liabilities.loan], ["Liabilities", "Total liabilities", b.totalLiab], ["Equity", "Share capital & opening reserves", b.equity.opening], ["Equity", "Earnings to date", b.equity.earnings], ["Equity", "Total equity", b.totalEquity]]);
   const R = ({ l, v, bold }: { l: string; v: number; bold?: boolean }) => <tr className={bold ? "border-t-2 border-slate-300 font-semibold" : "border-t border-slate-100"}><td className="py-1.5">{l}</td><td className="text-right tabular-nums">{M(v)}</td></tr>;
@@ -342,7 +342,7 @@ function BalanceSheetScreen({ period, setPeriod }: { period: string; setPeriod(v
         <tr><td colSpan={2} className="pt-4 text-xs font-semibold uppercase text-slate-500">Equity</td></tr><R l="Share capital & opening reserves" v={b.equity.opening} /><R l="Earnings to date" v={b.equity.earnings} /><R l="Total equity" v={b.totalEquity} bold /><R l="Total liabilities + equity" v={round2(b.totalLiab + b.totalEquity)} bold /></tbody></table>
       <p className={`mt-3 text-sm font-medium ${b.balanced ? "text-blue-700" : "text-red-700"}`} data-testid="bs-check">{b.balanced ? "✓ Balanced: assets equal liabilities plus equity." : "Out of balance"}</p></PrintSheet></>);
 }
-function CashFlow({ period, setPeriod }: { period: string; setPeriod(v: string): void }) {
+function CashFlow({ period }: { period: string; setPeriod(v: string): void }) {
   const [fin] = useSlice("fin"); const pr = periodOf(period); const c = cashSummary(fin, pr.from, pr.to);
   const months = ["2025-10", "2025-11", "2025-12", "2026-01", "2026-02", "2026-03"].filter((m) => `${m}-31` >= pr.from && `${m}-01` <= pr.to); const mc = months.map((m) => cashSummary(fin, `${m}-01`, `${m}-31`));
   const exp = () => downloadCsv(`cash-flow-${pr.id}`, [["Line", `Amount (${DEMO_CURRENCY})`], ["Opening cash", c.opening], ["Receipts from customers", c.receipts], ["Payments to suppliers", -c.billPay], ["Expenses paid", -c.expPay], ["Net cash movement", c.net], ["Closing cash", c.closing]]);
@@ -352,7 +352,7 @@ function CashFlow({ period, setPeriod }: { period: string; setPeriod(v: string):
 }
 
 /* ───────── Analytics ───────── */
-function Analytics({ period, setPeriod }: { period: string; setPeriod(v: string): void }) {
+function Analytics({ period }: { period: string; setPeriod(v: string): void }) {
   const [fin] = useSlice("fin"); const [crm] = useSlice("crm"); const pr = periodOf(period); const pl = profitAndLoss(fin, pr.from, pr.to); const [tab, setTab] = useState("rev");
   const inv = fin.invoices.filter((i) => !i.draft && i.date >= pr.from && i.date <= pr.to);
   const byCust = Object.entries(groupBy(inv, (i) => i.customerId)).map(([id, v]) => ({ label: custName(crm.companies, id), value: round2(sum(v, (i) => docTotals(i).subtotal)) })).sort((a, b) => b.value - a.value).slice(0, 8);

@@ -24,7 +24,7 @@ export function CapabilityGroups({ division }: { division: Division }) {
         <section key={g.title} id={anchor(g.title)} className="scroll-mt-24 rounded-2xl border border-stone-200 bg-white p-7">
           <h3 className="flex items-baseline justify-between font-display text-xl font-semibold text-stone-900">{g.title}<span className="text-xs font-medium text-blue-600">{g.items.length}</span></h3>
           <ul className="mt-4 flex flex-wrap gap-1.5">
-            {g.items.map((i) => <li key={i} className="rounded-full bg-stone-100 px-2.5 py-1 text-[12px] font-medium text-stone-600">{i}</li>)}
+            {g.items.map((i) => <li key={i} className="rounded-full bg-stone-100 px-2.5 py-1 text-[13px] font-medium text-stone-600">{i}</li>)}
           </ul>
         </section>
       ))}
