@@ -28,7 +28,7 @@ export function measureMesh(m: MeshData, unit: MeshUnit): MeshMeasurement {
   return { lengthMm: Math.round(e[0] * 10) / 10, widthMm: Math.round(e[1] * 10) / 10, heightMm: Math.round(e[2] * 10) / 10, axes, centre: c, unit, vertexCount: n, faceCount: m.faceCount, notes };
 }
 function jacobi(A: number[][]): number[][] {
-  const a = A.map((r) => [...r]); let V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+  const a = A.map((r) => [...r]); const V = [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
   for (let it = 0; it < 60; it++) { let p = 0, q = 1, mx = Math.abs(a[0][1]); if (Math.abs(a[0][2]) > mx) { p = 0; q = 2; mx = Math.abs(a[0][2]); } if (Math.abs(a[1][2]) > mx) { p = 1; q = 2; mx = Math.abs(a[1][2]); } if (mx < 1e-12) break;
     const th = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]); const cs = Math.cos(th), sn = Math.sin(th);
     for (let k = 0; k < 3; k++) { const akp = a[k][p], akq = a[k][q]; a[k][p] = cs * akp - sn * akq; a[k][q] = sn * akp + cs * akq; }

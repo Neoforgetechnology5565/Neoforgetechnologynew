@@ -21,7 +21,8 @@ export interface FootMeasurement {
    *  `parallaxBoundMm` is the remaining length uncertainty if h is wrong by ±ASSUMED_HEIGHT_UNCERTAINTY_MM — a bound from stated assumptions, not a statistical confidence. */
   rawLengthMm: number; rawWidthMm: number; parallaxScale: number; parallaxBoundMm: number; resolutionMm: number;
   axis: { angleDeg: number; toe: Pt; heel: Pt; widestAt: number; widestA: Pt; widestB: Pt };
-  outlineMm: Pt[]; // simplified silhouette in paper-plane millimetres
+  outlineMm: Pt[]; // simplified silhouette in paper-plane millimetres, after the parallax correction
+  rawOutlineMm: Pt[]; // the silhouette as seen in the photo (before the correction): use this to draw over the photo
 }
 export interface Analysis {
   ok: boolean; stage: "decoded" | "paper" | "segmentation" | "measured";

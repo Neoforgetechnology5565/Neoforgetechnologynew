@@ -1,0 +1,12 @@
+{
+  "name": "Neo Forge Foot Scanner",
+  "short_name": "Foot scanner",
+  "description": "Guided phone capture for the AI Shoe & Foot Measurement and Fitting demo. Opens from the QR code shown on the computer.",
+  "start_url": "/ai-demos/ai-shoe-foot-measurement-fitting/app/scan",
+  "scope": "/ai-demos/ai-shoe-foot-measurement-fitting/app/scan",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0c0a09",
+  "theme_color": "#0c0a09",
+  "icons": [{ "src": "/foot-icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

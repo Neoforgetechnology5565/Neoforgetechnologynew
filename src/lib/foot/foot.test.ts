@@ -9,7 +9,6 @@ let pass = 0, fail = 0; const out: string[] = [];
 function t(name: string, fn: () => void) { try { fn(); pass++; out.push(`  ok   ${name}`); } catch (e) { fail++; out.push(`  FAIL ${name}\n       ${(e as Error).message}`); } }
 const near = (a: number, b: number, tol: number, what: string) => { if (!(Math.abs(a - b) <= tol)) throw new Error(`${what}: got ${a}, expected ${b} ± ${tol}`); };
 const ok = (c: unknown, m: string) => { if (!c) throw new Error(m); };
-const scaled = (s: number) => (img: Img) => img;
 
 /* length/width recovery under varying geometry */
 const cases: { n: string; o: Parameters<typeof renderScene>[0]; tol: number }[] = [
@@ -64,4 +63,4 @@ function cube(sx: number, sy: number, sz: number) { const lines: string[] = []; 
 t("mesh: OBJ extents in cm → mm", () => { const m = measureMesh(parseObj(cube(26, 10, 7)), "cm"); ok(m.lengthMm > 200 && m.lengthMm < 280 && m.widthMm < m.lengthMm && m.heightMm < m.widthMm, JSON.stringify([m.lengthMm, m.widthMm, m.heightMm])); });
 t("mesh: invalid OBJ rejected", () => { let threw = false; try { parseObj("v 1 2 3\nf 1 2 3"); } catch { threw = true; } ok(threw, "should throw"); });
 
-console.log(out.join("\n")); console.log(`\n${pass} passed, ${fail} failed`); void scaled; process.exit(fail ? 1 : 0);
+console.log(out.join("\n")); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CctvPlatform from "@/components/demos/cctv/CctvPlatform";
+import FootPlatform from "@/components/demos/foot/FootPlatform";
 import { CV_MAP } from "@/lib/cv-demos";
 import { getBranding } from "@/lib/db";
 
@@ -11,6 +12,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
 }
 export default async function CvDemoApp({ params }: Params) {
   const slug = (await params).slug;
+  if (slug === "ai-shoe-foot-measurement-fitting") return <FootPlatform branding={await getBranding()} />;
   if (slug !== "ai-cctv-intelligence-security-analytics") notFound();
   return <CctvPlatform branding={await getBranding()} />;
 }

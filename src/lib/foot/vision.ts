@@ -53,7 +53,7 @@ function dp(pts: Pt[], eps: number): Pt[] { if (pts.length < 3) return pts; cons
   for (let i = 1; i < pts.length - 1; i++) { const d = Math.abs(dy * pts[i].x - dx * pts[i].y + b.x * a.y - b.y * a.x) / len; if (d > best) { best = d; idx = i; } }
   if (best <= eps) return [a, b]; const l = dp(pts.slice(0, idx + 1), eps), r = dp(pts.slice(idx), eps); return l.slice(0, -1).concat(r); }
 /** Simplify a closed polygon with Douglas-Peucker. */
-export function simplifyClosed(poly: Pt[], eps: number): Pt[] { if (poly.length < 4) return poly; let i0 = 0, i1 = 0, best = -1; for (let i = 1; i < poly.length; i++) { const d = dist(poly[0], poly[i]); if (d > best) { best = d; i1 = i; } } const A = poly.slice(i0, i1 + 1), B = poly.slice(i1).concat([poly[0]]); return dp(A, eps).slice(0, -1).concat(dp(B, eps).slice(0, -1)); }
+export function simplifyClosed(poly: Pt[], eps: number): Pt[] { if (poly.length < 4) return poly; const i0 = 0; let i1 = 0, best = -1; for (let i = 1; i < poly.length; i++) { const d = dist(poly[0], poly[i]); if (d > best) { best = d; i1 = i; } } const A = poly.slice(i0, i1 + 1), B = poly.slice(i1).concat([poly[0]]); return dp(A, eps).slice(0, -1).concat(dp(B, eps).slice(0, -1)); }
 function approxQuad(hull: Pt[]): Pt[] | null { const per = hull.reduce((a, p, i) => a + dist(p, hull[(i + 1) % hull.length]), 0); let lo = 0.002 * per, hi = 0.2 * per, res: Pt[] | null = null;
   for (let it = 0; it < 30; it++) { const eps = (lo + hi) / 2; const s = simplifyClosed(hull, eps); if (s.length === 4) { res = s; hi = eps; } else if (s.length > 4) lo = eps; else hi = eps; if (hi - lo < 1e-3 * per) break; }
   return res; }
@@ -81,7 +81,7 @@ export function sharpness(img: Img): number { const s = downscale(img, 480); con
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) { const i = y * w + x; const l = 4 * g[i] - g[i - 1] - g[i + 1] - g[i - w] - g[i + w]; sum += l; sum2 += l * l; n++; } const m = sum / n; return sum2 / n - m * m; }
 
 /* ───────── paper detection ───────── */
-export interface PaperDetection { found: boolean; reason?: string; corners?: Pt[]; paper?: PaperKind; autoChosen?: boolean; tilt?: number; lineFitRmsPx?: number; coverage?: number; brightness?: number; sharp?: number }
+export interface PaperDetection { found: boolean; reason?: string; corners?: Pt[]; paper?: PaperKind; autoChosen?: boolean; tilt?: number; lineFitRmsPx?: number; coverage?: number; brightness?: number; paperBrightness?: number; sharp?: number }
 const orderCorners = (q: Pt[]): Pt[] | null => { let p = q; if (polyArea(p) < 0) p = [...p].reverse(); const s = p.map((a, i) => dist(a, p[(i + 1) % 4])); return s[0] + s[2] >= s[1] + s[3] ? p : [p[1], p[2], p[3], p[0]]; };
 const tiltOf = (c: Pt[]) => { const s = c.map((a, i) => dist(a, c[(i + 1) % 4])); return Math.max(Math.max(s[0], s[2]) / Math.min(s[0], s[2]), Math.max(s[1], s[3]) / Math.min(s[1], s[3])); };
 
@@ -98,6 +98,7 @@ export function detectPaper(img: Img, paperPref: PaperKind | "auto" = "auto"): P
     if (qa < 0.04 * n || hullFill > 1.12) continue; const score = qa * Math.min(1, fill + 0.15) * (1 - Math.abs(1 - hullFill)); if (!best || score > best.score) best = { id, score, quad, hullArea: qa }; }
   if (!best) return { found: false, reason: "No sheet of paper found. Lay a plain white A4 or US Letter sheet flat on a darker floor, with all four corners visible.", brightness, sharp };
   // refine corners by fitting a line to the boundary pixels of each side
+  let pbs = 0, pbn = 0; for (let p = 0; p < n; p++) if (labels[p] === best.id) { pbs += V[p]; pbn++; } const paperBrightness = pbn ? pbs / pbn : brightness;
   const rough = orderCorners(best.quad)!; const lines: { c: Pt; d: Pt; rms: number }[] = []; const diag = Math.hypot(w, h); const tol = Math.max(2.5, 0.012 * diag); const bp: Pt[] = [];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const p = y * w + x; if (labels[p] !== best.id) continue; if (x === 0 || labels[p - 1] !== best.id || x === w - 1 || labels[p + 1] !== best.id || y === 0 || labels[p - w] !== best.id || y === h - 1 || labels[p + w] !== best.id) bp.push({ x, y }); }
   for (let i = 0; i < 4; i++) { const a = rough[i], b = rough[(i + 1) % 4]; const dx = b.x - a.x, dy = b.y - a.y, len = Math.hypot(dx, dy); const sel: Pt[] = [];
@@ -109,7 +110,7 @@ export function detectPaper(img: Img, paperPref: PaperKind | "auto" = "auto"): P
   if (paperPref === "auto") { paper = Math.abs(ratio - 297 / 210) <= Math.abs(ratio - 279.4 / 215.9) ? "a4" : "letter"; autoChosen = true; } else paper = paperPref;
   const out = ordered.map((c) => ({ x: c.x * sc, y: c.y * sc })); const cov = best.hullArea / n;
   if (Math.abs(ratio - PAPER_MM[paper].w / PAPER_MM[paper].h) / (PAPER_MM[paper].w / PAPER_MM[paper].h) > 0.45) return { found: false, reason: "The bright shape found does not look like a sheet of paper of the selected size. Check the paper size setting and the framing.", brightness, sharp };
-  return { found: true, corners: out, paper, autoChosen, tilt, lineFitRmsPx: rms * sc, coverage: cov, brightness, sharp };
+  return { found: true, corners: out, paper, autoChosen, tilt, lineFitRmsPx: rms * sc, coverage: cov, brightness, paperBrightness, sharp };
 }
 
 /* ───────── rectification and segmentation ───────── */
@@ -168,7 +169,7 @@ export function measureMask(mask: Uint8Array, w: number, h: number, S: number, c
   const cxm = 0, cym = 0; const sp = (p: Pt): Pt => p; void cxm; void cym;
   const r1 = (v: number) => Math.round(v * 10) / 10;
   return { lengthMm: r1(length * sc), widthMm: r1(wMaxV * sc), ballWidthMm: r1(ball * sc), heelWidthMm: r1(heel * sc), areaCm2: r1((n / (S * S) / 100) * sc * sc), rawLengthMm: r1(length), rawWidthMm: r1(wMaxV), parallaxScale: 1, widthLengthRatio: Math.round((wMaxV / length) * 1000) / 1000, parallaxBoundMm: r1(bound), resolutionMm: r1(1 / S),
-    axis: { angleDeg: Math.round(th * 18000 / Math.PI) / 100, toe: sp(toPlane(toeEnd, cb(toeEnd))), heel: sp(toPlane(heelEnd, cb(heelEnd))), widestAt: r1(Math.abs(wMaxA - heelEnd) * sc), widestA: sp(toPlane(wMaxA, bAt.lo)), widestB: sp(toPlane(wMaxA, bAt.hi)) }, outlineMm: outline.map((p) => { const q = sp(p); return { x: r1(q.x), y: r1(q.y) }; }) };
+    axis: { angleDeg: Math.round(th * 18000 / Math.PI) / 100, toe: sp(toPlane(toeEnd, cb(toeEnd))), heel: sp(toPlane(heelEnd, cb(heelEnd))), widestAt: r1(Math.abs(wMaxA - heelEnd) * sc), widestA: sp(toPlane(wMaxA, bAt.lo)), widestB: sp(toPlane(wMaxA, bAt.hi)) }, outlineMm: outline.map((p) => { const q = sp(p); return { x: r1(q.x), y: r1(q.y) }; }), rawOutlineMm: [] };
 }
 function avgW(bins: Map<number, { lo: number; hi: number }>, a0: number, a1: number) { let s = 0, c = 0; for (let a = Math.floor(a0); a <= Math.floor(a1); a++) { const e = bins.get(a); if (e) { s += e.hi - e.lo; c++; } } return c ? s / c : 0; }
 
@@ -197,7 +198,7 @@ export function analyzeFootImage(img: Img, opt: AnalyzeOptions = {}): AnalyzeRes
   const size = { w: img.w, h: img.h }; const warnings: string[] = []; const fail = (stage: Analysis["stage"], reason: string, quality?: ImageQuality, calibration?: Calibration): AnalyzeResult => ({ analysis: { ok: false, stage, reason, warnings, grade: "unusable", quality, calibration, imageSize: size } });
   if (img.w < 600 || img.h < 600) return fail("decoded", "The image is too small (minimum 600 px on each side). Take the photo at the phone's normal resolution.");
   const S = opt.pxPerMmOut ?? 2; let paper: PaperKind; let corners: Pt[]; let method: Calibration["method"]; let autoChosen = false; let tilt: number, rms = 0, cover = 0, bright = 0, sharp = 0;
-  opt.onStage?.("calibrating"); const det = detectPaper(img, opt.paper ?? "auto"); bright = det.brightness ?? 0; sharp = det.sharp ?? sharpness(img);
+  opt.onStage?.("calibrating"); const det = detectPaper(img, opt.paper ?? "auto"); bright = det.paperBrightness ?? det.brightness ?? 0; sharp = det.sharp ?? sharpness(img);
   if (opt.corners && opt.corners.length === 4) { const c = orderCorners(opt.corners); if (!c) return fail("paper", "The corner positions are not a valid four-sided shape."); corners = c; paper = opt.paper && opt.paper !== "auto" ? opt.paper : det.paper ?? "a4"; method = "manual-corners"; tilt = tiltOf(c); cover = Math.abs(polyArea(c)) / (img.w * img.h); }
   else { const q0: ImageQuality = quality(sharp, bright, 0); if (!det.found || !det.corners) return fail("paper", det.reason ?? "No sheet of paper found.", q0); corners = det.corners; paper = det.paper!; autoChosen = !!det.autoChosen; method = "auto-paper"; tilt = det.tilt!; rms = det.lineFitRmsPx ?? 0; cover = det.coverage ?? 0; }
   const P = PAPER_MM[paper]; const Hpi = homography([{ x: 0, y: 0 }, { x: P.w, y: 0 }, { x: P.w, y: P.h }, { x: 0, y: P.h }], corners); if (!Hpi) return fail("paper", "The paper corners could not be used for calibration.");
@@ -210,10 +211,10 @@ export function analyzeFootImage(img: Img, opt: AnalyzeOptions = {}): AnalyzeRes
   opt.onStage?.("measuring"); const rect = rectify(img, Hpi, P.w, P.h, S); const seg = segmentFoot(rect, S);
   if (!seg.ok || !seg.mask) return { analysis: { ok: false, stage: "segmentation", reason: seg.reason, warnings, grade: "unusable", quality: q, calibration: cal, imageSize: size }, rectified: rect, H: Hpi };
   if (seg.touchesEdge) warnings.push("The foot reaches the edge of the paper, so its length may be cut short. Use a larger sheet or place the foot fully inside.");
-  const raw = measureMask(seg.mask, seg.w, seg.h, S, camDist); const cmask = pose ? parallaxCorrect(seg.mask, seg.w, seg.h, S, pose, ASSUMED_SILHOUETTE_HEIGHT_MM) : seg.mask; const meas = raw && pose ? measureMask(cmask, seg.w, seg.h, S, camDist) : raw; if (raw && meas) { meas.rawLengthMm = raw.lengthMm; meas.rawWidthMm = raw.widthMm; meas.parallaxScale = Math.round((meas.lengthMm / raw.lengthMm) * 10000) / 10000; } if (!meas) return { analysis: { ok: false, stage: "segmentation", reason: "The foot region was too small to measure.", warnings, grade: "unusable", quality: q, calibration: cal, imageSize: size }, rectified: rect, H: Hpi };
+  const raw = measureMask(seg.mask, seg.w, seg.h, S, camDist); const cmask = pose ? parallaxCorrect(seg.mask, seg.w, seg.h, S, pose, ASSUMED_SILHOUETTE_HEIGHT_MM) : seg.mask; const meas = raw && pose ? measureMask(cmask, seg.w, seg.h, S, camDist) : raw; if (raw && meas) { if (!pose) meas.rawOutlineMm = raw.outlineMm; meas.rawOutlineMm = raw.outlineMm; meas.rawLengthMm = raw.lengthMm; meas.rawWidthMm = raw.widthMm; meas.parallaxScale = Math.round((meas.lengthMm / raw.lengthMm) * 10000) / 10000; } if (!meas) return { analysis: { ok: false, stage: "segmentation", reason: "The foot region was too small to measure.", warnings, grade: "unusable", quality: q, calibration: cal, imageSize: size }, rectified: rect, H: Hpi };
   if (meas.lengthMm < 120 || meas.lengthMm > 340) warnings.push(`The measured length (${meas.lengthMm} mm) is outside the usual adult range; check the paper size setting and that only one foot is on the paper.`);
   if (meas.parallaxBoundMm > 7) warnings.push(`At this camera distance the parallax correction is uncertain by up to about ${meas.parallaxBoundMm} mm. Hold the phone higher for a tighter result.`);
   const major = seg.touchesEdge || q.sharpnessLabel === "blurry" || q.lighting !== "ok"; const grade: Analysis["grade"] = major || warnings.length >= 3 ? "poor" : warnings.length >= 1 ? "fair" : "good";
   return { analysis: { ok: true, stage: "measured", warnings, grade, quality: q, calibration: cal, measurement: meas, imageSize: size }, rectified: rect, mask: cmask, H: Hpi };
 }
-export function quality(sharp: number, brightness: number, coverage: number): ImageQuality { return { sharpness: Math.round(sharp), sharpnessLabel: sharp < 25 ? "blurry" : sharp < 70 ? "soft" : "sharp", brightness: Math.round(brightness), lighting: brightness < 85 ? "dark" : brightness > 235 ? "overexposed" : "ok", paperCoverage: Math.round(coverage * 1000) / 1000 }; }
+export function quality(sharp: number, brightness: number, coverage: number): ImageQuality { return { sharpness: Math.round(sharp), sharpnessLabel: sharp < 25 ? "blurry" : sharp < 70 ? "soft" : "sharp", brightness: Math.round(brightness), lighting: brightness < 110 ? "dark" : brightness > 250 ? "overexposed" : "ok", paperCoverage: Math.round(coverage * 1000) / 1000 }; }

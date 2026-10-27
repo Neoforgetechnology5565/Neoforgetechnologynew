@@ -24,6 +24,8 @@ const nextConfig = {
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },
+      // The foot scanner needs the camera; every other page keeps camera=() from securityHeaders.
+      { source: "/ai-demos/ai-shoe-foot-measurement-fitting/:path*", headers: [{ key: "Permissions-Policy", value: "camera=(self), microphone=(), geolocation=()" }] },
       { source: "/admin/:path*", headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
       { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }, { key: "Service-Worker-Allowed", value: "/" }] },

@@ -13,7 +13,10 @@
     "test:cctv:ui": "node scripts/test-cctv-ui.mjs",
     "cctv:samples": "node scripts/make-cctv-samples.mjs",
     "test:biz": "tsx src/lib/biz/biz.test.ts",
-    "test:erp": "node scripts/test-erp-ui.mjs"
+    "test:erp": "node scripts/test-erp-ui.mjs",
+    "test:foot": "tsx src/lib/foot/foot.test.ts",
+    "test:foot:api": "node scripts/test-foot-api.mjs",
+    "test:foot:ui": "node scripts/test-foot-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -29,6 +32,7 @@
     "geist": "^1.7.2",
     "next": "^15.5.27",
     "nodemailer": "^10.1.0",
+    "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "server-only": "^0.0.1",
@@ -41,6 +45,7 @@
   "devDependencies": {
     "@types/node": "^26.6.4",
     "@types/nodemailer": "^8.0.2",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@types/web-push": "^3.6.4",
