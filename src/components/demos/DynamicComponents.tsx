@@ -17,7 +17,6 @@ const THUMB: Record<string, string> = {
 };
 const Thumb = ({ id }: { id: string }) => <svg viewBox="0 0 48 48" className="h-10 w-10 shrink-0 text-blue-400" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" aria-hidden><path d={THUMB[id]} /></svg>;
 
-const same = (a: Vals, b: Vals) => Object.keys(b).every((k) => a[k] === b[k]);
 
 export default function DynamicComponents({ branding }: { branding: Branding }) {
   const [compId, setCompId] = useState("window");
@@ -63,7 +62,8 @@ export default function DynamicComponents({ branding }: { branding: Branding }) 
   }, [ctx, comp, vals]);
   // frame the component when switching components or presets (not on every slider move)
   const frameKey = `${compId}:${preset}`;
-  useEffect(() => { if (ctx && built) ctx.reset(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [ctx, frameKey]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (ctx && built) ctx.reset(); }, [ctx, frameKey]);
   useEffect(() => {
     if (!ctx || !built) return;
     built.group.traverse((o) => {
@@ -78,7 +78,7 @@ export default function DynamicComponents({ branding }: { branding: Branding }) 
   const note = (t: string) => setLog((l) => [t, ...l].slice(0, 8));
   const setV = (k: string, v: number | string | boolean) => { setVals((x) => ({ ...x, [k]: v })); setPreset(null); };
   const pickComp = (id: string) => { const c = COMPONENTS.find((x) => x.id === id)!; setCompId(id); setVals(c.presets.Standard); setPreset("Standard"); setSel(null); setTab("params"); note(`Loaded ${c.name}`); };
-  const usePreset = (p: string) => { setVals(comp.presets[p]); setPreset(p); setSel(null); note(`Preset: ${p}`); };
+  const applyPreset = (p: string) => { setVals(comp.presets[p]); setPreset(p); setSel(null); note(`Preset: ${p}`); };
 
   const partCount = built ? Object.values(built.parts).length : 0;
   const partsBy = useMemo(() => { const m = new Map<string, { label: string; n: number }>(); built?.group.traverse((o) => { const id = o.userData.id as string | undefined; if (id && (o as THREE.Mesh).isMesh) { const e = m.get(id) ?? { label: built.parts[id], n: 0 }; e.n++; m.set(id, e); } }); return m; }, [built]);
@@ -89,7 +89,7 @@ export default function DynamicComponents({ branding }: { branding: Branding }) 
 
   return (
     <DemoShell branding={branding} app="SketchUp Dynamic Components Builder" project={`Component library · ${comp.name}`} status={warnings.length ? `${warnings.length} configuration warning${warnings.length > 1 ? "s" : ""}` : preset ? `Preset: ${preset}` : modified ? `Modified (${modified} parameter${modified > 1 ? "s" : ""})` : "Standard configuration"}
-      actions={<button type="button" onClick={() => { usePreset("Standard"); }} className={BTN}>Reset configuration</button>}>
+      actions={<button type="button" onClick={() => { applyPreset("Standard"); }} className={BTN}>Reset configuration</button>}>
       <div className="grid grid-cols-1 lg:min-h-[calc(100vh-7rem)] lg:grid-cols-[21rem_minmax(0,1fr)]">
         <aside aria-label="Component library and parameters" className="order-2 border-t border-slate-800 bg-slate-900/60 lg:order-1 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto lg:border-r lg:border-t-0">
           <div className="flex border-b border-slate-800 text-sm">{([["params", "Parameters"], ["library", "Component library"]] as const).map(([k, l]) => <button key={k} type="button" onClick={() => setTab(k)} className={`flex-1 px-3 py-2.5 ${tab === k ? "border-b-2 border-blue-500 font-semibold text-blue-300" : "text-slate-400 hover:text-white"}`}>{l}</button>)}</div>
@@ -99,7 +99,7 @@ export default function DynamicComponents({ branding }: { branding: Branding }) 
             ))}</ul>
           ) : (
             <div className="space-y-4 p-4">
-              <div><p className={LBL}>Presets</p><div className="grid grid-cols-3 gap-1.5">{Object.keys(comp.presets).map((p) => <button key={p} type="button" aria-pressed={preset === p} onClick={() => usePreset(p)} className={`rounded-md border px-2 py-1.5 text-xs ${preset === p ? "border-blue-500 bg-blue-600/20 text-blue-200" : "border-slate-700 text-slate-300 hover:border-slate-500"}`}>{p}</button>)}</div></div>
+              <div><p className={LBL}>Presets</p><div className="grid grid-cols-3 gap-1.5">{Object.keys(comp.presets).map((p) => <button key={p} type="button" aria-pressed={preset === p} onClick={() => applyPreset(p)} className={`rounded-md border px-2 py-1.5 text-xs ${preset === p ? "border-blue-500 bg-blue-600/20 text-blue-200" : "border-slate-700 text-slate-300 hover:border-slate-500"}`}>{p}</button>)}</div></div>
               {comp.params.map((p) => {
                 const id = `pm-${p.k}`;
                 if (p.type === "range") return <div key={p.k}><div className="flex items-baseline justify-between"><label htmlFor={id} className={LBL}>{p.label}</label><input type="number" aria-label={`${p.label} value`} min={p.min} max={p.max} step={p.step} value={vals[p.k] as number} onChange={(e) => { const n = Math.min(p.max, Math.max(p.min, +e.target.value || p.min)); setV(p.k, n); }} className="w-20 rounded border border-slate-700 bg-slate-950 px-1.5 py-0.5 text-right font-mono text-xs text-blue-300" /></div><input id={id} type="range" min={p.min} max={p.max} step={p.step} value={vals[p.k] as number} onChange={(e) => setV(p.k, +e.target.value)} className="w-full accent-[#55b52b]" /><p className="text-right text-[10px] text-slate-600">{p.min}–{p.max}{p.unit ?? ""}</p></div>;

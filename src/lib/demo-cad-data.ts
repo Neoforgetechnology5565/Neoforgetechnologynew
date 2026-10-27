@@ -1,9 +1,11 @@
 /** Sample drawing for the AutoCAD Drawing Automation Studio demo. Invented floor plan; units are metres, y runs downward on screen. */
-export type EType = "wall" | "door" | "window" | "room" | "dim" | "text" | "furn" | "col" | "grid" | "ttlb";
+export type EType = "wall" | "door" | "window" | "room" | "dim" | "text" | "furn" | "col" | "grid" | "ttlb" | "line" | "rect" | "circle";
 export interface Ent {
   id: string; handle: string; type: EType; layer: string;
   x1: number; y1: number; x2?: number; y2?: number; t?: number; w?: number; h?: number;
   horiz?: boolean; dir?: 1 | -1; text?: string; size?: number; name?: string; roomId?: string;
+  /** Standard layer this object belongs on, when it differs from the default for its type */
+  std?: string;
 }
 export interface Layer { name: string; color: string; dash?: string }
 export const DRAWING = { name: "OFFICE-SUITE-GF-A101.dwg", title: "Ground floor plan, Brookside Office Suite", scale: "1:100 (sample)", status: "Issued for review (sample)" };
@@ -16,7 +18,8 @@ export const LAYERS: Layer[] = [
   { name: "A-ANNO-TEXT", color: "#f8fafc" }, { name: "A-ANNO-TTLB", color: "#94a3b8" },
   { name: "A-FURN", color: "#c084fc" }, { name: "S-COLS", color: "#f87171" }, { name: "A-GRID", color: "#64748b", dash: "0.6 0.2 0.1 0.2" },
 ];
-export const EXPECTED: Record<EType, string> = { wall: "A-WALL", door: "A-DOOR", window: "A-GLAZ", room: "A-AREA", dim: "A-ANNO-DIMS", text: "A-ANNO-TEXT", furn: "A-FURN", col: "S-COLS", grid: "A-GRID", ttlb: "A-ANNO-TTLB" };
+export const EXPECTED: Record<EType, string> = { wall: "A-WALL", door: "A-DOOR", window: "A-GLAZ", room: "A-AREA", dim: "A-ANNO-DIMS", text: "A-ANNO-TEXT", furn: "A-FURN", col: "S-COLS", grid: "A-GRID", ttlb: "A-ANNO-TTLB", line: "A-CNTR", rect: "A-FURN", circle: "E-POWR" };
+export const expectedLayer = (e: Ent) => e.std ?? EXPECTED[e.type];
 export const LAYER_RE = /^[A-Z]-[A-Z]+(-[A-Z]+)*$/;
 
 const ROOMS = [
@@ -90,18 +93,20 @@ export function buildDrawing(): Ent[] {
   return out;
 }
 
+export const titleCase = (s: string) => s.toLowerCase().replace(/\b[a-z]/g, (c) => c.toUpperCase());
 export const roomOf = (ents: Ent[], id: string) => ents.find((e) => e.type === "room" && e.roomId === id);
 export const area = (r: Ent) => (r.w ?? 0) * (r.h ?? 0);
 export const len = (e: Ent) => Math.hypot((e.x2 ?? e.x1) - e.x1, (e.y2 ?? e.y1) - e.y1);
 export const bbox = (e: Ent) => {
-  if (e.type === "wall" || e.type === "window" || e.type === "grid" || e.type === "dim") { const xs = [e.x1, e.x2!], ys = [e.y1, e.y2!]; return { x: Math.min(...xs) - 0.3, y: Math.min(...ys) - 0.3, w: Math.abs(xs[0] - xs[1]) + 0.6, h: Math.abs(ys[0] - ys[1]) + 0.6 }; }
+  if (e.type === "wall" || e.type === "window" || e.type === "grid" || e.type === "dim" || e.type === "line") { const xs = [e.x1, e.x2!], ys = [e.y1, e.y2!]; return { x: Math.min(...xs) - 0.3, y: Math.min(...ys) - 0.3, w: Math.abs(xs[0] - xs[1]) + 0.6, h: Math.abs(ys[0] - ys[1]) + 0.6 }; }
   if (e.type === "door") return { x: e.x1 - (e.w ?? 1), y: e.y1 - (e.w ?? 1), w: (e.w ?? 1) * 2, h: (e.w ?? 1) * 2 };
   if (e.type === "text") return { x: e.x1 - 1.5, y: e.y1 - 0.6, w: 3, h: 1.4 };
+  if (e.type === "circle") return { x: e.x1 - 0.5, y: e.y1 - 0.5, w: 1, h: 1 };
   return { x: e.x1 - 0.3, y: e.y1 - 0.3, w: (e.w ?? 0.4) + 0.6, h: (e.h ?? 0.4) + 0.6 };
 };
 
 export type Severity = "error" | "warning" | "info";
-export interface Finding { check: string; ids: string[]; severity: Severity; message: string; action: string; fix?: "move" | "delete" | "rename" | "snap" | "label" | "area" | "dim" | "layer" }
+export interface Finding { check: string; ids: string[]; severity: Severity; message: string; action: string; fix?: "move" | "delete" | "rename" | "snap" | "label" | "area" | "dim" | "layer" | "restyle" }
 export const CHECKS = [
   { key: "layername", name: "Layer naming convention", text: "Layer names must follow DISCIPLINE-ELEMENT (for example A-WALL, A-ANNO-DIMS). Layer 0 is reserved." },
   { key: "layerassign", name: "Objects on unexpected layers", text: "Every object type has a standard layer. Finds objects that sit somewhere else." },
@@ -126,12 +131,12 @@ export function runCheck(k: CheckKey, ents: Ent[], layers: Layer[]): { inspected
   if (k === "layername") {
     for (const l of layers) if (l.name !== "0" && !LAYER_RE.test(l.name)) {
       const on = ents.filter((e) => e.layer === l.name);
-      f.push({ check: k, ids: on.map((e) => e.id), severity: "warning", message: `Layer “${l.name}” does not follow the naming standard (${on.length} object${on.length === 1 ? "" : "s"} on it)`, action: `Merge into the standard layer for its objects (${on[0] ? EXPECTED[on[0].type] : "A-WALL"}) and purge “${l.name}”.`, fix: "rename" });
+      f.push({ check: k, ids: on.map((e) => e.id), severity: "warning", message: `Layer “${l.name}” does not follow the naming standard (${on.length} object${on.length === 1 ? "" : "s"} on it)`, action: `Merge into the standard layer for its objects (${on[0] ? expectedLayer(on[0]) : "A-WALL"}) and purge “${l.name}”.`, fix: "rename" });
     }
     return { inspected: layers.length, findings: f };
   }
   if (k === "layerassign") {
-    for (const e of ents) if (e.layer !== EXPECTED[e.type]) f.push({ check: k, ids: [e.id], severity: e.layer === "0" ? "warning" : "error", message: `${e.type} ${e.id} is on layer “${e.layer}”, expected ${EXPECTED[e.type]}`, action: `Move to ${EXPECTED[e.type]}.`, fix: "move" });
+    for (const e of ents) if (e.layer !== expectedLayer(e)) f.push({ check: k, ids: [e.id], severity: e.layer === "0" ? "warning" : "error", message: `${e.type} ${e.id} is on layer “${e.layer}”, expected ${expectedLayer(e)}`, action: `Move to ${expectedLayer(e)}.`, fix: "move" });
     return { inspected: ents.length, findings: f };
   }
   if (k === "duplicates") {
@@ -190,10 +195,10 @@ export function applyFix(ents: Ent[], layers: Layer[], f: Finding): { ents: Ent[
   const next = ents.map((e) => ({ ...e }));
   const by = (id: string) => next.find((e) => e.id === id);
   let ls = layers;
-  if (f.fix === "move") f.ids.forEach((id) => { const e = by(id); if (e) e.layer = EXPECTED[e.type]; });
+  if (f.fix === "move") f.ids.forEach((id) => { const e = by(id); if (e) e.layer = expectedLayer(e); });
   if (f.fix === "rename") {
     const bad = layers.find((l) => f.message.includes(`“${l.name}”`))?.name;
-    f.ids.forEach((id) => { const e = by(id); if (e) e.layer = EXPECTED[e.type]; });
+    f.ids.forEach((id) => { const e = by(id); if (e) e.layer = expectedLayer(e); });
     if (bad) ls = layers.filter((l) => l.name !== bad);
   }
   if (f.fix === "delete") { const rm = f.ids[0]; return { ents: next.filter((e) => e.id !== rm), layers: ls }; }
@@ -201,6 +206,7 @@ export function applyFix(ents: Ent[], layers: Layer[], f: Finding): { ents: Ent[
     const w = by(f.ids[0]); if (w) { const end2 = f.message.includes("end 2"); const horiz = near(w.y1, w.y2!);
       if (horiz) { if (end2) w.x2 = Math.round(w.x2!); else w.x1 = Math.round(w.x1); } else if (end2) w.y2 = Math.round(w.y2!); else w.y1 = Math.round(w.y1); }
   }
+  if (f.fix === "restyle") { const t = by(f.ids[0]); const r = t && next.find((e) => e.type === "room" && e.roomId === t.roomId); if (t && r) { t.size = 0.3; t.text = `${titleCase(r.name ?? "")}\n${area(r).toFixed(1)} m²`; } }
   if (f.fix === "area") { const t = by(f.ids[0]); const r = by(f.ids[1]); if (t && r) t.text = t.text!.replace(/[\d.]+ m²/, `${area(r).toFixed(1)} m²`); }
   if (f.fix === "label") {
     const r = by(f.ids[0]); if (r) next.push({ id: `E-${String(900 + next.length).padStart(4, "0")}`, handle: (0x900 + next.length).toString(16).toUpperCase(), type: "text", layer: "A-ANNO-TEXT", x1: r.x1 + r.w! / 2, y1: r.y1 + r.h! / 2 - 0.3, text: `${r.name}\n${area(r).toFixed(1)} m²`, size: 0.3, roomId: r.roomId });
