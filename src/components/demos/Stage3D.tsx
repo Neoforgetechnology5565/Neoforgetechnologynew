@@ -30,6 +30,7 @@ export default function Stage3D({ home, onReady, onPick, shadows, className = ""
   const pickCb = useRef(onPick);
   pickCb.current = onPick;
   const homeRef = useRef(home);
+  homeRef.current = home;
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
 
   useEffect(() => {
