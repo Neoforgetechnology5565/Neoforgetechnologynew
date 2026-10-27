@@ -30,9 +30,12 @@ export interface FileMeta { id: string; name: string; format: string; role: stri
 export interface ArtifactMeta { id: string; name: string; format: string; mime: string; size: number; blob: string; createdAt: number; kind: string; sample: boolean }
 export interface JobStage { stage: string; at: number; ms: number; note?: string }
 export interface JobMeta { id: string; kind: string; status: "running" | "completed" | "failed"; stages: JobStage[]; startedAt: number; finishedAt?: number; error?: string; summary?: Record<string, unknown> }
+/** One reviewed revision of the model (demonstration 11). `modelBlob` holds the processed model of that revision. */
+export interface VersionMeta { id: string; label: string; note: string; fileId: string; fileName: string; uploadedAt: number; by: string; elements: number; triangles: number; schema: string; modelBlob: string; sample: boolean }
+export interface ActivityRec { at: number; by: string; action: string; detail: string }
 export interface ProjectDoc {
   id: string; demo: DemoKey; name: string; ownerHash: string; settings: Record<string, unknown>; files: FileMeta[]; artifacts: ArtifactMeta[]; jobs: JobMeta[]; modelBlob?: string; modelMeta?: Record<string, unknown>;
-  shares?: { hash: string; role: "viewer" | "reviewer"; name: string; createdAt: number }[]; version: number; createdAt: number; updatedAt: number; expiresAt: number; sampleOnly: boolean;
+  shares?: { hash: string; role: "viewer" | "reviewer"; name: string; createdAt: number }[]; versions?: VersionMeta[]; activity?: ActivityRec[]; version: number; createdAt: number; updatedAt: number; expiresAt: number; sampleOnly: boolean;
 }
 export const projectsCol = () => adminDb().collection(C_BIM.projects);
 const blobsCol = () => adminDb().collection(C_BIM.blobs);
@@ -66,11 +69,11 @@ export async function authorize(req: NextRequest, id: string, need: Role = "owne
 export async function saveProject(p: ProjectDoc, patch: Partial<ProjectDoc> = {}) { Object.assign(p, patch, { updatedAt: Date.now() }); await projectsCol().doc(p.id).set(p); }
 export async function projectBytes(p: ProjectDoc) { return p.files.reduce((s, f) => s + f.size, 0) + p.artifacts.reduce((s, a) => s + a.size, 0); }
 export async function deleteProject(p: ProjectDoc) {
-  for (const f of p.files) await deleteBlob(f.blob); for (const a of p.artifacts) await deleteBlob(a.blob); if (p.modelBlob) await deleteBlob(p.modelBlob);
+  for (const f of p.files) await deleteBlob(f.blob); for (const a of p.artifacts) await deleteBlob(a.blob); for (const id of new Set([p.modelBlob, ...(p.versions ?? []).map((v) => v.modelBlob)])) if (id) await deleteBlob(id);
   const extra = await adminDb().collection("bim_issues").where("projectId", "==", p.id).get(); for (const d of extra.docs) await d.ref.delete(); await projectsCol().doc(p.id).delete();
 }
 export async function purgeExpired(max = 6) { const snap = await projectsCol().where("expiresAt", "<", Date.now()).limit(max).get(); for (const d of snap.docs) await deleteProject(d.data() as ProjectDoc); return snap.size; }
-export function publicProject(p: ProjectDoc, role: Role = "owner") { const { ownerHash: _o, shares, ...rest } = p; void _o; return { ...rest, role, shares: role === "owner" ? (shares ?? []).map((s) => ({ role: s.role, name: s.name, createdAt: s.createdAt })) : undefined }; }
+export function publicProject(p: ProjectDoc, role: Role = "owner") { const { ownerHash: _o, shares, versions, ...rest } = p; void _o; return { ...rest, versions: (versions ?? []).map(({ modelBlob: _m, ...v }) => (void _m, v)), role, shares: role === "owner" ? (shares ?? []).map((s) => ({ role: s.role, name: s.name, createdAt: s.createdAt })) : undefined }; }
 
 /** Stage timer used by processors: records real wall-clock time per stage. */
 export function stager(kind: string) {

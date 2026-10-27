@@ -14,7 +14,7 @@ export function structuralDxf(o: Opts = {}): string {
   YS.forEach((y, j) => { L("S-GRID", -1500, y, 19500, y); e.push({ t: "CIRCLE", layer: "S-GRID", c: { x: -1900, y }, r: 400 }); T("S-GRID", -2000, y - 100, YN[j], 300); });
   const removed = o.revB ? new Set(["B-3"]) : new Set<string>();
   const colPos: Record<string, { x: number; y: number; w: number; d: number; n: number; round?: boolean }> = {}; let n = 0;
-  YS.forEach((y, j) => XS.forEach((x, i) => { n++; const k = `${XN[i]}-${YN[j]}`; let cx = x, cy = y, w = 400, d = 400; if (k === "D-3") cx = x + 350; if (k === "C-3") { w = 450; d = 450; } if (o.revB && k === "A-2") cx += 100; if (o.revB && k === "D-1") { w = 500; d = 500; } colPos[k] = { x: cx, y: cy, w, d, n, round: k === "C-2" }; }));
+  YS.forEach((y, j) => XS.forEach((x, i) => { n++; const k = `${XN[i]}-${YN[j]}`; let cx = x; const cy = y; let w = 400, d = 400; if (k === "D-3") cx = x + 350; if (k === "C-3") { w = 450; d = 450; } if (o.revB && k === "A-2") cx += 100; if (o.revB && k === "D-1") { w = 500; d = 500; } colPos[k] = { x: cx, y: cy, w, d, n, round: k === "C-2" }; }));
   for (const [k, c] of Object.entries(colPos)) { if (removed.has(k)) continue; if (c.round) e.push({ t: "CIRCLE", layer: "S-COLS", c: { x: c.x, y: c.y }, r: 250 }); else rect("S-COLS", c.x, c.y, c.w, c.d); T("S-COLS-TEXT", c.x + 260, c.y + 260, `C${c.n} ${c.round ? "D500" : k === "C-3" ? "400x400" : `${c.w}x${c.d}`}`, 160); }
   if (o.revB) { colPos["E-X"] = { x: 9000, y: 7500, w: 400, d: 400, n: 13 }; rect("S-COLS", 9000, 7500, 400, 400); T("S-COLS-TEXT", 9260, 7760, "C13 400x400", 160); }
   // footings (11 in rev A: every column except B-2)

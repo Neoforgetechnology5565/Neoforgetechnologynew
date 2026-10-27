@@ -1,0 +1,39 @@
+/** OpenAPI 3.1 description of /api/bim, served at GET /api/bim/openapi. Kept next to the routes it documents; the API tests exercise every path listed here. */
+type Op = { summary: string; auth?: "none" | "viewer" | "reviewer" | "owner"; body?: string; ret?: string; params?: string[]; query?: string[]; status?: number };
+const id = (name: string) => ({ name, in: "path", required: true, schema: { type: "string" } });
+const obj = (desc: string) => ({ type: "object", description: desc });
+const PATHS: Record<string, Partial<Record<"get" | "post" | "patch" | "delete", Op>>> = {
+  "/health": { get: { summary: "Service status, limits and honest engine support notes", auth: "none", ret: "Health" } },
+  "/samples": { get: { summary: "Bundled synthetic sample projects", auth: "none", query: ["demo"], ret: "Samples" } },
+  "/projects": { post: { summary: "Create a project; the owner key is returned once", auth: "none", body: "{demo,name}", ret: "Created project and key", status: 201 } },
+  "/projects/list": { post: { summary: "Summaries of saved projects (id+key pairs in the body)", auth: "owner", body: "{items:[{id,key}],demo}", ret: "Project summaries" } },
+  "/projects/{id}": { get: { summary: "Project record (no secrets)", auth: "viewer", params: ["id"] }, patch: { summary: "Rename and/or change settings (applied on the next process run)", auth: "owner", params: ["id"], body: "{name?,settings?}" }, delete: { summary: "Delete the project with all blobs and issues", auth: "owner", params: ["id"] } },
+  "/projects/{id}/samples": { post: { summary: "Load a bundled sample; review samples also register versions and create sample issues", auth: "owner", params: ["id"], body: "{sample}" } },
+  "/projects/{id}/files": { get: { summary: "List stored files", auth: "viewer", params: ["id"] }, post: { summary: "Upload (multipart: file, role). Content-validated, ≤ 25 MB, ≤ 12 files", auth: "owner", params: ["id"], status: 201 } },
+  "/projects/{id}/files/{fid}": { delete: { summary: "Delete a stored file", auth: "owner", params: ["id", "fid"] } },
+  "/projects/{id}/process": { post: { summary: "Run the demonstration's processor as a staged job with real timings", auth: "owner", params: ["id"], body: "{settings?}", ret: "Job + project (422 with the job on failure)" } },
+  "/projects/{id}/jobs": { get: { summary: "Job history", auth: "viewer", params: ["id"] } },
+  "/projects/{id}/model": { get: { summary: "Stored result (JSON, gzip as stored); ?meta=1 for a summary; header x-bim-version selects a review version where supported", auth: "viewer", params: ["id"], query: ["meta"] } },
+  "/projects/{id}/history": { get: { summary: "Settings history", auth: "owner", params: ["id"] }, post: { summary: "Restore earlier settings or reset, then regenerate", auth: "owner", params: ["id"], body: "{version?|reset?}" } },
+  "/projects/{id}/components": { get: { summary: "Search elements (plan/IFC models)", auth: "viewer", params: ["id"], query: ["q", "limit", "kind"] }, post: { summary: "Apply an element override (user edit, recorded)", auth: "owner", params: ["id"] } },
+  "/projects/{id}/components/{eid}": { get: { summary: "Element properties, quantities and assumptions", auth: "viewer", params: ["id", "eid"] } },
+  "/projects/{id}/clashes": { get: { summary: "Stored clash results", auth: "viewer", params: ["id"] }, post: { summary: "Re-run clash detection with other clearance/tolerance", auth: "viewer", params: ["id"], body: "{clearance,tolerance}" } },
+  "/projects/{id}/measurements": { post: { summary: "Distance, polygon area or element measure computed server-side", auth: "viewer", params: ["id"], body: "{type,…}" } },
+  "/projects/{id}/exports": { get: { summary: "Exports this result can produce, and generated artifacts", auth: "viewer", params: ["id"] }, post: { summary: "Generate an export into a downloadable artifact", auth: "owner", params: ["id"], body: "{format}", status: 201 } },
+  "/projects/{id}/artifacts/{aid}": { get: { summary: "Protected download of a generated artifact", auth: "viewer", params: ["id", "aid"] } },
+  "/projects/{id}/versions": { get: { summary: "Review versions", auth: "viewer", params: ["id"] }, post: { summary: "Register an uploaded IFC as the next version (parsed and processed)", auth: "owner", params: ["id"], body: "{fileId,label?,note?}", status: 201 } },
+  "/projects/{id}/versions/{vid}/model": { get: { summary: "Processed model of one version", auth: "viewer", params: ["id", "vid"] } },
+  "/projects/{id}/compare": { get: { summary: "Compare two versions by GlobalId", auth: "viewer", params: ["id"], query: ["a", "b"] } },
+  "/projects/{id}/issues": { get: { summary: "List/filter issues", auth: "viewer", params: ["id"], query: ["status", "priority", "type", "assignee", "versionId", "q"] }, post: { summary: "Create an issue (author taken from the credential)", auth: "reviewer", params: ["id"], status: 201 } },
+  "/projects/{id}/issues/{iid}": { get: { summary: "One issue", auth: "viewer", params: ["id", "iid"] }, patch: { summary: "Edit named fields only; each change is recorded in the history", auth: "reviewer", params: ["id", "iid"] }, delete: { summary: "Delete an issue", auth: "owner", params: ["id", "iid"] } },
+  "/projects/{id}/issues/{iid}/comments": { post: { summary: "Add a comment", auth: "reviewer", params: ["id", "iid"], body: "{text}", status: 201 } },
+  "/projects/{id}/views": { get: { summary: "Saved views", auth: "viewer", params: ["id"] }, post: { summary: "Save a camera/section/visibility view", auth: "reviewer", params: ["id"], status: 201 }, delete: { summary: "Delete a saved view", auth: "owner", params: ["id"], query: ["id"] } },
+  "/projects/{id}/shares": { get: { summary: "Share keys (never the keys themselves)", auth: "owner", params: ["id"] }, post: { summary: "Create a viewer/reviewer share key (shown once)", auth: "owner", params: ["id"], body: "{name,role}", status: 201 }, delete: { summary: "Revoke a share key", auth: "owner", params: ["id"], query: ["id"] } },
+  "/projects/{id}/activity": { get: { summary: "Activity log", auth: "viewer", params: ["id"] } },
+  "/projects/{id}/report": { get: { summary: "Issue report download", auth: "viewer", params: ["id"], query: ["format"] } },
+};
+export function openApi(origin: string) {
+  const paths: Record<string, unknown> = {};
+  for (const [p, ops] of Object.entries(PATHS)) { const o: Record<string, unknown> = {}; for (const [m, op] of Object.entries(ops)) { const x = op as Op; o[m] = { summary: x.summary, tags: [p.split("/")[3] ?? p.split("/")[1]], security: x.auth === "none" || !x.auth ? [] : [{ ownerKey: [] }, ...(x.auth === "owner" ? [] : [{ shareKey: [] }])], "x-required-role": x.auth ?? "none", parameters: [...(x.params ?? []).map(id), ...(x.query ?? []).map((q) => ({ name: q, in: "query", schema: { type: "string" } }))], ...(x.body ? { requestBody: { description: x.body, content: { "application/json": { schema: obj(x.body) } } } } : {}), responses: { [String(x.status ?? 200)]: { description: x.ret ?? "OK" }, "400": { description: "Invalid request" }, "403": { description: "Missing or invalid key / role" }, "404": { description: "Not found or expired" }, "429": { description: "Rate limited" } } }; } paths[p] = o; }
+  return { openapi: "3.1.0", info: { title: "Neo Forge CAD/BIM suite API", version: "1.0.0", description: "Uploads, processing jobs, results, exports and review workflows for the eleven CAD/BIM demonstrations. Projects are addressed by id and authorised by an owner key (x-bim-key) or share key (x-bim-share). Writes require a same-origin request." }, servers: [{ url: `${origin}/api/bim` }], components: { securitySchemes: { ownerKey: { type: "apiKey", in: "header", name: "x-bim-key" }, shareKey: { type: "apiKey", in: "header", name: "x-bim-share" } } }, paths };
+}

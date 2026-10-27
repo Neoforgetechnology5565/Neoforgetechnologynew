@@ -38,3 +38,13 @@ export function houseIfc(flawed = false, storeys = 1): string {
   }
   return t;
 }
+
+/** A second revision of the house IFC: window O009 deleted, door O011 widened by 0.1 m, a column C98 added. GlobalIds are stable across revisions because they derive from element ids. */
+export const REVISION_TRUTH = { removedWindow: "O009", widenedDoor: "O011", addedColumn: "C98", doorWidening: 0.1 };
+export function houseIfcRevision(): string {
+  const st = { ...DEFAULT_SETTINGS }; const b = buildFromDxf(parseDxf(houseArchDxf()), st).building; const m = extractMep(parseDxf(houseMepDxf()), HOUSE_MEP_CONFIG, st);
+  for (const w of b.walls) w.openings = w.openings.filter((o) => o.id !== REVISION_TRUTH.removedWindow);
+  for (const w of b.walls) for (const o of w.openings) if (o.id === REVISION_TRUTH.widenedDoor) o.width += REVISION_TRUTH.doorWidening;
+  b.columns.push({ id: REVISION_TRUTH.addedColumn, level: b.levels[0].id, c: { x: 2.5, y: 6.5 }, w: 0.3, d: 0.3, round: false, height: b.levels[0].height, source: { origin: "user", note: "added in revision B" }, assumed: [] });
+  return writeIfc(b, m.elements, { name: "house-rev-b", source: "synthetic" }).text;
+}

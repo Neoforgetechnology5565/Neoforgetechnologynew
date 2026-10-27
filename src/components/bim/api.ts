@@ -9,7 +9,8 @@ export const saved = {
   put(s: Saved) { try { const all = saved.list().filter((x) => x.id !== s.id); all.unshift(s); localStorage.setItem(STORE, JSON.stringify(all.slice(0, 40))); } catch { /* private mode */ } },
   remove(id: string) { try { localStorage.setItem(STORE, JSON.stringify(saved.list().filter((x) => x.id !== id))); } catch { /* ignore */ } },
 };
-export interface Auth { id: string; key: string }
+export interface Auth { id: string; key: string; share?: string; version?: string }
+const hdr = (a: Auth): Record<string, string> => ({ ...(a.key ? { "x-bim-key": a.key } : {}), ...(a.share ? { "x-bim-share": a.share } : {}), ...(a.version ? { "x-bim-version": a.version } : {}) });
 export interface FileRec { id: string; name: string; format: string; role: string; size: number; sample: boolean; sampleId?: string; uploadedAt: number; validation: { ok: boolean; support: string; warnings: string[]; info: Record<string, string | number | boolean> } }
 export interface ArtifactRec { id: string; name: string; format: string; mime: string; size: number; createdAt: number; kind: string; sample: boolean }
 export interface JobRec { id: string; kind: string; status: "running" | "completed" | "failed"; stages: { stage: string; at: number; ms: number; note?: string }[]; startedAt: number; finishedAt?: number; error?: string; summary?: Record<string, unknown> }
@@ -18,7 +19,7 @@ export interface SampleRec { id: string; demo: string; name: string; description
 export interface ComponentRow { id: string; kind: string; tag: string; category: string; system?: string; level?: string; summary: string }
 
 async function req<T>(url: string, init: RequestInit & { auth?: Auth; json?: unknown } = {}): Promise<T> {
-  const headers: Record<string, string> = { ...(init.auth ? { "x-bim-key": init.auth.key } : {}), ...(init.json !== undefined ? { "content-type": "application/json" } : {}), ...((init.headers as Record<string, string>) ?? {}) };
+  const headers: Record<string, string> = { ...(init.auth ? hdr(init.auth) : {}), ...(init.json !== undefined ? { "content-type": "application/json" } : {}), ...((init.headers as Record<string, string>) ?? {}) };
   let r: Response; try { r = await fetch(url, { ...init, headers, body: init.json !== undefined ? JSON.stringify(init.json) : init.body }); } catch { throw new ApiError(0, "Network error: the server could not be reached."); }
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new ApiError(r.status, (j as { issues?: string[] }).issues?.join("; ") || (j as { error?: string }).error || `Request failed (${r.status})`, j); return j as T;
 }
@@ -33,19 +34,42 @@ export const api = {
   del: (a: Auth) => req<{ deleted: boolean }>(B(a.id), { method: "DELETE", auth: a }),
   sample: (a: Auth, sample: string) => req<{ files: FileRec[]; sample: { id: string; name: string } }>(`${B(a.id)}/samples`, { method: "POST", auth: a, json: { sample } }),
   upload(a: Auth, file: File | Blob, name: string, role: string, onProgress?: (f: number) => void): Promise<{ file: FileRec; validation: { warnings: string[]; support: string; info: Record<string, unknown> } }> {
-    return new Promise((resolve, reject) => { const f = new FormData(); f.set("file", file, name); f.set("role", role); const x = new XMLHttpRequest(); x.open("POST", `${B(a.id)}/files`); x.setRequestHeader("x-bim-key", a.key); x.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
+    return new Promise((resolve, reject) => { const f = new FormData(); f.set("file", file, name); f.set("role", role); const x = new XMLHttpRequest(); x.open("POST", `${B(a.id)}/files`); for (const [hk, hv] of Object.entries(hdr(a))) x.setRequestHeader(hk, hv); x.upload.onprogress = (e) => e.lengthComputable && onProgress?.(e.loaded / e.total);
       x.onload = () => { let j: { error?: string } = {}; try { j = JSON.parse(x.responseText); } catch { /* not json */ } if (x.status >= 200 && x.status < 300) resolve(j as never); else reject(new ApiError(x.status, j.error || `Upload failed (${x.status})`, j)); }; x.onerror = () => reject(new ApiError(0, "Network error during upload.")); x.send(f); });
   },
   delFile: (a: Auth, fid: string) => req<{ deleted: boolean }>(`${B(a.id)}/files/${fid}`, { method: "DELETE", auth: a }),
   process: (a: Auth, settings?: Record<string, unknown>) => req<{ job: JobRec; project: ProjectRec }>(`${B(a.id)}/process`, { method: "POST", auth: a, json: { settings } }).catch((e: ApiError) => { if (e.status === 422 && e.body && (e.body as { job?: JobRec }).job) return e.body as { job: JobRec; project: ProjectRec }; throw e; }),
-  async model(a: Auth): Promise<Plan3dModel> { const r = await fetch(`${B(a.id)}/model`, { headers: { "x-bim-key": a.key } }); if (!r.ok) throw new ApiError(r.status, (await r.json().catch(() => ({}))).error || "No model"); return r.json(); },
+  async model(a: Auth): Promise<Plan3dModel> { const r = await fetch(`${B(a.id)}/model`, { headers: hdr(a) }); if (!r.ok) throw new ApiError(r.status, (await r.json().catch(() => ({}))).error || "No model"); return r.json(); },
   clashes: (a: Auth, clearance: number, tolerance: number) => req<{ clashes: Plan3dModel["clashes"]; info: Plan3dModel["clashInfo"]; ms: number }>(`${B(a.id)}/clashes`, { method: "POST", auth: a, json: { clearance, tolerance } }),
   components: (a: Auth, q: string, extra = "") => req<{ total: number; items: ComponentRow[] }>(`${B(a.id)}/components?q=${encodeURIComponent(q)}&limit=60${extra}`, { auth: a }),
   component: (a: Auth, id: string) => req<{ kind: string; element: Record<string, unknown>; clashes?: Plan3dModel["clashes"]; wall?: string }>(`${B(a.id)}/components/${encodeURIComponent(id)}`, { auth: a }),
   measure: (a: Auth, body: Record<string, unknown>) => req<Record<string, number | string>>(`${B(a.id)}/measurements`, { method: "POST", auth: a, json: body }),
   exportFormats: (a: Auth) => req<{ formats: { format: string; label: string; note: string }[]; artifacts: ArtifactRec[] }>(`${B(a.id)}/exports`, { auth: a }),
   makeExport: (a: Auth, format: string) => req<{ artifact: ArtifactRec; note: string }>(`${B(a.id)}/exports`, { method: "POST", auth: a, json: { format } }),
-  async download(a: Auth, art: ArtifactRec) { const r = await fetch(`${B(a.id)}/artifacts/${art.id}`, { headers: { "x-bim-key": a.key } }); if (!r.ok) throw new ApiError(r.status, "Download failed"); const u = URL.createObjectURL(await r.blob()); const el = document.createElement("a"); el.href = u; el.download = art.name; el.click(); setTimeout(() => URL.revokeObjectURL(u), 2000); },
+  async download(a: Auth, art: ArtifactRec) { const r = await fetch(`${B(a.id)}/artifacts/${art.id}`, { headers: hdr(a) }); if (!r.ok) throw new ApiError(r.status, "Download failed"); const u = URL.createObjectURL(await r.blob()); const el = document.createElement("a"); el.href = u; el.download = art.name; el.click(); setTimeout(() => URL.revokeObjectURL(u), 2000); },
   history: (a: Auth) => req<{ history: { version: number; at: number }[] }>(`${B(a.id)}/history`, { auth: a }),
   restore: (a: Auth, body: { version?: number; reset?: boolean }) => req<{ job: JobRec; project: ProjectRec }>(`${B(a.id)}/history`, { method: "POST", auth: a, json: body }),
+  // review (demonstration 11)
+  versions: (a: Auth) => req<{ versions: VersionRec[] }>(`${B(a.id)}/versions`, { auth: a }),
+  addVersion: (a: Auth, b: { fileId: string; label: string; note: string }) => req<{ version: VersionRec; project: ProjectRec }>(`${B(a.id)}/versions`, { method: "POST", auth: a, json: b }),
+  async versionModel(a: Auth, vid: string): Promise<Plan3dModel> { const r = await fetch(`${B(a.id)}/versions/${vid}/model`, { headers: hdr(a) }); if (!r.ok) throw new ApiError(r.status, "Version model not available"); return r.json(); },
+  compare: (a: Auth, x: string, y: string) => req<ComparisonRec>(`${B(a.id)}/compare?a=${x}&b=${y}`, { auth: a }),
+  issues: (a: Auth, qs = "") => req<{ total: number; issues: IssueRec[] }>(`${B(a.id)}/issues${qs ? `?${qs}` : ""}`, { auth: a }),
+  createIssue: (a: Auth, b: Record<string, unknown>) => req<{ issue: IssueRec }>(`${B(a.id)}/issues`, { method: "POST", auth: a, json: b }),
+  patchIssue: (a: Auth, iid: string, b: Record<string, unknown>) => req<{ issue: IssueRec }>(`${B(a.id)}/issues/${iid}`, { method: "PATCH", auth: a, json: b }),
+  delIssue: (a: Auth, iid: string) => req<{ deleted: boolean }>(`${B(a.id)}/issues/${iid}`, { method: "DELETE", auth: a }),
+  comment: (a: Auth, iid: string, text: string) => req<{ issue: IssueRec }>(`${B(a.id)}/issues/${iid}/comments`, { method: "POST", auth: a, json: { text } }),
+  views: (a: Auth) => req<{ views: ViewRec[] }>(`${B(a.id)}/views`, { auth: a }),
+  saveView: (a: Auth, b: Record<string, unknown>) => req<{ view: ViewRec }>(`${B(a.id)}/views`, { method: "POST", auth: a, json: b }),
+  delView: (a: Auth, id: string) => req<{ deleted: boolean }>(`${B(a.id)}/views?id=${id}`, { method: "DELETE", auth: a }),
+  shares: (a: Auth) => req<{ shares: { id: string; name: string; role: string; createdAt: number }[] }>(`${B(a.id)}/shares`, { auth: a }),
+  createShare: (a: Auth, b: { name: string; role: string }) => req<{ share: { id: string; name: string; role: string }; key: string }>(`${B(a.id)}/shares`, { method: "POST", auth: a, json: b }),
+  revokeShare: (a: Auth, id: string) => req<{ revoked: boolean }>(`${B(a.id)}/shares?id=${id}`, { method: "DELETE", auth: a }),
+  activity: (a: Auth) => req<{ activity: { at: number; by: string; action: string; detail: string }[] }>(`${B(a.id)}/activity`, { auth: a }),
+  async report(a: Auth, format: "csv" | "json" | "html", name: string) { const r = await fetch(`${B(a.id)}/report?format=${format}`, { headers: hdr(a) }); if (!r.ok) throw new ApiError(r.status, "Report failed"); const u = URL.createObjectURL(await r.blob()); const el = document.createElement("a"); el.href = u; el.download = `${name.replace(/[^\w.-]+/g, "_")}-issues.${format}`; document.body.appendChild(el); el.click(); el.remove(); URL.revokeObjectURL(u); },
 };
+export interface VersionRec { id: string; label: string; note: string; fileName: string; uploadedAt: number; by: string; elements: number; triangles: number; schema: string; sample: boolean }
+export interface ViewpointRec { cam: { pos: [number, number, number]; target: [number, number, number]; ortho: boolean }; section?: { on: boolean; axis: "elevation" | "x" | "y"; offset: number; flip: boolean }; vis?: Record<string, boolean | string>; hiddenCats?: string[]; selected?: string }
+export interface IssueRec { id: string; number: number; title: string; description: string; type: string; priority: string; status: string; assignee: string; due: string; labels: string[]; elements: { guid: string; id?: string; label: string }[]; versionId?: string; viewpoint?: ViewpointRec; comments: { id: string; author: string; text: string; at: number }[]; history: { at: number; by: string; field: string; from: string; to: string }[]; reporter: string; createdAt: number; updatedAt: number; sample: boolean }
+export interface ViewRec { id: string; name: string; versionId?: string; viewpoint: ViewpointRec; by: string; createdAt: number }
+export interface ComparisonRec { a: { id: string; label: string; elements: number }; b: { id: string; label: string; elements: number }; added: { guid: string; id: string; cls: string; name: string; storey: string }[]; removed: { guid: string; id: string; cls: string; name: string; storey: string }[]; changed: { guid: string; id: string; idA: string; cls: string; name: string; storey: string; changes: { kind: string; field: string; from: string; to: string }[] }[]; unchanged: number; tolerance: number; summary: { added: number; removed: number; changed: number; geometry: number; property: number; quantity: number }; note: string }

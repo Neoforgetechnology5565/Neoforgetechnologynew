@@ -10,6 +10,6 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 /** Undo/reset: restore the settings of an earlier version (or `reset:true` for defaults) and regenerate. */
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try { sameOrigin(req); limit(req, "restore", 20, 10 * 60_000); const { project } = await authorize(req, (await params).id); const b = z.object({ version: z.number().int().optional(), reset: z.boolean().optional() }).parse(await req.json()); const hist = ((project as unknown as { history?: H[] }).history ?? []);
-    let target: Record<string, unknown>; if (b.reset) target = { overrides: {}, layerMap: {}, mep: [] }; else { const h = hist.find((x) => x.version === b.version); if (!h) throw new HttpError(404, "That version is not in the history"); target = h.settings; }
+    let target: Record<string, unknown>; if (b.reset) target = { overrides: {}, layerMap: {}, mep: [], params: {} }; else { const h = hist.find((x) => x.version === b.version); if (!h) throw new HttpError(404, "That version is not in the history"); target = h.settings; }
     const job = await processProject(project, target, true); return NextResponse.json({ job, project: publicProject(project) }, { status: job.status === "failed" ? 422 : 200 }); } catch (e) { return fail(e); }
 }

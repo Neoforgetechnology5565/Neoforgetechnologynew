@@ -1,11 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { loadModel } from "@/lib/bim/process";
+import { modelFor } from "@/lib/bim/process";
 import { HttpError, authorize, fail, limit } from "@/lib/bim/server";
 
 export const runtime = "nodejs";
 /** Component search: `q` matches id, tag, name and property values; filters `category`, `system`, `level`. Paginated. */
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  try { limit(req, "comp", 240); const { project } = await authorize(req, (await params).id, "viewer"); if (!project.modelBlob) throw new HttpError(404, "No model yet"); const m = await loadModel(project); const u = new URL(req.url); const q = (u.searchParams.get("q") ?? "").toLowerCase().trim(); const cat = u.searchParams.get("category"), sys = u.searchParams.get("system"), lvl = u.searchParams.get("level"); const offset = Math.max(0, Number(u.searchParams.get("offset")) || 0), lim = Math.min(200, Math.max(1, Number(u.searchParams.get("limit")) || 50));
+  try { limit(req, "comp", 240); const { project } = await authorize(req, (await params).id, "viewer"); if (!project.modelBlob) throw new HttpError(404, "No model yet"); const m = await modelFor(project, req); const u = new URL(req.url); const q = (u.searchParams.get("q") ?? "").toLowerCase().trim(); const cat = u.searchParams.get("category"), sys = u.searchParams.get("system"), lvl = u.searchParams.get("level"); const offset = Math.max(0, Number(u.searchParams.get("offset")) || 0), lim = Math.min(200, Math.max(1, Number(u.searchParams.get("limit")) || 50));
     type Row = { id: string; kind: "mep" | "wall" | "opening" | "room" | "column" | "stair" | "ifc"; tag: string; category: string; system?: string; level?: string; summary: string };
     const rows: Row[] = [];
     for (const e of m.mep.elements) rows.push({ id: e.id, kind: "mep", tag: e.tag, category: e.category, system: e.system, level: e.level, summary: Object.entries(e.props).map(([k, v]) => `${k}: ${v}`).join("; ") });

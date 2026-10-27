@@ -8,7 +8,7 @@ import { DEFAULT_SETTINGS } from "./model";
 import type { DemoKey } from "./server";
 import { structuralDxf } from "./samples-struct";
 import { roomLas, roomPly } from "./samples-cloud";
-import { dirtyDxf, houseIfc } from "./samples-qc";
+import { dirtyDxf, houseIfc, houseIfcRevision } from "./samples-qc";
 
 export interface SampleFile { name: string; role: string; format: string; make: () => Promise<Buffer> | Buffer }
 export interface SampleDef { id: string; demo: DemoKey; name: string; description: string; files: SampleFile[]; settings?: Record<string, unknown>; truth?: Record<string, unknown> }
@@ -42,6 +42,7 @@ SAMPLES.push(
   { id: "qc-clean", demo: "bim-qc", name: "Generated house IFC (reference)", description: "A well-formed IFC from this platform. It has no defects, except that doors carry no FireRating property, which the default rule set requires.", files: [{ name: "house-2bed.ifc", role: "plan", format: "ifc", make: () => buf(houseIfc(false, 1)) }] },
   { id: "qc-flawed", demo: "bim-qc", name: "House IFC with injected defects", description: "The same file with 1 unnamed wall, 2 elements sharing a GlobalId, 1 column outside any storey, 1 duplicated wall, 1 far-away column and 1 tiny space. The checks must find exactly these.", files: [{ name: "house-flawed.ifc", role: "plan", format: "ifc", make: () => buf(houseIfc(true, 1)) }] },
   { id: "qto-house", demo: "qto", name: "House plan + MEP: quantities and cost", description: "Quantities measured from the extracted model with editable placeholder rates.", files: [F("house-2bed", 0), F("house-2bed", 1)] },
+  { id: "collab-house", demo: "collab", name: "House design review: revision A and revision B", description: "Two IFC revisions of the same house with known differences (a window deleted, a door widened by 100 mm, a column added) so you can compare versions, raise issues against elements, assign them and save views.", files: [{ name: "house-rev-a.ifc", role: "model", format: "ifc", make: () => buf(houseIfc(false, 1)) }, { name: "house-rev-b.ifc", role: "model", format: "ifc", make: () => buf(houseIfcRevision()) }] },
   { id: "qto-ifc", demo: "qto", name: "House IFC: quantities from the file", description: "Quantities read from the IFC's own BaseQuantities.", files: [{ name: "house-2bed.ifc", role: "plan", format: "ifc", make: () => buf(houseIfc(false, 1)) }] },
 );
 export const samplesFor = (demo: DemoKey) => SAMPLES.filter((s) => s.demo === demo);

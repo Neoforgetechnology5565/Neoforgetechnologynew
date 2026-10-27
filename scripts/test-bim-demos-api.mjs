@@ -78,7 +78,12 @@ await t("D10 quantities: placeholder rates labelled, edits change the cost by ar
 await t("security: wrong key refused, plan-only endpoints refuse analysis results, bad export names refused", async () => {
   const q = await open("structural", "struct-a"); const bad = await fetch(`${BASE}/api/bim/projects/${q.id}/model`, { headers: { "x-bim-key": "nope" } }); assert.equal(bad.status, 403);
   const cl = await J(`/api/bim/projects/${q.id}/clashes`, "POST", { clearance: 0.1, tolerance: 0.001 }, q.K); assert.equal(cl.status, 422);
-  const ex = await J(`/api/bim/projects/${q.id}/exports`, "POST", { format: "../../etc/passwd" }, q.K); assert.ok([400, 422].includes(ex.status));
-  const ex2 = await J(`/api/bim/projects/${q.id}/exports`, "POST", { format: "cad-svg" }, q.K); assert.equal(ex2.status, 422);
+  const ex = await J(`/api/bim/projects/${q.id}/exports`, "POST", { format: "../../etc/passwd" }, q.K); assert.equal(ex.status, 400);
+  const ex2 = await J(`/api/bim/projects/${q.id}/exports`, "POST", { format: "cad-svg" }, q.K); assert.equal(ex2.status, 400);
+});
+await t("every route under src/app/api/bim is documented in the OpenAPI description", async () => {
+  const { readdirSync, statSync } = await import("node:fs"); const { join } = await import("node:path"); const root = "src/app/api/bim"; const found = [];
+  const walk = (d, rel) => { for (const n of readdirSync(d)) { const f = join(d, n); if (statSync(f).isDirectory()) walk(f, `${rel}/${n.replace(/^\[(.+)\]$/, "{$1}")}`); else if (n === "route.ts") found.push(rel || "/"); } }; walk(root, "");
+  const doc = await (await fetch(`${BASE}/api/bim/openapi`)).json(); const missing = found.filter((f) => f !== "/openapi" && !(f in doc.paths)); assert.deepEqual(missing, [], `undocumented: ${missing}`); assert.ok(doc.openapi.startsWith("3.1"));
 });
 console.log(`\n${passed} passed`);

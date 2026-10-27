@@ -16,7 +16,10 @@
     "test:erp": "node scripts/test-erp-ui.mjs",
     "test:foot": "tsx src/lib/foot/foot.test.ts",
     "test:foot:api": "node scripts/test-foot-api.mjs",
-    "test:foot:ui": "node scripts/test-foot-ui.mjs"
+    "test:foot:ui": "node scripts/test-foot-ui.mjs",
+    "test:bim": "tsx src/lib/bim/bim.test.ts && tsx src/lib/bim/export.test.ts && tsx src/lib/bim/input.test.ts && tsx src/lib/bim/cad.test.ts && tsx src/lib/bim/pointcloud.test.ts && tsx src/lib/bim/demos.test.ts",
+    "test:bim:api": "node scripts/test-bim-api.mjs && node scripts/test-bim-demos-api.mjs && node scripts/test-bim-collab-api.mjs",
+    "test:bim:ui": "node scripts/test-bim-ui.mjs && node scripts/test-bim-demos-ui.mjs && node scripts/test-bim-collab-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

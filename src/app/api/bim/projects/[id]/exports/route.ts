@@ -17,7 +17,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   try {
     sameOrigin(req); limit(req, "export", 40, 10 * 60_000); const { project } = await authorize(req, (await params).id); const b = z.object({ format: z.string().regex(/^[a-z0-9-]{2,40}$/) }).parse(await req.json());
     if (!project.modelBlob) throw new HttpError(404, "Nothing to export yet. Process the project first.");
-    const model = await loadAnyModel(project); const allowed = listDemoExports(project.demo, model); const item = allowed.find((x) => x.format === b.format); if (!item) throw new HttpError(422, "This export is not available for the current result.");
+    const model = await loadAnyModel(project); const allowed = listDemoExports(project.demo, model); const item = allowed.find((x) => x.format === b.format); if (!item) throw new HttpError(400, "This export format is not offered for the current result.");
     let out; try { out = await makeDemoExport(b.format, { demo: project.demo, model, name: project.name, files: await loadFiles(project), settings: project.settings }); } catch (e) { throw new HttpError(422, (e as Error).message); }
     const prior = project.artifacts.find((a) => a.name === out.fileName && a.kind === b.format); if (prior) { await deleteBlob(prior.blob); project.artifacts = project.artifacts.filter((a) => a !== prior); }
     const blob = await putBlob(out.buf, { mime: out.mime }); const meta = { id: newId(), name: out.fileName, format: b.format, mime: out.mime, size: out.buf.length, blob, createdAt: Date.now(), kind: b.format, sample: model.sample }; project.artifacts.unshift(meta); project.artifacts = project.artifacts.slice(0, 30); await saveProject(project);

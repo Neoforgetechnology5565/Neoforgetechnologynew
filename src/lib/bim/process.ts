@@ -24,3 +24,10 @@ export async function processProject(p: ProjectDoc, settingsPatch?: Record<strin
 export async function loadAnyModel(p: ProjectDoc): Promise<AnyModel> { if (!p.modelBlob) throw new Error("No model has been generated yet."); return JSON.parse((await getBlob(p.modelBlob)).data.toString("utf8")) as AnyModel; }
 /** The shared plan/IFC model; applications that produce an analysis without a building return a 422 here. */
 export async function loadModel(p: ProjectDoc): Promise<Plan3dModel> { const m = await loadAnyModel(p); if (!isPlan3d(m)) throw new HttpError(422, "This operation is not available for this application's results."); return m; }
+
+/** The model a request refers to: the latest, or the version named in the x-bim-version header (review projects). */
+export async function modelFor(p: ProjectDoc, req: { headers: { get(n: string): string | null } }): Promise<Plan3dModel> {
+  const vid = req.headers.get("x-bim-version"); if (!vid) return loadModel(p);
+  const v = (p.versions ?? []).find((x) => x.id === vid); if (!v) throw new HttpError(404, "Version not found");
+  return JSON.parse((await getBlob(v.modelBlob)).data.toString("utf8")) as Plan3dModel;
+}
