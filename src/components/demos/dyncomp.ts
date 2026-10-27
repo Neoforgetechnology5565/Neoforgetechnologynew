@@ -117,7 +117,7 @@ const doorDef: CompDef = {
   ],
   presets: {
     Standard: { width: 900, height: 2100, thick: 44, style: "two", swing: "left", material: "timber", color: "#7a5a3a", sidelight: false, handle: true },
-    Compact: { width: 760, height: 2000, thick: 40, style: "flush", swing: "right", material: "upvc", color: "#f2f2ee", sidelight: false, handle: true },
+    Compact: { width: 800, height: 2000, thick: 40, style: "flush", swing: "right", material: "upvc", color: "#f2f2ee", sidelight: false, handle: true },
     Premium: { width: 1100, height: 2300, thick: 56, style: "glazed", swing: "left", material: "aluminium", color: "#3b3f42", sidelight: true, handle: true },
   },
   build(v) {
@@ -170,7 +170,7 @@ const shelfDef: CompDef = {
     { k: "plinth", label: "Plinth", type: "toggle" },
   ],
   presets: {
-    Standard: { width: 1200, height: 1800, depth: 350, shelves: 5, board: 22, material: "timber", color: "#d8b48a", back: true, doors: false, plinth: true },
+    Standard: { width: 1200, height: 1800, depth: 350, shelves: 5, board: 24, material: "timber", color: "#d8b48a", back: true, doors: false, plinth: true },
     Compact: { width: 800, height: 1000, depth: 300, shelves: 2, board: 18, material: "upvc", color: "#f2f2ee", back: true, doors: true, plinth: false },
     Premium: { width: 2000, height: 2200, depth: 450, shelves: 8, board: 28, material: "timber", color: "#7a5a3a", back: true, doors: true, plinth: true },
   },
