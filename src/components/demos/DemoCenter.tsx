@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CtaBand, SectionHead } from "@/components/Blocks";
 import { PROCESS } from "@/lib/services";
 import { DEMOS, DEMO_DISCLAIMER } from "@/lib/demos";
-import { SUITE, SUITE_DISCLAIMER } from "@/lib/bim/suite";
+import { SUITE } from "@/lib/bim/suite";
 
 /** CAD/BIM portfolio: the interactive demo cards. Shown at /portfolio/cad-bim (and /demos). */
 export default function DemoCenter({ children }: { children?: React.ReactNode }) {
@@ -41,14 +41,15 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
       </section>
       <section id="full-stack-suite" className="scroll-mt-24 border-t border-stone-200 bg-stone-50/60">
         <div className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
-          <SectionHead eyebrow="Full-stack CAD / BIM suite · demonstrations 11–21" title="Eleven applications with a real backend">Unlike the browser-only samples above, these applications accept real files (DXF, SVG, images, IFC, point clouds), process them on the server, store projects and produce downloadable outputs such as IFC, GLB, DXF, CSV and PDF. Each card says exactly what is built and tested.</SectionHead>
-          <p className="mt-4 max-w-3xl rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900">{SUITE_DISCLAIMER}</p>
-        </div>
+          <h2 className="font-display text-4xl font-semibold text-stone-900 sm:text-5xl">Full-stack CAD / BIM suite · demonstrations 11–21</h2>
+          <p className="mt-3 font-display text-xl font-medium text-blue-700">Applications with a real backend</p>
+          <p className="mt-3 max-w-3xl text-stone-600">These are sample projects, not finished commercial products. Try them with your own files (DXF, SVG, images, IFC, point clouds) or the bundled samples: they run on a real server and produce downloads such as IFC, GLB, DXF, CSV and PDF. Use them as proof of the kind of work we can do on your project.</p>
+                  </div>
         <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
           <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {SUITE.map((d) => (
               <li key={d.slug} className="flex flex-col rounded-2xl border border-emerald-300 bg-white p-6">
-                <div className="flex items-center justify-between"><span className="font-display text-2xl font-semibold text-blue-600">{d.no}</span><span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">Full-stack · built &amp; tested</span></div>
+                <div className="flex items-center justify-between"><span className="font-display text-2xl font-semibold text-blue-600">{d.no}</span><span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-800">Sample project</span></div>
                 <h3 className="mt-3 font-display text-xl font-semibold text-stone-900">{d.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-stone-600">{d.short}</p>
                 <p className="mt-2 text-sm text-stone-500"><b className="text-stone-700">Formats:</b> {d.formats}</p>
