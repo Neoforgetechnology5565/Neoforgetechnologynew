@@ -1,0 +1,16 @@
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import CctvPlatform from "@/components/demos/cctv/CctvPlatform";
+import { CV_MAP } from "@/lib/cv-demos";
+import { getBranding } from "@/lib/db";
+
+type Params = { params: Promise<{ slug: string }> };
+export async function generateMetadata({ params }: Params): Promise<Metadata> {
+  const d = CV_MAP[(await params).slug];
+  return d ? { title: `${d.title} (interactive demo)`, robots: { index: false }, alternates: { canonical: `/ai-demos/${d.slug}` } } : {};
+}
+export default async function CvDemoApp({ params }: Params) {
+  const slug = (await params).slug;
+  if (slug !== "ai-cctv-intelligence-security-analytics") notFound();
+  return <CctvPlatform branding={await getBranding()} />;
+}

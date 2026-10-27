@@ -1,4 +1,5 @@
 import DemoCenter from "@/components/demos/DemoCenter";
+import CvDemoCenter from "@/components/demos/CvDemoCenter";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -35,6 +36,19 @@ export default async function DivisionPortfolio({ params }: { params: Promise<{ 
           )}
         </DemoCenter>
       </>
+    );
+  }
+  if (division === "computer-vision") {
+    const real = all.filter((p) => p.division === division);
+    return (
+      <CvDemoCenter>
+        {real.length > 0 && (
+          <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8">
+            <h2 className="font-display text-2xl font-semibold text-stone-900">Project case studies</h2>
+            <div className="mt-6"><PortfolioFilter projects={real} categories={cats.filter((c) => c.division === division).map((c) => ({ id: c.id, name: c.name }))} /></div>
+          </section>
+        )}
+      </CvDemoCenter>
     );
   }
   return (
