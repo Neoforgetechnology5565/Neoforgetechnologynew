@@ -9,8 +9,8 @@ type Ev = Results["events"][number];
 const SEV_CLS: Record<string, string> = { info: "bg-slate-700 text-slate-200", notice: "bg-cyan-500/15 text-cyan-300", review: "bg-amber-500/15 text-amber-300" };
 const TYPE_LABEL: Record<string, string> = { object_first_seen: "Object appeared", zone_enter: "Zone entry", zone_exit: "Zone exit", zone_dwell: "Zone dwell", line_cross: "Line crossing" };
 export const mmss = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
-const Chip = ({ on, onClick, children, color }: { on: boolean; onClick(): void; children: React.ReactNode; color?: string }) => (
-  <button type="button" aria-pressed={on} onClick={onClick} className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${on ? "border-transparent text-slate-950" : "border-slate-700 text-slate-400 hover:border-slate-500"}`} style={on ? { background: color ?? "#60a5fa" } : undefined}>{children}</button>
+const Chip = ({ on, onClick, children, color, testid }: { on: boolean; onClick(): void; children: React.ReactNode; color?: string; testid?: string }) => (
+  <button type="button" data-testid={testid} aria-pressed={on} onClick={onClick} className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${on ? "border-transparent text-slate-950" : "border-slate-700 text-slate-400 hover:border-slate-500"}`} style={on ? { background: color ?? "#60a5fa" } : undefined}>{children}</button>
 );
 export { Chip };
 

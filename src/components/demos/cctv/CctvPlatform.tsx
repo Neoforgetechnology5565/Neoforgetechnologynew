@@ -28,6 +28,8 @@ const probe = (url: string) => new Promise<{ durationSec: number; width: number;
   v.onloadedmetadata = () => (isFinite(v.duration) && v.videoWidth ? res({ durationSec: v.duration, width: v.videoWidth, height: v.videoHeight }) : rej(new Error("no metadata")));
   v.onerror = () => rej(new Error("decode error")); v.src = url;
 });
+/** Prefer H.264 MP4, fall back to the WebM twin for browsers that cannot decode H.264. */
+const playable = (s: SampleInfo) => { const v = document.createElement("video"); return v.canPlayType('video/mp4; codecs="avc1.42E01E"') ? s.file : s.webm; };
 const dist = (a: Pt, b: Pt, W: number, H: number) => Math.hypot((a.x - b.x) * W, (a.y - b.y) * H);
 
 export default function CctvPlatform({ branding }: { branding: Branding }) {
@@ -134,7 +136,7 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
     await reset(); cancelRef.current = false; setPhase("loading"); setStatus("Loading reference analysis…");
     const ann = (await (await fetch(s.annotations)).json()) as { suggested?: { zones?: Settings["zones"]; lines?: Settings["lines"] } };
     const next = { ...settingsRef.current, zones: ann.suggested?.zones ?? [], lines: ann.suggested?.lines ?? [] }; settingsRef.current = next; setSettings(next); persist(next);
-    setSrc({ kind: "sample", id: s.id, name: s.name, url: s.file, durationSec: s.durationSec, width: s.width, height: s.height });
+    setSrc({ kind: "sample", id: s.id, name: s.name, url: playable(s), durationSec: s.durationSec, width: s.width, height: s.height });
     const created = await api.createJob({ source: { type: "sample", id: s.id }, mode: "reference", meta: { durationSec: s.durationSec, width: s.width, height: s.height }, settings: next });
     const j = { id: created.id, token: created.token }; setJob(j); await finish(j, created);
   });
@@ -236,7 +238,7 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
       actions={<>{link("csv") ? <a href={link("csv")} className={BTN} download>Export CSV</a> : <button className={BTN} disabled>Export CSV</button>}{link("json") ? <a href={link("json")} className={BTN} download>Export JSON</a> : <button className={BTN} disabled>Export JSON</button>}<button type="button" className={BTN} onClick={reset}>Reset</button></>}>
       <div className="grid gap-4 p-3 sm:p-4 lg:grid-cols-[250px_minmax(0,1fr)_360px]">
         {/* Sources */}
-        <aside className="space-y-3" aria-label="Video sources">
+        <aside className={`space-y-3 ${src ? "order-2 lg:order-none" : ""}`} aria-label="Video sources">
           <div className={CARD}>
             <h2 className={H3}>Sources</h2>
             <ul className="mt-2 space-y-2">
@@ -251,8 +253,8 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
                   <input type="file" accept="video/mp4,video/webm,.mp4,.webm" className="sr-only" data-testid="file-input" disabled={running} onChange={(e) => { void onFile(e.target.files?.[0]); e.target.value = ""; }} />
                 </label>
               </li>
-              <li className="rounded-lg border border-slate-800 p-2.5 text-xs opacity-70" aria-disabled><span className="block font-medium text-slate-300">RTSP / IP camera</span><span className="mt-0.5 block text-[10px] text-slate-500">Not connected. {caps?.rtsp.reason ?? "Live camera ingest is not implemented."}</span></li>
-              <li className="rounded-lg border border-slate-800 p-2.5 text-xs opacity-70" aria-disabled><span className="block font-medium text-slate-300">Webcam / live stream</span><span className="mt-0.5 block text-[10px] text-slate-500">Not implemented. This demo analyses recorded clips only.</span></li>
+              <li className="rounded-lg border border-slate-800 p-2.5 text-xs opacity-70"><span className="block font-medium text-slate-300">RTSP / IP camera</span><span className="mt-0.5 block text-[10px] text-slate-500">Not connected. {caps?.rtsp.reason ?? "Live camera ingest is not implemented."}</span></li>
+              <li className="rounded-lg border border-slate-800 p-2.5 text-xs opacity-70"><span className="block font-medium text-slate-300">Webcam / live stream</span><span className="mt-0.5 block text-[10px] text-slate-500">Not implemented. This demo analyses recorded clips only.</span></li>
             </ul>
           </div>
           {src && (
@@ -276,7 +278,7 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
         </aside>
 
         {/* Video workspace */}
-        <section className="min-w-0 space-y-3" aria-label="Video workspace">
+        <section className={`min-w-0 space-y-3 ${src ? "order-1 lg:order-none" : ""}`} aria-label="Video workspace">
           <div className={`rounded-lg border px-3 py-2 text-xs ${toneCls[banner.tone]}`} role="status" data-testid="mode-banner">{banner.text}</div>
           {error && <div className="flex items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/10 px-3 py-2 text-xs text-red-200" role="alert"><span className="flex-1">{error}</span><button type="button" onClick={() => setError("")} aria-label="Dismiss error" className="text-red-300">✕</button></div>}
           <div className="overflow-hidden rounded-lg border border-slate-800 bg-black">
@@ -305,7 +307,7 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
           </div>
           {/* quick filters + editors */}
           <div className={`${CARD} flex flex-wrap items-center gap-x-5 gap-y-3`}>
-            <div><span className={LBL}>Classes</span><div className="flex flex-wrap gap-1">{SUPPORTED_CLASSES.map((c) => <Chip key={c} on={settings.classes.includes(c)} onClick={() => { const n = settings.classes.includes(c) ? settings.classes.filter((x) => x !== c) : [...settings.classes, c]; update({ classes: n.length ? n : [c] }); }}>{c}</Chip>)}</div></div>
+            <div><span className={LBL}>Classes</span><div className="flex flex-wrap gap-1">{SUPPORTED_CLASSES.map((c) => <Chip key={c} testid={`cls-${c}`} on={settings.classes.includes(c)} onClick={() => { const n = settings.classes.includes(c) ? settings.classes.filter((x) => x !== c) : [...settings.classes, c]; update({ classes: n.length ? n : [c] }); }}>{c}</Chip>)}</div></div>
             <label className="min-w-40"><span className={LBL}>Min confidence · {Math.round(settings.minConf * 100)}%</span><input type="range" min={5} max={95} value={Math.round(settings.minConf * 100)} onChange={(e) => update({ minConf: +e.target.value / 100 })} className="w-full" aria-label="Quick minimum confidence" /></label>
             <div className="flex flex-wrap items-center gap-2">
               <button type="button" className={`${BTN} ${tool === "zone" ? "!border-blue-500" : ""}`} disabled={!src || settings.zones.length >= LIMITS.maxZones} onClick={() => { setTool(tool === "zone" ? null : "zone"); setDraft([]); }} data-testid="draw-zone">{tool === "zone" ? "Cancel zone" : "Draw zone"}</button>
@@ -320,7 +322,7 @@ export default function CctvPlatform({ branding }: { branding: Branding }) {
         </section>
 
         {/* Right panels */}
-        <aside className="min-w-0" aria-label="Analysis panels">
+        <aside className={`min-w-0 ${src ? "order-3 lg:order-none" : ""}`} aria-label="Analysis panels">
           <div role="tablist" className="mb-3 flex gap-1 rounded-lg bg-slate-900 p-1">
             {([["detections", "Detections"], ["events", `Events${results ? ` (${results.events.length})` : ""}`], ["analytics", "Analytics"], ["settings", "Settings"]] as const).map(([k, l]) => (
               <button key={k} role="tab" aria-selected={tab === k} type="button" onClick={() => setTab(k)} className={`flex-1 rounded-md px-2 py-1.5 text-xs font-medium ${tab === k ? "bg-blue-600 text-white" : "text-slate-400 hover:text-white"}`}>{l}</button>

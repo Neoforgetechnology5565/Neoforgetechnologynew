@@ -109,11 +109,11 @@ else await t("REAL inference: ffmpeg + CenterNet worker on an uploaded clip", as
   const f = new FormData(); f.set("file", new Blob([readFileSync(vid)], { type: "video/mp4" }), "clip.mp4");
   const up = await j(await fetch(`${BASE}/api/cctv/videos/upload`, { method: "POST", headers: h(), body: f }));
   const c = await j(await post("/api/cctv/jobs", { source: { type: "upload", videoId: up.videoId, name: "clip.mp4" }, mode: "worker", meta: { durationSec: up.probe.durationSec, width: up.probe.width, height: up.probe.height }, settings: { sampleFps: 4 } }));
-  assert.equal((await post(`/api/cctv/jobs/${c.id}/process`, {}, { "x-job-token": c.token })).status, 202);
+  const t0 = Date.now(); assert.equal((await post(`/api/cctv/jobs/${c.id}/process`, {}, { "x-job-token": c.token })).status, 202);
   let info; for (let k = 0; k < 120; k++) { await new Promise((r) => setTimeout(r, 1500)); info = await j(await fetch(`${BASE}/api/cctv/jobs/${c.id}`)); if (info.status === "ready" || info.status === "failed") break; }
   assert.equal(info.status, "ready", info.error);
   const res = await j(await fetch(`${BASE}/api/cctv/jobs/${c.id}/results`));
   assert.ok(res.stats.detectionsTotal > 0, "the real detector found objects"); assert.ok(res.stats.uniqueTotal < res.stats.detectionsTotal, "tracking collapses repeats");
-  console.log("    detections:", res.stats.detectionsTotal, "unique:", res.stats.uniqueTotal, JSON.stringify(res.stats.uniqueByClass));
+  console.log(`    worker: ${res.stats.framesProcessed} frames in ${((Date.now() - t0) / 1000).toFixed(1)} s incl. model load;`, "detections:", res.stats.detectionsTotal, "unique:", res.stats.uniqueTotal, JSON.stringify(res.stats.uniqueByClass));
 });
 console.log(process.exitCode ? "FAILED" : `all ${passed} api tests passed`);

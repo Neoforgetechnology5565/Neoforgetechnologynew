@@ -15,7 +15,7 @@ export function analyze(raw: Frame[], s: Settings, meta: { durationSec: number }
   const buckets = Math.max(1, Math.ceil(meta.durationSec)), series = Array.from({ length: buckets }, (_, k) => ({ t: k, person: 0, vehicle: 0, other: 0 }));
   for (const f of frames) {
     const b = series[Math.min(buckets - 1, Math.floor(f.t))]; let p = 0, v = 0, o = 0;
-    for (const d of f.dets) d.cls === "person" ? p++ : isVehicle(d.cls) ? v++ : o++;
+    for (const d of f.dets) { if (d.cls === "person") p++; else if (isVehicle(d.cls)) v++; else o++; }
     b.person = Math.max(b.person, p); b.vehicle = Math.max(b.vehicle, v); b.other = Math.max(b.other, o);
   }
   const stats: Stats = { framesProcessed: raw.length, durationSec: meta.durationSec, detectionsTotal, detectionsByClass, uniqueByClass, uniqueTotal: tracks.length, eventsTotal: events.length, eventsByType, series };

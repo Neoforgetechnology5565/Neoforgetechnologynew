@@ -7,7 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:cctv": "tsx src/lib/cctv/cctv.test.ts",
+    "test:cctv:api": "node scripts/test-cctv-api.mjs",
+    "test:cctv:ui": "node scripts/test-cctv-ui.mjs",
+    "cctv:samples": "node scripts/make-cctv-samples.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -43,6 +47,7 @@
     "eslint-config-next": "^15.5.27",
     "postcss": "^8.5.29",
     "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.15",
     "typescript": "^6.0.3"
   },
   "overrides": {

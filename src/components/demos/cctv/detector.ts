@@ -17,7 +17,7 @@ export class HumanCenterNet implements Detector {
   private human: Human | null = null;
   async load() {
     // The bundled ESM build is a large chunk; it is only fetched when a user starts real inference.
-    const mod = (await import(/* webpackChunkName: "human" */ "@vladmandic/human/dist/human.esm.js" as string)) as { Human?: typeof Human; default?: typeof Human };
+    const mod = (await import(/* webpackChunkName: "human" */ "@vladmandic/human")) as { Human?: typeof Human; default?: typeof Human };
     const HumanCtor = (mod.Human ?? mod.default) as typeof Human;
     let backend = "webgl";
     for (const b of ["webgl", "cpu"]) {

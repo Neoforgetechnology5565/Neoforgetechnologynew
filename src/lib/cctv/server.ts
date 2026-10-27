@@ -66,7 +66,7 @@ export async function requireToken(req: NextRequest, id: string): Promise<JobDoc
 }
 export const tokenHash = hash;
 /** Public projection: never leaks the token hash. */
-export const publicJob = ({ tokenHash: _t, ...rest }: JobDoc) => rest;
+export const publicJob = (j: JobDoc): Omit<JobDoc, "tokenHash"> => { const rest: Partial<JobDoc> = { ...j }; delete rest.tokenHash; return rest as Omit<JobDoc, "tokenHash">; };
 
 export async function loadFrames(jobId: string): Promise<Frame[]> {
   const snap = await framesCol().where("jobId", "==", jobId).get();

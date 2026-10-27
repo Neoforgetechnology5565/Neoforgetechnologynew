@@ -3,6 +3,10 @@ import assert from "node:assert/strict";
 import { analyze } from "./analyze";
 import { pointInPolygon, segmentsIntersect } from "./analytics";
 import { trackFrames } from "./tracker";
+import { sniffVideo } from "./video";
+import { settingsSchema, mergeSettings, framesBatchSchema } from "./schemas";
+import { eventsCsv } from "./csv";
+import { eventId, withIds } from "./eventid";
 import { DEFAULT_SETTINGS, type Frame, type Settings } from "./types";
 
 // geometry
@@ -38,4 +42,25 @@ const onlyCar = analyze(frames, { ...s, classes: ["car"] }, { durationSec: 6 });
 // dwell
 const still: Frame[] = Array.from({ length: 20 }, (_, i) => ({ i, t: i / 4, dets: [{ cls: "person", conf: 0.9, box: [0.45, 0.5, 0.04, 0.1] as [number, number, number, number] }] }));
 const d = analyze(still, { ...s, lines: [], zones: [{ ...s.zones[0], dwellSeconds: 2 }] }, { durationSec: 5 }); assert.equal(d.events.filter((e) => e.type === "zone_dwell").length, 1);
+
+// ---- video sniffing: content decides, never the extension
+assert.equal(sniffVideo(Buffer.from("\0\0\0\x18ftypmp42\0\0\0\0")), "mp4");
+assert.equal(sniffVideo(Uint8Array.from([0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0, 0, 0, 0, 0])), "webm");
+assert.equal(sniffVideo(Buffer.from("<?php echo 1; ?> not video")), null);
+assert.equal(sniffVideo(Buffer.alloc(4)), null);
+
+// ---- schemas
+assert.ok(mergeSettings().classes.length > 0);
+assert.throws(() => settingsSchema.parse({ ...mergeSettings(), minConf: 2 }));
+assert.throws(() => settingsSchema.parse({ ...mergeSettings(), classes: ["weapon"] }), "unsupported classes (such as weapons) are rejected");
+assert.throws(() => mergeSettings({ zones: [{ id: "z", name: "<img onerror=1>", points: [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 1, y: 1 }], classes: [], dwellSeconds: 1 }] }));
+assert.throws(() => framesBatchSchema.parse({ frames: [{ i: 0, t: 0, dets: [{ cls: "person", conf: 1.5, box: [0, 0, 1, 1] }] }] }));
+assert.throws(() => framesBatchSchema.parse({ frames: [{ i: 0, t: 0, dets: [{ cls: "person", conf: 0.5, box: [-1, 0, 1, 1] }] }] }));
+
+// ---- csv formula-injection guard and event ids
+const ev = { id: "x", jobId: "j", type: "zone_enter" as const, t: 1, frame: 4, cls: "person", conf: 0.9, trackId: 1, box: [0, 0, 1, 1] as [number, number, number, number], severity: "notice" as const, message: "=HYPERLINK(\"http://x\")", review: "unreviewed" as const };
+assert.ok(eventsCsv([ev], "s").includes(`"'=HYPERLINK(`), "formula-like cells are neutralised");
+assert.equal(eventId({ ...ev, zone: "Bay 1" }), eventId({ ...ev, zone: "Bay 1" }), "ids are deterministic");
+assert.equal(withIds("j", [ev], { [eventId(ev)]: "confirmed" })[0].review, "confirmed");
+
 console.log("cctv: all tests passed");

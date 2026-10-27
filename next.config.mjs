@@ -6,11 +6,18 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
 ];
 
+import path from "node:path";
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
   // Keep the Firebase Admin SDK and its gRPC stack out of the bundle (bundling them breaks on Vercel).
   serverExternalPackages: ["firebase-admin", "google-gax", "@grpc/grpc-js", "@google-cloud/firestore"],
+  // @vladmandic/human exposes its Node build to the server compile pass; the in-browser detector must always use the ESM build.
+  webpack: (config) => {
+    config.resolve.alias = { ...config.resolve.alias, "@vladmandic/human$": path.resolve("node_modules/@vladmandic/human/dist/human.esm.js") };
+    return config;
+  },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
   },

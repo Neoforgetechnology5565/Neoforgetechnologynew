@@ -7,7 +7,7 @@ export interface Caps {
   limits: { maxFrames: number; maxUploadMb: number; maxZones: number; maxLines: number; jobTtlHours: number; uploadTtlMinutes: number };
   detector: { name: string; runtime: string; license: string };
 }
-export interface SampleInfo { id: string; name: string; description: string; file: string; durationSec: number; width: number; height: number; annotations: string }
+export interface SampleInfo { id: string; name: string; description: string; file: string; webm: string; durationSec: number; width: number; height: number; annotations: string }
 export interface JobInfo { id: string; mode: "browser" | "worker" | "reference"; status: "created" | "receiving" | "processing" | "ready" | "failed"; error?: string; framesReceived: number; expectedFrames: number; settings: Settings; detector: { name: string; runtime: string; license: string; note?: string }; meta: { durationSec: number; width: number; height: number } }
 export type Results = Omit<Analysis, "events"> & { job: JobInfo; events: (EventRec & { note?: string })[]; rawFrames: number };
 

@@ -57,6 +57,8 @@ for (const [id, sc] of Object.entries(SCENES)) {
     if (!ff.stdin.write(png)) await new Promise((r) => ff.stdin.once("drain", r));
   }
   ff.stdin.end(); await new Promise((r) => ff.on("close", r));
+  // WebM twin: Chromium builds without proprietary codecs (and some Linux browsers) cannot play H.264.
+  await new Promise((r) => spawn("ffmpeg", ["-y", "-v", "error", "-i", `public/cctv/${id}.mp4`, "-c:v", "libvpx-vp9", "-b:v", "0", "-crf", "38", "-an", `public/cctv/${id}.webm`], { stdio: "inherit" }).on("close", r));
   const frames = [];
   for (let i = 0; i < sc.duration * ANN_FPS; i++) {
     const t = i / ANN_FPS, dets = [];

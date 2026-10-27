@@ -15,7 +15,8 @@ export async function runBrowserInference(a: InferenceArgs) {
   const cw = Math.min(640, v.videoWidth), ch = Math.round((v.videoHeight * cw) / v.videoWidth);
   const canvas = document.createElement("canvas"); canvas.width = cw; canvas.height = ch;
   const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-  let batch: Frame[] = [], t0 = performance.now();
+  let batch: Frame[] = [];
+  const t0 = performance.now();
   for (let i = 0; i < total; i++) {
     if (a.cancelled()) break;
     const t = Math.min(i / a.fps, Math.max(0, v.duration - 0.05));
