@@ -6,7 +6,6 @@ import { MeshBuilder } from "./mesh";
 import type { Building, Column, Level, MeshEl, Opening, Settings, Slab, Stair, Wall } from "./model";
 
 export interface WallPiece { box: Obb; kind: "solid" | "below" | "above"; openingId?: string }
-const U3 = (a: V2, b: V2) => { const d = norm(sub(b, a)); return { x: d.x, y: d.y, z: 0 } as V3; };
 
 /** Solid pieces of a wall once its openings are cut out (oriented boxes; also used by the clash engine). */
 export function wallPieces(w: Wall, base: number): WallPiece[] {
@@ -64,7 +63,7 @@ export function assemble(plan: PlanResult, st: Settings): BuildResult {
 export function buildMeshes(b: Building, st: Settings, footprint: V2[] | null): MeshEl[] {
   const out: MeshEl[] = []; const lvl = (id: string) => b.levels.find((l) => l.id === id)!;
   for (const w of b.walls) { const base = lvl(w.level).elevation; const mb = new MeshBuilder(); for (const p of wallPieces(w, base)) mb.obb(p.box); out.push({ id: w.id, cat: w.kind === "exterior" ? "wall-exterior" : "wall-interior", level: w.level, name: `${w.kind} wall`, ...mb.done() });
-    const L = dist(w.a, w.b); const u = norm(sub(w.b, w.a)); const nrm = perp(u); const ax: [V3, V3, V3] = [{ x: u.x, y: u.y, z: 0 }, { x: nrm.x, y: nrm.y, z: 0 }, { x: 0, y: 0, z: 1 }];
+    const u = norm(sub(w.b, w.a)); const nrm = perp(u); const ax: [V3, V3, V3] = [{ x: u.x, y: u.y, z: 0 }, { x: nrm.x, y: nrm.y, z: 0 }, { x: 0, y: 0, z: 1 }];
     for (const o of w.openings) { const c = v3(w.a.x + u.x * o.s, w.a.y + u.y * o.s, 0); const m2 = new MeshBuilder();
       if (o.kind === "window") { m2.obb({ c: { ...c, z: base + o.sill + o.height / 2 }, ax, h: [o.width / 2 - 0.03, 0.01, o.height / 2 - 0.03] }); const fr = 0.04; const mk = (dx: number, dz: number, hx: number, hz: number) => m2.obb({ c: { x: c.x + u.x * dx, y: c.y + u.y * dx, z: base + o.sill + o.height / 2 + dz }, ax, h: [hx, w.thickness / 2 - 0.01, hz] }); mk(0, o.height / 2 - fr / 2, o.width / 2, fr / 2); mk(0, -o.height / 2 + fr / 2, o.width / 2, fr / 2); mk(-o.width / 2 + fr / 2, 0, fr / 2, o.height / 2); mk(o.width / 2 - fr / 2, 0, fr / 2, o.height / 2); }
       else if (o.kind === "door") { m2.obb({ c: { ...c, z: base + (o.height - 0.02) / 2 }, ax, h: [o.width / 2 - 0.03, 0.02, (o.height - 0.02) / 2] }); }

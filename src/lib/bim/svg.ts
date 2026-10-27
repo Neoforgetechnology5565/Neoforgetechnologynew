@@ -37,7 +37,7 @@ export function parseSvg(text: string, unitsPerMetre?: number): { doc: DxfDoc; w
   }
   if (curves) warnings.push(`${curves} curved path segments (C/Q/A) were reduced to straight chords.`);
   void rot;
-  let up = unitsPerMetre; let insunits = 6; let unitsKnown = !!unitsPerMetre; const k = up ? 1 / up : 1;
+  let up = unitsPerMetre; let insunits = 6; const unitsKnown = !!unitsPerMetre; const k = up ? 1 / up : 1;
   if (up) for (const e of ents) { if (e.t === "LINE") { e.a = { x: e.a.x * k, y: e.a.y * k }; e.b = { x: e.b.x * k, y: e.b.y * k }; } else if (e.t === "POLY") e.pts = e.pts.map((p) => ({ x: p.x * k, y: p.y * k })); else if (e.t === "CIRCLE") { e.c = { x: e.c.x * k, y: e.c.y * k }; e.r *= k; } }
   else { insunits = 0; up = undefined; }
   const layers: DxfDoc["layers"] = {}; for (const e of ents) layers[e.layer] ??= { name: e.layer, color: 7, off: false, frozen: false };

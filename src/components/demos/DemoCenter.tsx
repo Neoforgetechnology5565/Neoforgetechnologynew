@@ -15,6 +15,9 @@ export default function DemoCenter({ children }: { children?: React.ReactNode })
           <p className="mt-4 max-w-2xl rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm text-amber-200">{DEMO_DISCLAIMER}</p>
         </div>
       </section>
+      <section className="mx-auto max-w-7xl px-4 pt-12 sm:px-6 lg:px-8">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-300 bg-emerald-50 p-5"><div className="min-w-0 flex-1"><p className="font-display text-lg font-semibold text-stone-900">New: full-stack CAD/BIM suite with a real backend</p><p className="mt-1 text-sm text-stone-700">Upload a 2D plan (DXF, SVG, image or IFC), get a 3D building with interior, exterior and MEP/HVAC, run clash detection and download IFC, GLB, DXF and PDF. Each application states exactly what is built.</p></div><Link href="/cad-bim-suite" className="rounded-full bg-stone-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-blue-600">Open the suite</Link></div>
+      </section>
       <section className="mx-auto max-w-7xl px-4 pt-16 sm:px-6 lg:px-8">
         <SectionHead eyebrow="Sample works" title="Interactive demonstrations">Ten working samples of the kinds of tools we can build. They run in your browser on invented sample data, so you can test them without installing anything.</SectionHead>
       </section>

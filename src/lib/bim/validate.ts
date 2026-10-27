@@ -8,7 +8,7 @@ export const ALLOWED_EXT = ["dxf", "dwg", "ifc", "svg", "png", "jpg", "jpeg", "p
 const fmt = (ext: string): BimFormat => ({ jpeg: "jpg", txt: "xyz", pts: "xyz" } as Record<string, BimFormat>)[ext] ?? ((ALLOWED_EXT.includes(ext) ? ext : "unknown") as BimFormat);
 
 export function validateUpload(name: string, buf: Buffer): Validation {
-  const ext = (name.split(".").pop() ?? "").toLowerCase(); let format = fmt(ext); const v: Validation = { ok: false, format, support: "unsupported", errors: [], warnings: [], info: { bytes: buf.length } };
+  const ext = (name.split(".").pop() ?? "").toLowerCase(); const format = fmt(ext); const v: Validation = { ok: false, format, support: "unsupported", errors: [], warnings: [], info: { bytes: buf.length } };
   if (!buf.length) { v.errors.push("The file is empty."); return v; } if (buf.length > MAX_UPLOAD_BYTES) { v.errors.push(`File larger than ${MAX_UPLOAD_BYTES / 1048576} MB.`); return v; }
   if (!ALLOWED_EXT.includes(ext)) { v.errors.push(`.${ext || "?"} files are not supported. Supported: DXF, IFC, SVG, PNG/JPG, PDF, LAS/PLY/XYZ/CSV, OBJ (depending on the application).`); return v; }
   const head = buf.subarray(0, 512).toString("latin1");

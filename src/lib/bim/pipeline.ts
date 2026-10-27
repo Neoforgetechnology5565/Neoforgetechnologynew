@@ -37,8 +37,7 @@ export async function runPlan3d(files: InFile[], settingsRaw: Record<string, unk
   const st = mergeSettings(settingsRaw as Partial<Settings>); const warnings: string[] = []; const needs: NeedsInput[] = []; const raster: { v?: Plan3dModel["raster"] } = {};
   const plan = files.find((f) => f.role === "plan"), mepF = files.find((f) => f.role === "mep");
   stage("Validating", `${files.length} file(s)`); if (!plan && !mepF) throw new Error("Upload a plan (DXF, SVG, PNG/JPG or IFC) first, or open a sample project.");
-  let building: Plan3dModel["building"] = null; let meshes: MeshEl[] = []; let planAnalysis: Plan3dModel["planAnalysis"] = null; let mepAnalysis: Plan3dModel["mepAnalysis"] = null; let ifcModel: IfcModel | null = null; let planDoc: DxfDoc | null = null; const assumptions: string[] = []; let footprintLoop = null as never;
-  void footprintLoop;
+  let building: Plan3dModel["building"] = null; const meshes: MeshEl[] = []; let planAnalysis: Plan3dModel["planAnalysis"] = null; let mepAnalysis: Plan3dModel["mepAnalysis"] = null; let ifcModel: IfcModel | null = null; let planDoc: DxfDoc | null = null; const assumptions: string[] = []; 
   if (plan) {
     if (plan.format === "ifc") { stage("Parsing IFC", plan.name); ifcModel = await readIfc(plan.buf); warnings.push(...ifcModel.warnings); meshes.push(...ifcModel.meshes); }
     else {
