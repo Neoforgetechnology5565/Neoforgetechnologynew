@@ -6,12 +6,13 @@ import SketchConfigurator from "@/components/demos/SketchConfigurator";
 import DynamicComponents from "@/components/demos/DynamicComponents";
 import BricsWorkbench from "@/components/demos/BricsWorkbench";
 import BimExplorer from "@/components/demos/BimExplorer";
+import BatchManager from "@/components/demos/BatchManager";
 import { DEMO_MAP } from "@/lib/demos";
 import { getBranding } from "@/lib/db";
 import type { Branding } from "@/lib/types";
 
 type Params = { params: Promise<{ slug: string }> };
-const APPS: Record<string, (p: { branding: Branding }) => React.JSX.Element> = { "revit-bim-automation-dashboard": RevitDashboard, "autocad-drawing-automation-studio": CadStudio, "sketchup-parametric-model-configurator": SketchConfigurator, "sketchup-dynamic-components-builder": DynamicComponents, "bricscad-automation-workbench": BricsWorkbench, "bim-model-data-explorer": BimExplorer };
+const APPS: Record<string, (p: { branding: Branding }) => React.JSX.Element> = { "revit-bim-automation-dashboard": RevitDashboard, "autocad-drawing-automation-studio": CadStudio, "sketchup-parametric-model-configurator": SketchConfigurator, "sketchup-dynamic-components-builder": DynamicComponents, "bricscad-automation-workbench": BricsWorkbench, "bim-model-data-explorer": BimExplorer, "cad-batch-processing-manager": BatchManager };
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const d = DEMO_MAP[(await params).slug];
