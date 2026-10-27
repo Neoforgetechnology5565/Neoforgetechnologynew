@@ -190,14 +190,14 @@ export function parallaxCorrect(mask: Uint8Array, w: number, h: number, S: numbe
 }
 
 /* ───────── full pipeline ───────── */
-export interface AnalyzeOptions { paper?: PaperKind | "auto"; corners?: Pt[]; pxPerMmOut?: number }
+export interface AnalyzeOptions { paper?: PaperKind | "auto"; corners?: Pt[]; pxPerMmOut?: number; onStage?: (stage: "calibrating" | "measuring") => void }
 export interface AnalyzeResult { analysis: Analysis; rectified?: Img; mask?: Uint8Array; H?: H3 }
 
 export function analyzeFootImage(img: Img, opt: AnalyzeOptions = {}): AnalyzeResult {
   const size = { w: img.w, h: img.h }; const warnings: string[] = []; const fail = (stage: Analysis["stage"], reason: string, quality?: ImageQuality, calibration?: Calibration): AnalyzeResult => ({ analysis: { ok: false, stage, reason, warnings, grade: "unusable", quality, calibration, imageSize: size } });
   if (img.w < 600 || img.h < 600) return fail("decoded", "The image is too small (minimum 600 px on each side). Take the photo at the phone's normal resolution.");
   const S = opt.pxPerMmOut ?? 2; let paper: PaperKind; let corners: Pt[]; let method: Calibration["method"]; let autoChosen = false; let tilt: number, rms = 0, cover = 0, bright = 0, sharp = 0;
-  const det = detectPaper(img, opt.paper ?? "auto"); bright = det.brightness ?? 0; sharp = det.sharp ?? sharpness(img);
+  opt.onStage?.("calibrating"); const det = detectPaper(img, opt.paper ?? "auto"); bright = det.brightness ?? 0; sharp = det.sharp ?? sharpness(img);
   if (opt.corners && opt.corners.length === 4) { const c = orderCorners(opt.corners); if (!c) return fail("paper", "The corner positions are not a valid four-sided shape."); corners = c; paper = opt.paper && opt.paper !== "auto" ? opt.paper : det.paper ?? "a4"; method = "manual-corners"; tilt = tiltOf(c); cover = Math.abs(polyArea(c)) / (img.w * img.h); }
   else { const q0: ImageQuality = quality(sharp, bright, 0); if (!det.found || !det.corners) return fail("paper", det.reason ?? "No sheet of paper found.", q0); corners = det.corners; paper = det.paper!; autoChosen = !!det.autoChosen; method = "auto-paper"; tilt = det.tilt!; rms = det.lineFitRmsPx ?? 0; cover = det.coverage ?? 0; }
   const P = PAPER_MM[paper]; const Hpi = homography([{ x: 0, y: 0 }, { x: P.w, y: 0 }, { x: P.w, y: P.h }, { x: 0, y: P.h }], corners); if (!Hpi) return fail("paper", "The paper corners could not be used for calibration.");
@@ -207,7 +207,7 @@ export function analyzeFootImage(img: Img, opt: AnalyzeOptions = {}): AnalyzeRes
   if (q.lighting === "dark") warnings.push("The photo is dark; use brighter, even light."); if (q.lighting === "overexposed") warnings.push("The paper is overexposed; reduce glare.");
   if (tilt > 1.35) warnings.push("The phone was held at a strong angle; keep it pointing straight down for better accuracy."); if (cover < 0.12) warnings.push("The paper fills little of the frame; move closer (without zooming) so the sheet is larger.");
   if (camDist < 450) warnings.push("The camera looks very close to the paper, which magnifies the foot's height (parallax). Hold the phone higher if you can."); if (method === "auto-paper" && rms > 3) warnings.push("The paper edges look curved or uneven; flatten the sheet.");
-  const rect = rectify(img, Hpi, P.w, P.h, S); const seg = segmentFoot(rect, S);
+  opt.onStage?.("measuring"); const rect = rectify(img, Hpi, P.w, P.h, S); const seg = segmentFoot(rect, S);
   if (!seg.ok || !seg.mask) return { analysis: { ok: false, stage: "segmentation", reason: seg.reason, warnings, grade: "unusable", quality: q, calibration: cal, imageSize: size }, rectified: rect, H: Hpi };
   if (seg.touchesEdge) warnings.push("The foot reaches the edge of the paper, so its length may be cut short. Use a larger sheet or place the foot fully inside.");
   const raw = measureMask(seg.mask, seg.w, seg.h, S, camDist); const cmask = pose ? parallaxCorrect(seg.mask, seg.w, seg.h, S, pose, ASSUMED_SILHOUETTE_HEIGHT_MM) : seg.mask; const meas = raw && pose ? measureMask(cmask, seg.w, seg.h, S, camDist) : raw; if (raw && meas) { meas.rawLengthMm = raw.lengthMm; meas.rawWidthMm = raw.widthMm; meas.parallaxScale = Math.round((meas.lengthMm / raw.lengthMm) * 10000) / 10000; } if (!meas) return { analysis: { ok: false, stage: "segmentation", reason: "The foot region was too small to measure.", warnings, grade: "unusable", quality: q, calibration: cal, imageSize: size }, rectified: rect, H: Hpi };
