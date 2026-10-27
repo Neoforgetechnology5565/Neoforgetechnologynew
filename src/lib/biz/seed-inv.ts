@@ -40,5 +40,5 @@ export const seedInv = () => {
   products.forEach((p, i) => { const t = total(p.id); const low = ["MN-24", "BW-50", "SH-01", "CD-18", "TN-85"].includes(p.sku); p.reorder = low ? t + Math.max(3, Math.round(t * 0.15)) : Math.max(2, Math.round(t * 0.35)); void i; });
   for (const sku of ["RT-10", "FA-10"]) { const p = products.find((x) => x.sku === sku)!; WAREHOUSES.forEach((w) => push("2026-03-12", p.id, w.id, "Issue", -qtyOf(p.id, w.id), `SO-${2500 + n}`, "Issued to customer orders")); p.reorder = 10; }
   mv.sort((a, b) => a.date.localeCompare(b.date) || Number(a.id.slice(1)) - Number(b.id.slice(1)));
-  return { categories: CATS, warehouses: WAREHOUSES, products, movements: mv, nextNo: { grn: 1000 + n, trf: 3000 + n, adj: 2 } };
+  return { categories: CATS, warehouses: WAREHOUSES, products, movements: mv, bins: {} as Record<string, string>, nextNo: { grn: 1000 + n, trf: 3000 + n, adj: 2 } };
 };

@@ -141,8 +141,8 @@ export const FilterSelect = ({ label, value, onChange, options, all = "All" }: {
 
 /* ───────────────────────── Data table ───────────────────────── */
 export interface Col<T> { key: string; label: string; render?(r: T): ReactNode; value?(r: T): string | number; align?: "right"; className?: string; noSort?: boolean; noCsv?: boolean }
-export function DataTable<T>({ rows, columns, rowKey, onRow, pageSize = 10, exportName, empty = "No records match.", toolbar, search = true, searchPlaceholder = "Search…", defaultSort, footer, dense, testid }: {
-  rows: T[]; columns: Col<T>[]; rowKey(r: T): string; onRow?(r: T): void; pageSize?: number; exportName?: string; empty?: ReactNode; toolbar?: ReactNode; search?: boolean; searchPlaceholder?: string; defaultSort?: { key: string; dir: 1 | -1 }; footer?: ReactNode; dense?: boolean; testid?: string;
+export function DataTable<T>({ rows, columns, rowKey, onRow, pageSize = 10, exportName, empty = "No records match.", toolbar, search = true, searchPlaceholder = "Search…", defaultSort, footer, dense, testid, rowClass }: {
+  rowClass?(r: T): string; rows: T[]; columns: Col<T>[]; rowKey(r: T): string; onRow?(r: T): void; pageSize?: number; exportName?: string; empty?: ReactNode; toolbar?: ReactNode; search?: boolean; searchPlaceholder?: string; defaultSort?: { key: string; dir: 1 | -1 }; footer?: ReactNode; dense?: boolean; testid?: string;
 }) {
   const [q, setQ] = useState(""); const [page, setPage] = useState(0); const [sort, setSort] = useState(defaultSort ?? null);
   const val = (c: Col<T>, r: T) => (c.value ? c.value(r) : ((r as Record<string, unknown>)[c.key] as string | number) ?? "");
@@ -164,7 +164,7 @@ export function DataTable<T>({ rows, columns, rowKey, onRow, pageSize = 10, expo
             </th>))}</tr></thead>
           <tbody>
             {view.map((r) => (
-              <tr key={rowKey(r)} onClick={onRow ? () => onRow(r) : undefined} className={`border-t border-slate-100 ${onRow ? "cursor-pointer hover:bg-blue-50/60" : ""}`}>
+              <tr key={rowKey(r)} onClick={onRow ? () => onRow(r) : undefined} className={`border-t border-slate-100 ${onRow ? "cursor-pointer hover:bg-blue-50/60" : ""} ${rowClass?.(r) ?? ""}`}>
                 {columns.map((c) => <td key={c.key} className={`${dense ? "px-3 py-1.5" : "px-3 py-2"} align-middle ${c.align === "right" ? "text-right tabular-nums" : ""} ${c.className ?? ""}`}>{c.render ? c.render(r) : String(val(c, r))}</td>)}
               </tr>
             ))}

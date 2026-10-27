@@ -3,32 +3,63 @@ import { useMemo, useState } from "react";
 import { logActivity, resetDb, useSlice } from "@/lib/biz/db";
 import { avgCosts, qtyAt, stockLevel, stockMap, totalQty, valuation } from "@/lib/biz/inv-calc";
 import type { Movement, MoveType, Product } from "@/lib/biz/seed-inv";
-import { DEMO_TODAY, downloadCsv, fmtDate, groupBy, lastNMonths, money, moneyK, monthKey, monthLabel, num, round2, sum, uid } from "@/lib/biz/util";
+import { DEMO_TODAY, downloadCsv, fmtDate, groupBy, hash01, lastNMonths, money, moneyK, monthKey, monthLabel, num, round2, sum, uid } from "@/lib/biz/util";
 import type { Branding } from "@/lib/types";
-import { Badge, BarChart, Btn, DataTable, Donut, Empty, ErpShell, FilterSelect, HBars, Kpi, KpiRow, LineChart, Modal, Notice, PageHead, Panel, Segmented, SelectIn, TextIn, useConfirm, useToast, type Col } from "./kit";
+import { AppProviders, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Empty, FilterSelect, LineChart, Modal, Notice, Panel, PageHead, ResetButton, SelectIn, TextIn, useConfirm, useToast, type Col } from "./kit";
 
-const NAV = [{ id: "dash", label: "Inventory dashboard", group: "Overview" }, { id: "alerts", label: "Low-stock alerts", group: "Overview" }, { id: "products", label: "Product catalogue", group: "Catalogue" }, { id: "warehouses", label: "Warehouse overview", group: "Stock" }, { id: "movements", label: "Stock movements", group: "Stock" },
-  { id: "receive", label: "Goods received", group: "Operations" }, { id: "transfers", label: "Warehouse transfers", group: "Operations" }, { id: "adjust", label: "Stock adjustment", group: "Operations" }, { id: "reports", label: "Inventory reports", group: "Insight" }];
+/* Warehouse workstation: a split-screen stock desk. A scan/search bar and warehouse selector sit on top, a narrow task rail on the left, the stock list in the middle and the selected product (with its bin on a floor map) beside it. */
+const RAIL = [{ id: "stock", label: "Stock" }, { id: "alerts", label: "Low stock" }, { id: "valuation", label: "Valuation" }, { id: "receive", label: "Receipts" }, { id: "transfers", label: "Transfers" }, { id: "adjust", label: "Adjustments" }, { id: "history", label: "History" }, { id: "map", label: "Warehouse map" }];
 const lvTone = (l: string) => (l === "OK" ? "green" : l === "Low" ? "amber" : "red") as "green" | "amber" | "red";
+const AISLES = ["A", "B", "C", "D", "E", "F"], RACKS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function InventoryApp({ branding }: { branding: Branding }) {
-  const [screen, setScreen] = useState("dash"); const [pid, setPid] = useState<string | null>(null); const [inv] = useSlice("inv");
-  const map = useMemo(() => stockMap(inv.movements), [inv.movements]); const low = inv.products.filter((p) => totalQty(map, p.id, inv.warehouses) <= p.reorder).length;
-  const open = (id: string) => { setPid(id); setScreen("product"); };
   return (
-    <ErpShell branding={branding} title="NorthPeak Inventory" subtitle="Warehouses & stock · weighted-average valuation" nav={NAV.map((n) => (n.id === "alerts" ? { ...n, badge: low || undefined } : n))} active={screen === "product" ? "products" : screen} onNav={(s) => { setScreen(s); setPid(null); }} onReset={() => resetDb(["inv", "proc"])} resetLabel="Reset stock & orders"
-      note="Demonstration inventory software with fictional data. Stock levels are derived from the movement history. Resetting also resets the Procurement demo, because the two share stock. Stored only in this browser (localStorage); no server.">
-      {screen === "dash" && <Dash go={setScreen} open={open} />}
-      {screen === "alerts" && <Alerts open={open} />}
-      {screen === "products" && <Products open={open} />}
-      {screen === "product" && pid && <ProductDetail id={pid} back={() => setScreen("products")} />}
-      {screen === "warehouses" && <Warehouses open={open} />}
-      {screen === "movements" && <Movements />}
-      {screen === "receive" && <Receive />}
-      {screen === "transfers" && <Transfers />}
-      {screen === "adjust" && <Adjust />}
-      {screen === "reports" && <Reports />}
-    </ErpShell>
+    <AppProviders className="bg-slate-300 text-slate-800" note="Demonstration inventory software with fictional data. Stock levels are derived from the movement history. Resetting also resets the Procurement demo, because the two share stock. Stored only in this browser (localStorage); no server.">
+      <Workstation branding={branding} />
+    </AppProviders>
+  );
+}
+function Workstation({ branding }: { branding: Branding }) {
+  const [screen, setScreen] = useState("stock"); const [sel, setSel] = useState<string | null>(null); const [wh, setWh] = useState(""); const [q, setQ] = useState(""); const [op, setOp] = useState<null | "receive" | "transfer" | "adjust">(null); const [newProd, setNewProd] = useState(false);
+  const { inv, setInv, map, total, value, addMoves } = useInv(); const toastFn = useToast();
+  const low = inv.products.filter((p) => total(p.id) <= p.reorder).length, out = inv.products.filter((p) => total(p.id) <= 0).length;
+  const units = sum(inv.products, (p) => total(p.id)), val = sum(inv.products, (p) => value(p));
+  const pick = (id: string) => { setSel(id); setScreen("stock"); };
+  const scan = () => { const s = q.trim().toLowerCase(); if (!s) return; const hit = inv.products.find((p) => p.sku.toLowerCase() === s) ?? (inv.products.filter((p) => `${p.sku} ${p.name}`.toLowerCase().includes(s)).length === 1 ? inv.products.find((p) => `${p.sku} ${p.name}`.toLowerCase().includes(s)) : undefined); if (hit) { pick(hit.id); toastFn(`Found ${hit.sku}: ${hit.name}`); } else toastFn("No single product matches. Refine the search.", "red"); };
+  void map; void setInv; void addMoves;
+  return (
+    <>
+      <header className="no-print bg-slate-800 text-slate-100">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-2.5">
+          <BrandLogo branding={branding} height={28} />
+          <div><h1 className="font-display text-lg font-semibold leading-tight text-white">NorthPeak Warehouse</h1><p className="text-sm leading-tight text-slate-300">Stock desk · weighted-average valuation</p></div>
+          <form className="flex min-w-[260px] flex-1 items-center gap-2 sm:max-w-xl" onSubmit={(e) => { e.preventDefault(); scan(); }} role="search">
+            <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Scan barcode or search SKU / product…" aria-label="Scan barcode or search SKU or product" data-testid="scan-input" className="w-full rounded-md border-2 border-amber-400 bg-slate-900 px-3 py-2 text-[16px] text-white placeholder:text-slate-400" />
+            <button type="submit" className="rounded-md bg-amber-400 px-4 py-2 text-[15px] font-semibold text-slate-900 hover:bg-amber-300" data-testid="scan-go">Find</button></form>
+          <div role="group" aria-label="Warehouse" className="flex overflow-hidden rounded-md border border-slate-500 text-[15px]">{[{ id: "", name: "All warehouses" }, ...inv.warehouses].map((w) => <button key={w.id} type="button" aria-pressed={wh === w.id} onClick={() => setWh(w.id)} data-testid={`wh-pick-${w.id || "all"}`} className={`px-3 py-1.5 ${wh === w.id ? "bg-amber-400 font-semibold text-slate-900" : "text-slate-100 hover:bg-slate-700"}`}>{w.name}</button>)}</div>
+          <div className="ml-auto flex flex-wrap items-center gap-2"><Btn kind="primary" onClick={() => setOp("receive")} testid="op-receive">Receive</Btn><Btn onClick={() => setOp("transfer")} testid="op-transfer">Transfer</Btn><Btn onClick={() => setOp("adjust")} testid="op-adjust">Adjust</Btn><Btn onClick={() => setNewProd(true)} testid="new-product">+ New product</Btn></div>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-slate-700 bg-slate-900 px-4 py-1.5 text-[15px] text-slate-200"><span>Stock value <strong className="text-white tabular-nums" data-testid="kpi-value">{moneyK(val)}</strong></span><span>Units <strong className="text-white tabular-nums" data-testid="kpi-units">{num(units)}</strong></span><span>Products <strong className="text-white">{inv.products.length}</strong></span><span>Low <strong className={low ? "text-amber-300" : "text-white"} data-testid="kpi-low">{low}</strong></span><span>Out of stock <strong className={out ? "text-red-300" : "text-white"} data-testid="kpi-out">{out}</strong></span>
+          <span className="ml-auto flex items-center gap-2"><DemoBadge /><ResetButton onReset={() => resetDb(["inv", "proc"])} label="Reset stock & orders" /><DemoLinks compact /></span></div>
+      </header>
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        <nav aria-label="Warehouse tasks" className="no-print flex shrink-0 flex-row flex-wrap gap-1 bg-slate-700 p-2 lg:w-48 lg:flex-col">
+          {RAIL.map((r) => <button key={r.id} type="button" data-nav={r.id} aria-current={screen === r.id ? "page" : undefined} onClick={() => setScreen(r.id)} className={`rounded-md px-3 py-2 text-left text-[15px] font-medium ${screen === r.id ? "bg-amber-400 text-slate-900" : "text-slate-100 hover:bg-slate-600"}`}>{r.label}{r.id === "alerts" && low > 0 && <span className="ml-2 rounded-full bg-red-600 px-2 text-[13px] text-white">{low}</span>}</button>)}
+        </nav>
+        <main className="min-w-0 flex-1 p-3 sm:p-4" id="app-main">
+          {screen === "stock" && <StockDesk wh={wh} q={q} sel={sel} setSel={setSel} openOp={setOp} />}
+          {screen === "alerts" && <Alerts open={pick} />}
+          {screen === "valuation" && <Reports />}
+          {screen === "receive" && <Receive />}
+          {screen === "transfers" && <Transfers />}
+          {screen === "adjust" && <Adjust />}
+          {screen === "history" && <Movements />}
+          {screen === "map" && <Warehouses open={pick} wh={wh} />}
+        </main>
+      </div>
+      {op && <OpModal kind={op} productId={sel ?? undefined} onClose={() => setOp(null)} />}
+      {newProd && <ProductForm onClose={() => setNewProd(false)} onSave={(rec, opening) => { const id = uid("p"); setInv((s) => ({ ...s, products: [...s.products, { id, ...rec }] })); if (opening) addMoves([{ date: DEMO_TODAY, productId: id, whId: opening.whId, type: "Opening", qty: opening.qty, unitCost: rec.cost, ref: "OPENING", note: "Opening balance" }]); logActivity("Inventory", `Product created: ${rec.sku}`); toastFn("Product created"); setNewProd(false); pick(id); }} />}
+    </>
   );
 }
 function useInv() {
@@ -42,22 +73,76 @@ function useInv() {
 }
 const levelOf = (q: number, p: Product) => stockLevel(q, p.reorder);
 
-/* ───────── Dashboard ───────── */
-function Dash({ go, open }: { go(s: string): void; open(id: string): void }) {
-  const { inv, map, total, value, catName, pName } = useInv(); const vals = inv.products.map((p) => ({ p, v: value(p), q: total(p.id) }));
-  const units = sum(vals, (x) => x.q), valTotal = sum(vals, (x) => x.v), lowN = vals.filter((x) => x.q > 0 && x.q <= x.p.reorder.valueOf()).length, outN = vals.filter((x) => x.q <= 0).length;
-  const byCat = Object.entries(groupBy(vals, (x) => catName(x.p.categoryId))).map(([label, v]) => ({ label, value: round2(sum(v, (x) => x.v)) })).sort((a, b) => b.value - a.value);
-  const byWh = inv.warehouses.map((w) => ({ label: w.name, value: sum(inv.products, (p) => qtyAt(map, p.id, w.id)) }));
-  const months = lastNMonths(6); const trend = months.map((m) => { const ms = inv.movements.filter((x) => monthKey(x.date) === m); return { label: monthLabel(m), values: { in: sum(ms.filter((x) => x.type === "Receipt"), (x) => x.qty), out: -sum(ms.filter((x) => x.type === "Issue"), (x) => x.qty) } }; });
-  const recent = [...inv.movements].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
-  return (<><PageHead title="Inventory dashboard" sub={`${inv.products.length} products across ${inv.warehouses.length} warehouses. All numbers come from the movement ledger.`} />
-    <KpiRow><Kpi label="Stock value" value={moneyK(valTotal)} sub="weighted average cost" testid="kpi-value" /><Kpi label="Units on hand" value={num(units)} testid="kpi-units" /><Kpi label="Products" value={inv.products.length} /><Kpi label="Low stock" value={lowN} tone={lowN ? "amber" : undefined} onClick={() => go("alerts")} testid="kpi-low" /><Kpi label="Out of stock" value={outN} tone={outN ? "red" : undefined} onClick={() => go("alerts")} testid="kpi-out" /><Kpi label="Movements" value={inv.movements.length} onClick={() => go("movements")} /></KpiRow>
-    <div className="mt-4 grid gap-4 lg:grid-cols-3"><Panel title="Units received vs issued by month" className="lg:col-span-2"><BarChart ariaLabel="Receipts and issues" data={trend} series={[{ key: "in", label: "Received" }, { key: "out", label: "Issued", color: "#f59e0b" }]} /></Panel><Panel title="Stock value by category"><Donut slices={byCat} fmt={moneyK} center={<>{moneyK(valTotal)}</>} /></Panel>
-      <Panel title="Units by warehouse"><HBars items={byWh} /></Panel><Panel title="Most valuable products" className="lg:col-span-1"><HBars items={[...vals].sort((a, b) => b.v - a.v).slice(0, 6).map((x) => ({ label: x.p.name, value: x.v }))} fmt={moneyK} onClick={(l) => { const p = inv.products.find((x) => x.name === l); if (p) open(p.id); }} /></Panel>
-      <Panel title="Recent movements" pad={false}><ul className="divide-y divide-slate-100">{recent.map((m) => <li key={m.id} className="flex items-center gap-2 px-4 py-2 text-xs"><Badge tone={m.qty > 0 ? "green" : "slate"}>{m.type}</Badge><span className="flex-1 truncate">{pName(m.productId)}</span><span className={`tabular-nums ${m.qty > 0 ? "text-blue-700" : "text-slate-600"}`}>{m.qty > 0 ? "+" : ""}{m.qty}</span></li>)}</ul></Panel></div></>);
+/* ───────── Bin locations (floor map) ───────── */
+const binOf = (bins: Record<string, string> | undefined, pid: string, wid: string) => bins?.[`${pid}|${wid}`] ?? `${AISLES[Math.floor(hash01(pid + wid + "a") * 6)]}-${String(1 + Math.floor(hash01(pid + wid + "r") * 8)).padStart(2, "0")}-${1 + Math.floor(hash01(pid + wid + "l") * 3)}`;
+function BinMap({ wid, highlight, compact, onBin, active }: { wid: string; highlight?: string; compact?: boolean; onBin?(cell: string): void; active?: string }) {
+  const { inv, map } = useInv(); const cells = new Map<string, { id: string; q: number }[]>();
+  for (const p of inv.products) { const q = qtyAt(map, p.id, wid); if (q > 0) { const b = binOf(inv.bins, p.id, wid); const key = b.slice(0, 4); cells.set(key, [...(cells.get(key) ?? []), { id: p.id, q }]); } }
+  return (
+    <div className="inline-block rounded-lg border border-slate-400 bg-slate-100 p-2" role="group" aria-label="Warehouse floor map" data-testid="bin-map">
+      <div className="mb-1 grid" style={{ gridTemplateColumns: `28px repeat(${AISLES.length}, minmax(0, 1fr))` }}><span />{AISLES.map((a) => <span key={a} className="text-center text-sm font-semibold text-slate-600">Aisle {a}</span>)}</div>
+      {RACKS.map((r) => <div key={r} className="grid gap-1 pb-1" style={{ gridTemplateColumns: `28px repeat(${AISLES.length}, minmax(0, 1fr))` }}><span className="self-center text-sm text-slate-500">{String(r).padStart(2, "0")}</span>
+        {AISLES.map((a) => { const key = `${a}-${String(r).padStart(2, "0")}`; const items = cells.get(key) ?? []; const has = highlight && items.some((i) => i.id === highlight); const names = items.map((i) => `${inv.products.find((p) => p.id === i.id)?.sku} × ${i.q}`).join(", ");
+          return <button key={key} type="button" onClick={() => onBin?.(key)} aria-label={`Bin ${key}: ${items.length} products${has ? ", contains the selected product" : ""}`} title={names || "Empty"} aria-pressed={active === key}
+            className={`flex items-center justify-center rounded border text-sm tabular-nums ${compact ? "h-8" : "h-10"} ${has ? "border-amber-600 bg-amber-300 font-bold text-slate-900" : items.length ? "border-slate-400 bg-slate-300 text-slate-800" : "border-slate-300 bg-white text-slate-300"} ${active === key ? "ring-2 ring-blue-600" : ""}`}>{items.length || ""}</button>; })}</div>)}
+      <p className="mt-1 text-sm text-slate-600">Each square is a rack; the number is how many products are stored there. {highlight ? "Amber = the selected product." : ""}</p>
+    </div>
+  );
 }
 
-/* ───────── Products ───────── */
+/* ───────── Stock desk: list + contextual detail ───────── */
+function StockDesk({ wh, q, sel, setSel, openOp }: { wh: string; q: string; sel: string | null; setSel(id: string | null): void; openOp(k: "receive" | "transfer" | "adjust"): void }) {
+  const { inv, map, avg, total } = useInv(); const [cat, setCat] = useState(""); const [level, setLevel] = useState(""); const [edit, setEdit] = useState(false);
+  const qtyOf = (p: Product) => (wh ? qtyAt(map, p.id, wh) : total(p.id));
+  const rows = inv.products.filter((p) => (!cat || p.categoryId === cat) && (!level || stockLevel(total(p.id), p.reorder) === level) && (!q || `${p.name} ${p.sku}`.toLowerCase().includes(q.toLowerCase())) && (!wh || qtyAt(map, p.id, wh) !== 0 || !!q));
+  const cols: Col<Product>[] = [{ key: "sku", label: "SKU", render: (p) => <span className="whitespace-nowrap font-mono text-sm">{p.sku}</span> }, { key: "name", label: "Product", render: (p) => <span className="font-medium text-slate-900">{p.name}</span> }, ...(wh ? [{ key: "bin", label: "Bin", value: (p: Product) => binOf(inv.bins, p.id, wh), render: (p: Product) => <span className="whitespace-nowrap font-mono text-sm">{binOf(inv.bins, p.id, wh)}</span> } as Col<Product>] : []),
+    { key: "qty", label: wh ? "In this warehouse" : "On hand", align: "right", value: qtyOf, render: (p) => `${num(qtyOf(p))} ${p.unit}` }, { key: "lv", label: "Level", value: (p) => stockLevel(total(p.id), p.reorder), render: (p) => <Badge tone={lvTone(stockLevel(total(p.id), p.reorder))}>{stockLevel(total(p.id), p.reorder)}</Badge> },
+    { key: "val", label: "Value", align: "right", value: (p) => qtyOf(p) * (avg.get(p.id) ?? p.cost), render: (p) => money(qtyOf(p) * (avg.get(p.id) ?? p.cost), "USD", 0) }];
+  const p = sel ? inv.products.find((x) => x.id === sel) : undefined;
+  return (<div className="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(420px,1fr)]">
+    <section aria-label="Stock list" className="min-w-0 rounded-xl border border-slate-400 bg-white p-3 shadow-sm">
+      <h2 className="mb-2 font-display text-2xl font-semibold text-slate-900">Stock{wh ? ` · ${inv.warehouses.find((w) => w.id === wh)?.name}` : " · all warehouses"}</h2>
+      <DataTable rows={rows} columns={cols} rowKey={(r) => r.id} onRow={(r) => setSel(r.id)} exportName="inventory-products" pageSize={12} search={false} testid="product-table" dense rowClass={(r) => (r.id === sel ? "!bg-amber-100" : "")}
+        toolbar={<><FilterSelect label="Category" value={cat} onChange={setCat} options={inv.categories.map((c) => ({ value: c.id, label: c.name }))} /><FilterSelect label="Level" value={level} onChange={setLevel} options={["OK", "Low", "Out of stock"]} /></>} />
+    </section>
+    <section aria-label="Selected product" className="min-w-0 rounded-xl border border-slate-400 bg-white p-4 shadow-sm xl:sticky xl:top-3 xl:self-start">
+      {p ? <DetailPane key={p.id} p={p} wh={wh} openOp={openOp} onEdit={() => setEdit(true)} onGone={() => setSel(null)} /> : <div className="py-12 text-center"><p className="font-display text-xl text-slate-700">No product selected</p><p className="mt-1 text-[15px] text-slate-600">Scan or search a SKU above, or select a row. Its stock by warehouse, bin location and history appear here.</p></div>}
+    </section>
+    {edit && p && <EditProduct p={p} onClose={() => setEdit(false)} />}
+  </div>);
+}
+function EditProduct({ p, onClose }: { p: Product; onClose(): void }) {
+  const { setInv } = useInv(); const toast = useToast();
+  return <ProductForm existing={p} onClose={onClose} onSave={(rec) => { setInv((s) => ({ ...s, products: s.products.map((x) => (x.id === p.id ? { ...x, ...rec } : x)) })); toast("Product updated"); onClose(); }} />;
+}
+function DetailPane({ p, wh, openOp, onEdit, onGone }: { p: Product; wh: string; openOp(k: "receive" | "transfer" | "adjust"): void; onEdit(): void; onGone(): void }) {
+  const { inv, setInv, map, avg, total, supName, catName, wName } = useInv(); const toast = useToast(); const confirm = useConfirm(); const id = p.id;
+  const t = total(id); const lv = stockLevel(t, p.reorder); const best = wh || [...inv.warehouses].sort((a, b) => qtyAt(map, id, b.id) - qtyAt(map, id, a.id))[0]?.id || "";
+  const [mapWh, setMapWh] = useState(best); const [re, setRe] = useState({ reorder: String(p.reorder), qty: String(p.reorderQty) }); const [bin, setBin] = useState(binOf(inv.bins, id, mapWh)); const [binCell, setBinCell] = useState("");
+  const moves = inv.movements.filter((m) => m.productId === id).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
+  const cur = binOf(inv.bins, id, mapWh); const [ba, br, bl] = bin.split("-");
+  const setPart = (i: number, v: string) => { const parts = bin.split("-"); parts[i] = v; setBin(parts.join("-")); };
+  return (<>
+    <div className="flex flex-wrap items-start justify-between gap-2"><div><p className="font-mono text-sm text-slate-600">{p.sku} · {catName(p.categoryId)}</p><h2 className="font-display text-2xl font-semibold leading-tight text-slate-900">{p.name}</h2><p className="text-sm text-slate-600">Supplier {supName(p.supplierId)}</p></div><Badge tone={lvTone(lv)}>{lv}</Badge></div>
+    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1 rounded-lg bg-slate-100 p-3 text-[15px] sm:grid-cols-4"><div><dt className="text-sm text-slate-600">On hand</dt><dd className="font-display text-xl font-semibold tabular-nums" data-testid="pd-total">{num(t)} {p.unit}</dd></div><div><dt className="text-sm text-slate-600">Average cost</dt><dd className="font-semibold tabular-nums">{money(avg.get(id) ?? p.cost)}</dd></div><div><dt className="text-sm text-slate-600">Stock value</dt><dd className="font-semibold tabular-nums">{money(round2(t * (avg.get(id) ?? p.cost)), "USD", 0)}</dd></div><div><dt className="text-sm text-slate-600">Sell price</dt><dd className="font-semibold tabular-nums">{money(p.price)}</dd></div></dl>
+    <div className="mt-3 flex flex-wrap gap-2"><Btn kind="primary" onClick={() => openOp("receive")} testid="pd-receive">Receive</Btn><Btn onClick={() => openOp("transfer")} testid="pd-transfer">Transfer</Btn><Btn onClick={() => openOp("adjust")} testid="pd-adjust">Adjust</Btn><Btn onClick={onEdit}>Edit</Btn>
+      <Btn kind="danger" onClick={async () => { if (moves.length > 0 && await confirm(`Delete ${p.name} and its ${moves.length} movements? Prefer adjusting stock to zero instead.`)) { setInv((s) => ({ ...s, products: s.products.filter((x) => x.id !== id), movements: s.movements.filter((m) => m.productId !== id) })); toast("Product deleted", "amber"); onGone(); } }}>Delete</Btn></div>
+    <h3 className="mt-5 text-base font-semibold text-slate-900">Stock by warehouse and bin</h3>
+    <ul className="mt-1 divide-y divide-slate-200 text-[15px]">{inv.warehouses.map((w) => <li key={w.id}><button type="button" onClick={() => { setMapWh(w.id); setBin(binOf(inv.bins, id, w.id)); }} aria-pressed={mapWh === w.id} className={`flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left ${mapWh === w.id ? "bg-amber-50" : "hover:bg-slate-50"}`}><span>{w.name}</span><span className="flex items-center gap-3"><span className="font-mono text-sm text-slate-600">{qtyAt(map, id, w.id) > 0 ? binOf(inv.bins, id, w.id) : "no bin"}</span><span className="font-medium tabular-nums" data-testid={`pd-wh-${w.id}`}>{num(qtyAt(map, id, w.id))}</span></span></button></li>)}</ul>
+    <div className="mt-3 flex flex-wrap items-start gap-4"><BinMap wid={mapWh} highlight={id} compact onBin={setBinCell} active={binCell} />
+      <div className="min-w-[200px] flex-1"><p className="text-sm text-slate-600">Bin in {wName(mapWh)}: <strong className="font-mono text-slate-900" data-testid="pd-bin">{cur}</strong></p>
+        <div className="mt-2 grid grid-cols-3 gap-2"><SelectIn label="Aisle" value={ba} onChange={(e) => setPart(0, e.target.value)} options={AISLES} /><SelectIn label="Rack" value={br} onChange={(e) => setPart(1, e.target.value)} options={RACKS.map((r) => String(r).padStart(2, "0"))} /><SelectIn label="Level" value={bl} onChange={(e) => setPart(2, e.target.value)} options={["1", "2", "3"]} /></div>
+        <Btn small className="mt-2" testid="save-bin" onClick={() => { setInv((s) => ({ ...s, bins: { ...(s.bins ?? {}), [`${id}|${mapWh}`]: bin } })); toast(`Bin set to ${bin}`); }}>Move to this bin</Btn>
+        {binCell && <p className="mt-2 text-sm text-slate-700">Rack {binCell} holds: {inv.products.filter((x) => qtyAt(map, x.id, mapWh) > 0 && binOf(inv.bins, x.id, mapWh).startsWith(binCell)).map((x) => x.sku).join(", ") || "nothing"}</p>}
+        <p className="mt-2 text-sm text-slate-500">Bin locations are demonstration data assigned automatically; changes are saved in this browser.</p></div></div>
+    <h3 className="mt-5 text-base font-semibold text-slate-900">Reorder settings</h3>
+    <div className="mt-1 flex flex-wrap items-end gap-2"><TextIn label="Reorder threshold" type="number" value={re.reorder} onChange={(e) => setRe({ ...re, reorder: e.target.value })} className="w-40" /><TextIn label="Reorder quantity" type="number" value={re.qty} onChange={(e) => setRe({ ...re, qty: e.target.value })} className="w-40" /><Btn kind="primary" testid="save-reorder" onClick={() => { if (!(Number(re.reorder) >= 0) || !(Number(re.qty) >= 1)) return toast("Threshold must be 0 or more and the order quantity at least 1.", "red"); setInv((s) => ({ ...s, products: s.products.map((x) => (x.id === id ? { ...x, reorder: Number(re.reorder), reorderQty: Number(re.qty) } : x)) })); toast("Reorder settings saved"); }}>Save</Btn></div>
+    <h3 className="mt-5 text-base font-semibold text-slate-900">Recent movements <span className="text-sm font-normal text-slate-600">({moves.length} in total; full list under History)</span></h3>
+    <div className="mt-1 max-h-60 overflow-auto"><table className="w-full text-[15px]"><thead className="sticky top-0 bg-slate-100 text-left text-sm text-slate-600"><tr><th className="p-1.5">Date</th><th className="p-1.5">Type</th><th className="p-1.5">Warehouse</th><th className="p-1.5 text-right">Qty</th><th className="p-1.5">Ref</th></tr></thead><tbody>{moves.slice(0, 12).map((m) => <tr key={m.id} className="border-t border-slate-100"><td className="p-1.5 whitespace-nowrap">{fmtDate(m.date)}</td><td className="p-1.5"><Badge tone={m.qty > 0 ? "green" : "slate"}>{m.type}</Badge></td><td className="p-1.5">{wName(m.whId)}</td><td className={`p-1.5 text-right tabular-nums ${m.qty > 0 ? "text-blue-700" : ""}`}>{m.qty > 0 ? "+" : ""}{m.qty}</td><td className="p-1.5 font-mono text-sm">{m.ref}</td></tr>)}</tbody></table></div>
+    <div className="mt-4"><LineChart ariaLabel="Stock level over time" area height={120} series={[{ key: "qty", label: "Units" }]} data={(() => { let run = 0; const series = [...moves].reverse().map((m) => ({ label: monthKey(m.date), v: (run += m.qty) })); return lastNMonths(6).map((mo) => ({ label: monthLabel(mo), values: { qty: [...series].filter((x) => x.label <= mo).pop()?.v ?? 0 } })); })()} /></div>
+  </>);
+}
+
 function ProductForm({ existing, onClose, onSave }: { existing?: Product; onClose(): void; onSave(p: Omit<Product, "id">, opening: { whId: string; qty: number } | null): void }) {
   const { inv, proc } = useInv(); const [f, setF] = useState({ sku: existing?.sku ?? "", name: existing?.name ?? "", categoryId: existing?.categoryId ?? inv.categories[0]?.id ?? "", unit: existing?.unit ?? "each", cost: String(existing?.cost ?? ""), price: String(existing?.price ?? ""), reorder: String(existing?.reorder ?? 10), reorderQty: String(existing?.reorderQty ?? 20), supplierId: existing?.supplierId ?? proc.suppliers[0]?.id ?? "", description: existing?.description ?? "" });
   const [open, setOpen] = useState({ whId: inv.warehouses[0]?.id ?? "", qty: "0" }); const [err, setErr] = useState<Record<string, string>>({});
@@ -77,46 +162,21 @@ function CategoriesModal({ onClose }: { onClose(): void }) {
     <ul className="divide-y divide-slate-100">{inv.categories.map((c) => { const n = inv.products.filter((p) => p.categoryId === c.id).length; return <li key={c.id} className="flex items-center gap-2 py-2 text-sm"><input aria-label={`Rename ${c.name}`} defaultValue={c.name} onBlur={(e) => { const v = e.target.value.trim(); if (v && v !== c.name) { setInv((s) => ({ ...s, categories: s.categories.map((x) => (x.id === c.id ? { ...x, name: v } : x)) })); toast("Category renamed"); } }} className="w-full rounded border border-slate-300 px-2 py-1" /><span className="w-16 text-right text-xs text-slate-500">{n} items</span><Btn small kind="danger" aria-label={`Delete ${c.name}`} onClick={() => { if (n) return setErr(`"${c.name}" still has ${n} products. Move them first.`); setInv((s) => ({ ...s, categories: s.categories.filter((x) => x.id !== c.id) })); toast("Category deleted", "amber"); }}>✕</Btn></li>; })}</ul>
     <div className="mt-3 flex gap-2"><input aria-label="New category name" value={name} onChange={(e) => setName(e.target.value)} placeholder="New category" className="w-full rounded-md border border-slate-300 px-2 py-1.5 text-sm" /><Btn kind="primary" testid="add-category" onClick={() => { if (name.trim().length < 2) return setErr("Enter a category name."); if (inv.categories.some((c) => c.name.toLowerCase() === name.trim().toLowerCase())) return setErr("That category exists."); setInv((s) => ({ ...s, categories: [...s.categories, { id: uid("c"), name: name.trim() }] })); setName(""); setErr(""); toast("Category added"); }}>Add</Btn></div>{err && <p role="alert" className="mt-2 text-sm text-red-600">{err}</p>}</Modal>);
 }
-function Products({ open }: { open(id: string): void }) {
-  const { inv, setInv, total, avg, value, catName, addMoves } = useInv(); const toast = useToast(); const [form, setForm] = useState(false); const [cats, setCats] = useState(false); const [cat, setCat] = useState(""); const [level, setLevel] = useState(""); const [view, setView] = useState("table"); const [q, setQ] = useState("");
-  const rows = inv.products.filter((p) => (!cat || p.categoryId === cat) && (!level || levelOf(total(p.id), p) === level) && (!q || `${p.name} ${p.sku}`.toLowerCase().includes(q.toLowerCase())));
-  const cols: Col<Product>[] = [{ key: "sku", label: "SKU", render: (p) => <span className="font-mono text-xs">{p.sku}</span> }, { key: "name", label: "Product", render: (p) => <span className="font-medium text-slate-900">{p.name}</span> }, { key: "cat", label: "Category", value: (p) => catName(p.categoryId) }, { key: "qty", label: "On hand", align: "right", value: (p) => total(p.id), render: (p) => `${num(total(p.id))} ${p.unit}` }, { key: "lv", label: "Level", value: (p) => levelOf(total(p.id), p), render: (p) => <Badge tone={lvTone(levelOf(total(p.id), p))}>{levelOf(total(p.id), p)}</Badge> }, { key: "avg", label: "Avg. cost", align: "right", value: (p) => avg.get(p.id) ?? p.cost, render: (p) => money(avg.get(p.id) ?? p.cost) }, { key: "val", label: "Value", align: "right", value: (p) => value(p), render: (p) => money(value(p), "USD", 0) }, { key: "re", label: "Reorder at", align: "right", value: (p) => p.reorder }];
-  const filters = <><FilterSelect label="Category" value={cat} onChange={setCat} options={inv.categories.map((c) => ({ value: c.id, label: c.name }))} /><FilterSelect label="Level" value={level} onChange={setLevel} options={["OK", "Low", "Out of stock"]} /></>;
-  return (<><PageHead title="Product catalogue" sub="Search by name or SKU. Open a product for stock by warehouse, history and reorder settings." actions={<><Segmented label="View" value={view} onChange={setView} options={[{ id: "table", label: "Table" }, { id: "cards", label: "Cards" }]} /><Btn onClick={() => setCats(true)} testid="manage-categories">Categories</Btn><Btn kind="primary" onClick={() => setForm(true)} testid="new-product">+ New product</Btn></>} />
-    {view === "table" ? <DataTable rows={rows} columns={cols} rowKey={(p) => p.id} onRow={(p) => open(p.id)} exportName="inventory-products" pageSize={12} searchPlaceholder="Search name or SKU…" toolbar={filters} testid="product-table" /> : (<>
-      <div className="mb-3 flex flex-wrap gap-2"><input type="search" aria-label="Search name or SKU…" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name or SKU…" className="w-56 rounded-md border border-slate-300 px-2.5 py-1.5 text-sm" />{filters}</div>
-      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="product-cards">{rows.map((p) => { const lv = levelOf(total(p.id), p); return <li key={p.id}><button type="button" onClick={() => open(p.id)} className="w-full rounded-xl border border-slate-200 bg-white p-3 text-left shadow-sm hover:border-blue-500"><span className="font-mono text-[11px] text-slate-500">{p.sku}</span><span className="block font-display font-semibold text-slate-900">{p.name}</span><span className="text-xs text-slate-500">{catName(p.categoryId)}</span><span className="mt-2 flex items-center justify-between"><span className="font-display text-lg tabular-nums">{num(total(p.id))}<span className="text-xs text-slate-500"> {p.unit}</span></span><Badge tone={lvTone(lv)}>{lv}</Badge></span></button></li>; })}</ul>{rows.length === 0 && <Empty>No products match.</Empty>}</>)}
-    {form && <ProductForm onClose={() => setForm(false)} onSave={(rec, opening) => { const id = uid("p"); setInv((s) => ({ ...s, products: [...s.products, { id, ...rec }] })); if (opening) addMoves([{ date: DEMO_TODAY, productId: id, whId: opening.whId, type: "Opening", qty: opening.qty, unitCost: rec.cost, ref: "OPENING", note: "Opening balance" }]); logActivity("Inventory", `Product created: ${rec.sku}`); toast("Product created"); setForm(false); }} />}{cats && <CategoriesModal onClose={() => setCats(false)} />}</>);
-}
 
-/* ───────── Product detail ───────── */
-function ProductDetail({ id, back }: { id: string; back(): void }) {
-  const { inv, setInv, map, avg, total, supName, catName, wName } = useInv(); const toast = useToast(); const confirm = useConfirm(); const p = inv.products.find((x) => x.id === id); const [edit, setEdit] = useState(false); const [act, setAct] = useState<null | "receive" | "transfer" | "adjust">(null); const [re, setRe] = useState({ reorder: String(p?.reorder ?? ""), qty: String(p?.reorderQty ?? "") });
-  if (!p) return <Empty>Product not found. <Btn small onClick={back}>Back</Btn></Empty>;
-  const moves = inv.movements.filter((m) => m.productId === id).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id)); const t = total(id); const lv = levelOf(t, p);
-  let run = 0; const series = [...moves].reverse().map((m) => ({ label: monthKey(m.date), date: m.date, v: (run += m.qty) })); const byMonth = lastNMonths(6).map((mo) => ({ label: monthLabel(mo), values: { qty: [...series].filter((x) => x.label <= mo).pop()?.v ?? 0 } }));
-  return (<><PageHead title={p.name} sub={`${p.sku} · ${catName(p.categoryId)} · supplier ${supName(p.supplierId)}`} actions={<><Btn onClick={back}>← Catalogue</Btn><Btn onClick={() => setAct("receive")} testid="pd-receive">Receive</Btn><Btn onClick={() => setAct("transfer")} testid="pd-transfer">Transfer</Btn><Btn onClick={() => setAct("adjust")} testid="pd-adjust">Adjust</Btn><Btn onClick={() => setEdit(true)}>Edit</Btn><Btn kind="danger" onClick={async () => { if (moves.length > 0 && await confirm(`Delete ${p.name} and its ${moves.length} movements? Prefer adjusting stock to zero instead.`)) { setInv((s) => ({ ...s, products: s.products.filter((x) => x.id !== id), movements: s.movements.filter((m) => m.productId !== id) })); toast("Product deleted", "amber"); back(); } }}>Delete</Btn></>} />
-    <KpiRow><Kpi label="On hand" value={`${num(t)} ${p.unit}`} sub={<Badge tone={lvTone(lv)}>{lv}</Badge>} testid="pd-total" /><Kpi label="Average cost" value={money(avg.get(id) ?? p.cost)} sub="weighted average" /><Kpi label="Stock value" value={money(round2(t * (avg.get(id) ?? p.cost)), "USD", 0)} /><Kpi label="Sell price" value={money(p.price)} sub={`${(((p.price - p.cost) / p.price) * 100).toFixed(0)}% margin on cost`} /></KpiRow>
-    <div className="mt-4 grid gap-4 lg:grid-cols-3"><Panel title="Stock by warehouse"><ul className="space-y-2 text-sm">{inv.warehouses.map((w) => <li key={w.id} className="flex justify-between"><span>{w.name}</span><span className="tabular-nums font-medium" data-testid={`pd-wh-${w.id}`}>{num(qtyAt(map, id, w.id))}</span></li>)}</ul></Panel>
-      <Panel title="Reorder settings"><div className="grid gap-2"><TextIn label="Reorder threshold" type="number" value={re.reorder} onChange={(e) => setRe({ ...re, reorder: e.target.value })} /><TextIn label="Reorder quantity" type="number" value={re.qty} onChange={(e) => setRe({ ...re, qty: e.target.value })} /><Btn kind="primary" testid="save-reorder" onClick={() => { if (!(Number(re.reorder) >= 0) || !(Number(re.qty) >= 1)) return toast("Threshold must be 0 or more and the order quantity at least 1.", "red"); setInv((s) => ({ ...s, products: s.products.map((x) => (x.id === id ? { ...x, reorder: Number(re.reorder), reorderQty: Number(re.qty) } : x)) })); toast("Reorder settings saved"); }}>Save</Btn></div></Panel>
-      <Panel title="Stock level, end of month"><LineChart ariaLabel="Stock level over time" area data={byMonth} series={[{ key: "qty", label: "Units" }]} height={150} /></Panel></div>
-    <Panel title="Movement history" className="mt-4" pad={false}><div className="max-h-72 overflow-auto"><table className="w-full text-sm"><thead className="sticky top-0 bg-slate-50 text-left text-[11px] uppercase text-slate-500"><tr><th className="p-2">Date</th><th className="p-2">Type</th><th className="p-2">Warehouse</th><th className="p-2 text-right">Qty</th><th className="p-2">Reference</th><th className="p-2">Note</th></tr></thead><tbody>{moves.map((m) => <tr key={m.id} className="border-t border-slate-100"><td className="p-2">{fmtDate(m.date)}</td><td className="p-2"><Badge tone={m.qty > 0 ? "green" : "slate"}>{m.type}</Badge></td><td className="p-2">{wName(m.whId)}</td><td className={`p-2 text-right tabular-nums ${m.qty > 0 ? "text-blue-700" : ""}`}>{m.qty > 0 ? "+" : ""}{m.qty}</td><td className="p-2 font-mono text-xs">{m.ref}</td><td className="p-2 text-slate-500">{m.note}</td></tr>)}</tbody></table></div></Panel>
-    {edit && <ProductForm existing={p} onClose={() => setEdit(false)} onSave={(rec) => { setInv((s) => ({ ...s, products: s.products.map((x) => (x.id === id ? { ...x, ...rec } : x)) })); toast("Product updated"); setEdit(false); }} />}
-    {act && <OpModal kind={act} productId={id} onClose={() => setAct(null)} />}</>);
-}
-
-/* ───────── Warehouses ───────── */
-function Warehouses({ open }: { open(id: string): void }) {
-  const { inv, map, avg, catName } = useInv(); const [sel, setSel] = useState(inv.warehouses[0]?.id ?? "");
+/* ───────── Warehouse map ───────── */
+function Warehouses({ open, wh }: { open(id: string): void; wh: string }) {
+  const { inv, map, avg, catName } = useInv(); const [sel, setSel] = useState(wh || inv.warehouses[0]?.id || ""); const [cell, setCell] = useState("");
   const stats = inv.warehouses.map((w) => { const items = inv.products.map((p) => ({ p, q: qtyAt(map, p.id, w.id) })).filter((x) => x.q > 0); return { w, skus: items.length, units: sum(items, (x) => x.q), val: round2(sum(items, (x) => x.q * (avg.get(x.p.id) ?? x.p.cost))) }; });
   const rows = inv.products.map((p) => ({ p, q: qtyAt(map, p.id, sel) })).filter((x) => x.q !== 0);
   const cols: Col<(typeof rows)[number]>[] = [{ key: "sku", label: "SKU", value: (r) => r.p.sku }, { key: "name", label: "Product", value: (r) => r.p.name, render: (r) => <button className="font-medium text-blue-700 hover:underline" onClick={() => open(r.p.id)}>{r.p.name}</button> }, { key: "cat", label: "Category", value: (r) => catName(r.p.categoryId) }, { key: "q", label: "Units", align: "right", value: (r) => r.q }, { key: "v", label: "Value", align: "right", value: (r) => r.q * (avg.get(r.p.id) ?? r.p.cost), render: (r) => money(r.q * (avg.get(r.p.id) ?? r.p.cost), "USD", 0) }];
-  return (<><PageHead title="Warehouse overview" sub="Select a warehouse to see exactly what it holds." />
+  return (<><PageHead title="Warehouse map" sub="Select a warehouse to see its floor map and exactly what it holds. Select a rack square to list what is stored there." />
     <ul className="grid gap-3 md:grid-cols-3">{stats.map((s) => <li key={s.w.id}><button type="button" aria-pressed={sel === s.w.id} onClick={() => setSel(s.w.id)} data-testid={`wh-${s.w.id}`} className={`w-full rounded-xl border bg-white p-4 text-left shadow-sm ${sel === s.w.id ? "border-blue-600 ring-1 ring-blue-600" : "border-slate-200 hover:border-blue-400"}`}><span className="font-display text-lg font-semibold">{s.w.name}</span><span className="block text-xs text-slate-500">{s.w.city}</span><span className="mt-3 grid grid-cols-3 gap-2 text-center text-xs"><span><b className="block font-display text-lg">{num(s.units)}</b>units</span><span><b className="block font-display text-lg">{s.skus}</b>SKUs</span><span><b className="block font-display text-lg">{moneyK(s.val)}</b>value</span></span></button></li>)}</ul>
-    <div className="mt-4"><DataTable rows={rows} columns={cols} rowKey={(r) => r.p.id} exportName={`inventory-${sel}`} pageSize={12} testid="wh-table" /></div></>);
+    <div className="mt-4 grid gap-4 xl:grid-cols-[auto_1fr]"><BinMap wid={sel} onBin={(c) => setCell(cell === c ? "" : c)} active={cell} />
+      <div className="min-w-0 rounded-xl bg-white p-3 shadow-sm"><DataTable rows={cell ? rows.filter((r) => binOf(inv.bins, r.p.id, sel).startsWith(cell)) : rows} columns={cols} rowKey={(r) => r.p.id} exportName={`inventory-${sel}`} pageSize={12} testid="wh-table" toolbar={cell ? <span className="text-[15px] font-medium">Rack {cell} <button type="button" className="ml-2 text-blue-700 underline" onClick={() => setCell("")}>show all</button></span> : undefined} /></div></div></>);
 }
 
 /* ───────── Movements ───────── */
+
 function Movements() {
   const { inv, pName, wName } = useInv(); const [type, setType] = useState(""); const [wh, setWh] = useState(""); const [prod, setProd] = useState(""); const [from, setFrom] = useState(""); const [to, setTo] = useState("");
   const rows = [...inv.movements].filter((m) => (!type || m.type === type) && (!wh || m.whId === wh) && (!prod || m.productId === prod) && (!from || m.date >= from) && (!to || m.date <= to)).sort((a, b) => b.date.localeCompare(a.date) || b.id.localeCompare(a.id));
@@ -185,3 +245,4 @@ function Reports() {
       <Panel title="Units moved by type"><BarChart ariaLabel="Movements by month" data={months.map((m) => ({ label: monthLabel(m), values: Object.fromEntries(types.map((t) => [t, Math.abs(sum(inv.movements.filter((x) => monthKey(x.date) === m && x.type === t), (x) => x.qty))])) }))} series={types.map((t) => ({ key: t, label: t }))} /></Panel>}
     <p className="mt-3 text-xs text-slate-500">Weighted average cost: each receipt blends its unit cost with the current stock; issues, transfers and adjustments leave the average unchanged. Not an accounting standard election: a demonstration method.</p></>);
 }
+
