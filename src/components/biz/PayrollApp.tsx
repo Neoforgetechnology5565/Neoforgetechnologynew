@@ -24,7 +24,7 @@ export default function PayrollApp({ branding }: { branding: Branding }) {
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
           <BrandLogo branding={branding} height={28} />
           <div><h1 className="font-display text-xl font-semibold text-white">NorthPeak Workforce · Control room</h1><p className="text-sm text-slate-300">Attendance, shifts and simulated payroll · fictional employees</p></div>
-          <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge text="Simulated clock events · local data" /><Btn kind="primary" onClick={() => setClock({})} testid="clock-btn">Clock in / out</Btn><ResetButton onReset={() => resetDb(["pay"])} /><DemoLinks compact /></div>
+          <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge text="Demonstration · simulated clock events" /><Btn kind="primary" onClick={() => setClock({})} testid="clock-btn">Clock in / out</Btn><ResetButton onReset={() => resetDb(["pay"])} /><DemoLinks compact /></div>
         </div>
         <div className="flex flex-wrap items-end gap-x-6 gap-y-3 border-t border-slate-800 px-5 py-3">
           <div className="flex items-center gap-2" role="group" aria-label="Date"><Btn small onClick={() => setDate(addDays(date, -1))} aria-label="Previous day">‹</Btn><input aria-label="Day" type="date" value={date} onChange={(e) => e.target.value && setDate(e.target.value)} className="rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-[15px] text-white [color-scheme:dark]" /><Btn small onClick={() => setDate(addDays(date, 1))} aria-label="Next day">›</Btn><Btn small onClick={() => setDate("2026-03-13")}>Latest data</Btn></div>

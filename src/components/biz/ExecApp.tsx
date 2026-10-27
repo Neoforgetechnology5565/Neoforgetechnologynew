@@ -42,7 +42,7 @@ function Intelligence({ branding }: { branding: Branding }) {
       <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
         <BrandLogo branding={branding} height={28} />
         <div className="border-l border-slate-700 pl-5"><h1 className="font-display text-xl font-semibold text-white">NorthPeak Executive intelligence</h1><p className="text-sm text-slate-300">Reads the other nine demos&apos; local data · sample data, not real results</p></div>
-        <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge text="Sample data · simulated marketing" /><ResetButton onReset={() => resetDb()} label="Reset ALL demo data" /><DemoLinks compact /></div>
+        <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge text="Demonstration · sample data" /><ResetButton onReset={() => resetDb()} label="Reset ALL demo data" /><DemoLinks compact /></div>
       </div>
       <div className="border-t border-slate-800 bg-slate-900">
         <div className="mx-auto flex max-w-[1600px] flex-wrap items-center gap-x-6 gap-y-2 px-6 py-2.5">
