@@ -308,7 +308,7 @@ export function addDimensions(group: THREE.Group) {
     const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); sp.scale.set(scale * 4, scale, 1); sp.position.copy(p); sp.renderOrder = 10; out.add(sp);
   };
   const line = (a: THREE.Vector3, b: THREE.Vector3) => { const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color: 0x9be26b, depthTest: false })); l.renderOrder = 9; out.add(l); };
-  const off = Math.max(s.x, s.y, s.z) * 0.1 + 0.05, sc = Math.max(s.x, s.y) * 0.07 + 0.04;
+  const off = Math.max(s.x, s.y, s.z) * 0.1 + 0.05, sc = Math.max(s.x, s.y) * 0.045 + 0.03;
   const zf = mx.z + off * 0.6;
   line(new THREE.Vector3(mn.x, mn.y - off, zf), new THREE.Vector3(mx.x, mn.y - off, zf)); label(`${(s.x * 1000).toFixed(0)} mm`, new THREE.Vector3((mn.x + mx.x) / 2, mn.y - off * 1.6, zf), sc);
   line(new THREE.Vector3(mn.x - off, mn.y, zf), new THREE.Vector3(mn.x - off, mx.y, zf)); label(`${(s.y * 1000).toFixed(0)} mm`, new THREE.Vector3(mn.x - off * 2.4, (mn.y + mx.y) / 2, zf), sc);
