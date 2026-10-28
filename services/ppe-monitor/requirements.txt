@@ -1,0 +1,8 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9
+numpy>=1.26,<2.3
+scipy>=1.11
+# OpenCV 5 removed the Caffe importer that the PPE model needs: stay on 4.x
+opencv-python-headless>=4.9,<5
+onnxruntime>=1.18

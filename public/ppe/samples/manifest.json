@@ -1,0 +1,24 @@
+{
+  "samples": [
+    {
+      "id": "factory-corridor-ppe",
+      "file": "factory-corridor-ppe.mp4",
+      "webm": "factory-corridor-ppe.webm",
+      "title": "Corridor walk-through (hard hats and vests)",
+      "description": "A 65-second fixed-camera clip of people walking along an indoor corridor towards the camera, singly and in groups of up to three.",
+      "scenarios": "Some people wear a yellow hard hat and an orange safety vest. At least two people wear dark clothing without a vest (one of them with a hard hat, one apparently without). Nothing was staged or edited by us and nothing was added to the video; the assessment labels are produced by the pipeline, not by hand.",
+      "width": 960,
+      "height": 540,
+      "fps": 30,
+      "duration_seconds": 65,
+      "license": "BSD 3-Clause License",
+      "attribution": "© 2021 Intel Corporation. Footage Safety_Full_Hat_and_Vest.mp4 from intel-iot-devkit/safety-gear-detector-python, downscaled to 960×540 and re-encoded as MP4 (H.264) and WebM (VP8), audio removed.",
+      "source": "https://github.com/intel-iot-devkit/safety-gear-detector-python",
+      "license_file": "LICENSE-intel-bsd-3-clause.txt",
+      "note": "We rely on the repository's BSD-3-Clause licence for this footage; Intel does not state the footage's own provenance separately. No ground truth is published for it.",
+      "results": "factory-corridor-ppe.results.json",
+      "processed": "factory-corridor-ppe.annotated.mp4",
+      "processed_webm": "factory-corridor-ppe.annotated.webm"
+    }
+  ]
+}

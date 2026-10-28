@@ -23,7 +23,8 @@
     "postinstall": "node scripts/copy-ort-wasm.mjs",
     "prebuild": "node scripts/copy-ort-wasm.mjs",
     "test:vehicle": "tsx src/lib/vehicle/tracker.test.ts",
-    "test:vehicle:ui": "node scripts/test-vehicle-ui.mjs"
+    "test:vehicle:ui": "node scripts/test-vehicle-ui.mjs",
+    "test:ppe:ui": "node scripts/test-ppe-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
