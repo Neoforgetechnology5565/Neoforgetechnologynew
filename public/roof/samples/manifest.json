@@ -1,0 +1,92 @@
+{
+ "samples": [
+  {
+   "id": "vegas-subdivision",
+   "file": "vegas-subdivision.tif",
+   "preview": "vegas-subdivision.preview.jpg",
+   "title": "Suburban subdivision (Las Vegas)",
+   "description": "Rows of single-family houses with tile roofs along curved streets, seen from straight above. The model finds most roofs; a few roofs are merged where they touch.",
+   "scenario": "Hip and gable roofs in a regular layout, several roof colours, swimming pools and some trees. Georeferenced: the scale comes from the file's own metadata.",
+   "width": 650,
+   "height": 650,
+   "georeferenced": true,
+   "gsd_note": "0.243 \u00d7 0.300 m per pixel (x \u00d7 y), read from the GeoTIFF",
+   "license": "CC BY-SA 4.0",
+   "attribution": "SpaceNet 2 (Round 2 buildings) chip Vegas img1359: imagery \u00a9 DigitalGlobe, Inc., distributed by SpaceNet (Radiant Solutions / CosmiQ Works) under CC BY-SA 4.0. The chip is unmodified; overlays derived from it are shared under the same licence.",
+   "source": "https://spacenet.ai/spacenet-buildings-dataset-v2/",
+   "results": "vegas-subdivision.results.json",
+   "artifacts": {
+    "original": "vegas-subdivision.original.jpg",
+    "overlay": "vegas-subdivision.overlay.png",
+    "mask": "vegas-subdivision.mask.png",
+    "probability": "vegas-subdivision.probability.png"
+   }
+  },
+  {
+   "id": "vegas-waterfront",
+   "file": "vegas-waterfront.tif",
+   "preview": "vegas-waterfront.preview.jpg",
+   "title": "Houses beside a lake (Las Vegas)",
+   "description": "Houses of different sizes and roof colours between a lake and a road.",
+   "scenario": "Mixed roof colours and shapes, partial shadows, water, tennis courts. Georeferenced.",
+   "width": 650,
+   "height": 650,
+   "georeferenced": true,
+   "gsd_note": "0.243 \u00d7 0.300 m per pixel (x \u00d7 y), read from the GeoTIFF",
+   "license": "CC BY-SA 4.0",
+   "attribution": "SpaceNet 2 (Round 2 buildings) chip Vegas img779: imagery \u00a9 DigitalGlobe, Inc., distributed by SpaceNet (Radiant Solutions / CosmiQ Works) under CC BY-SA 4.0. The chip is unmodified; overlays derived from it are shared under the same licence.",
+   "source": "https://spacenet.ai/spacenet-buildings-dataset-v2/",
+   "results": "vegas-waterfront.results.json",
+   "artifacts": {
+    "original": "vegas-waterfront.original.jpg",
+    "overlay": "vegas-waterfront.overlay.png",
+    "mask": "vegas-waterfront.mask.png",
+    "probability": "vegas-waterfront.probability.png"
+   }
+  },
+  {
+   "id": "paris-flat-roofs",
+   "file": "paris-flat-roofs.tif",
+   "preview": "paris-flat-roofs.preview.jpg",
+   "title": "Large flat-roofed buildings (Paris area)",
+   "description": "Large rectangular buildings with flat roofs and strong shadows.",
+   "scenario": "Flat roofs, strong shadows, rooftop equipment. The model finds only part of each large roof: a harder case, shown on purpose.",
+   "width": 650,
+   "height": 650,
+   "georeferenced": true,
+   "gsd_note": "0.198 \u00d7 0.300 m per pixel (x \u00d7 y), read from the GeoTIFF",
+   "license": "CC BY-SA 4.0",
+   "attribution": "SpaceNet 2 (Round 2 buildings) chip Paris img1185: imagery \u00a9 DigitalGlobe, Inc., distributed by SpaceNet (Radiant Solutions / CosmiQ Works) under CC BY-SA 4.0. The chip is unmodified; overlays derived from it are shared under the same licence.",
+   "source": "https://spacenet.ai/spacenet-buildings-dataset-v2/",
+   "results": "paris-flat-roofs.results.json",
+   "artifacts": {
+    "original": "paris-flat-roofs.original.jpg",
+    "overlay": "paris-flat-roofs.overlay.png",
+    "mask": "paris-flat-roofs.mask.png",
+    "probability": "paris-flat-roofs.probability.png"
+   }
+  },
+  {
+   "id": "vegas-desert-edge",
+   "file": "vegas-desert-edge.tif",
+   "preview": "vegas-desert-edge.preview.jpg",
+   "title": "Desert edge with houses (Las Vegas)",
+   "description": "Houses at the edge of town with terracotta-coloured bare ground around them.",
+   "scenario": "A KNOWN WEAK CASE: bare soil of a similar colour to tile roofs is partly mistaken for roofs. The tool's warning about implausibly large roof coverage and the confidence map exist for cases like this.",
+   "width": 650,
+   "height": 650,
+   "georeferenced": true,
+   "gsd_note": "0.243 \u00d7 0.300 m per pixel (x \u00d7 y), read from the GeoTIFF",
+   "license": "CC BY-SA 4.0",
+   "attribution": "SpaceNet 2 (Round 2 buildings) chip Vegas img2491: imagery \u00a9 DigitalGlobe, Inc., distributed by SpaceNet (Radiant Solutions / CosmiQ Works) under CC BY-SA 4.0. The chip is unmodified; overlays derived from it are shared under the same licence.",
+   "source": "https://spacenet.ai/spacenet-buildings-dataset-v2/",
+   "results": "vegas-desert-edge.results.json",
+   "artifacts": {
+    "original": "vegas-desert-edge.original.jpg",
+    "overlay": "vegas-desert-edge.overlay.png",
+    "mask": "vegas-desert-edge.mask.png",
+    "probability": "vegas-desert-edge.probability.png"
+   }
+  }
+ ]
+}

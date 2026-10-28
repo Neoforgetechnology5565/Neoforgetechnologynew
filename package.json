@@ -24,7 +24,10 @@
     "prebuild": "node scripts/copy-ort-wasm.mjs",
     "test:vehicle": "tsx src/lib/vehicle/tracker.test.ts",
     "test:vehicle:ui": "node scripts/test-vehicle-ui.mjs",
-    "test:ppe:ui": "node scripts/test-ppe-ui.mjs"
+    "test:ppe:ui": "node scripts/test-ppe-ui.mjs",
+    "test:roof": "tsx src/lib/roof/measure.test.ts",
+    "test:spatial:ui": "node scripts/test-spatial-ui.mjs",
+    "test:roof:ui": "node scripts/test-roof-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

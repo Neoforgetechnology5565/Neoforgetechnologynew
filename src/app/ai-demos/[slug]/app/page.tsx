@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CctvPlatform from "@/components/demos/cctv/CctvPlatform";
 import FootPlatform from "@/components/demos/foot/FootPlatform";
+import SpatialApp from "@/components/spatial/SpatialApp";
+import RoofApp from "@/components/roof/RoofApp";
 import PpeApp from "@/components/ppe/PpeApp";
 import VehicleApp from "@/components/vehicle/VehicleApp";
 import { CV_MAP } from "@/lib/cv-demos";
@@ -17,6 +19,8 @@ export default async function CvDemoApp({ params }: Params) {
   if (slug === "ai-shoe-foot-measurement-fitting") return <FootPlatform branding={await getBranding()} />;
   if (slug === "vehicle-detection-tracking-counting") return <VehicleApp branding={await getBranding()} serviceUrl={process.env.VEHICLE_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "ai-factory-workforce-ppe-compliance") return <PpeApp branding={await getBranding()} serviceUrl={process.env.PPE_API_URL?.replace(/\/$/, "") || null} />;
+  if (slug === "ai-roof-measurement") return <RoofApp branding={await getBranding()} serviceUrl={process.env.ROOF_API_URL?.replace(/\/$/, "") || null} />;
+  if (slug === "smart-glasses-spatial-mapping") return <SpatialApp branding={await getBranding()} serviceUrl={process.env.SPATIAL_API_URL?.replace(/\/$/, "") || null} />;
   if (slug !== "ai-cctv-intelligence-security-analytics") notFound();
   return <CctvPlatform branding={await getBranding()} />;
 }

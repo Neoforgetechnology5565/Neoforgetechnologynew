@@ -1,0 +1,457 @@
+[
+ {
+  "name": "no scale",
+  "polygon": [
+   [
+    100,
+    100
+   ],
+   [
+    400,
+    120
+   ],
+   [
+    420,
+    300
+   ],
+   [
+    90,
+    310
+   ],
+   [
+    60,
+    200
+   ]
+  ],
+  "scale": null,
+  "pitch": null,
+  "expected": {
+   "pixels": {
+    "area_px": 65100.0,
+    "perimeter_px": 1033.6459493671941,
+    "edge_lengths_px": [
+     300.66592756745814,
+     181.10770276274835,
+     330.15148038438355,
+     114.0175425099138,
+     107.70329614269008
+    ]
+   },
+   "metric": {
+    "available": false,
+    "reason": "No scale: pixel measurements cannot be converted to metres. Provide a GeoTIFF, a ground sample distance, a known reference length, or a rectangle of known size on the roof plane."
+   },
+   "surface": {
+    "available": false,
+    "reason": "Needs a scale and a pitch."
+   },
+   "pitch": {
+    "status": "not_measurable",
+    "reason": "Pitch cannot be measured from a single image without camera or height information."
+   }
+  }
+ },
+ {
+  "name": "geo",
+  "polygon": [
+   [
+    100,
+    100
+   ],
+   [
+    400,
+    120
+   ],
+   [
+    420,
+    300
+   ],
+   [
+    90,
+    310
+   ],
+   [
+    60,
+    200
+   ]
+  ],
+  "scale": null,
+  "georef": {
+   "gsd_x_m": 0.2427,
+   "gsd_y_m": 0.2996,
+   "crs": "EPSG:4326",
+   "note": "test"
+  },
+  "pitch": null,
+  "expected": {
+   "pixels": {
+    "area_px": 65100.0,
+    "perimeter_px": 1033.6459493671941,
+    "edge_lengths_px": [
+     300.66592756745814,
+     181.10770276274835,
+     330.15148038438355,
+     114.0175425099138,
+     107.70329614269008
+    ]
+   },
+   "metric": {
+    "available": true,
+    "area_m2": 4733.611091999999,
+    "perimeter_m": 272.5934889702048,
+    "edge_lengths_m": [
+     73.05614391685343,
+     54.14601093340117,
+     80.14701676918486,
+     33.75071698497677,
+     31.493600365788602
+    ],
+    "bounding_rectangle_m": {
+     "length": 86.19097137451172,
+     "width": 62.78129577636719
+    },
+    "meaning": "Plan-view (horizontal projection) measurements; valid for near-nadir imagery",
+    "scale_kind": "geo",
+    "scale_source": "GeoTIFF tags"
+   },
+   "surface": {
+    "available": false,
+    "reason": "Plan-view area is a horizontal projection. The sloped surface area needs the pitch, which an image alone cannot give; enter it if you know it."
+   },
+   "pitch": {
+    "status": "not_measurable",
+    "reason": "Pitch cannot be measured from a single nadir image; enter it if you know it."
+   }
+  }
+ },
+ {
+  "name": "gsd + pitch 6:12",
+  "polygon": [
+   [
+    100,
+    100
+   ],
+   [
+    400,
+    120
+   ],
+   [
+    420,
+    300
+   ],
+   [
+    90,
+    310
+   ],
+   [
+    60,
+    200
+   ]
+  ],
+  "scale": {
+   "type": "gsd",
+   "gsd_m": 0.05
+  },
+  "pitch": {
+   "rise_per_12": 6
+  },
+  "expected": {
+   "pixels": {
+    "area_px": 65100.0,
+    "perimeter_px": 1033.6459493671941,
+    "edge_lengths_px": [
+     300.66592756745814,
+     181.10770276274835,
+     330.15148038438355,
+     114.0175425099138,
+     107.70329614269008
+    ]
+   },
+   "metric": {
+    "available": true,
+    "area_m2": 162.75,
+    "perimeter_m": 51.68229746835969,
+    "edge_lengths_m": [
+     15.033296378372908,
+     9.055385138137417,
+     16.507574019219177,
+     5.70087712549569,
+     5.385164807134504
+    ],
+    "bounding_rectangle_m": {
+     "length": 17.840295791625977,
+     "width": 10.480037689208984
+    },
+    "meaning": "Plan-view measurements using the ground sample distance you entered (not verified); valid for near-nadir imagery",
+    "scale_kind": "gsd",
+    "scale_source": "user"
+   },
+   "surface": {
+    "available": true,
+    "area_m2": 181.96003166904538,
+    "basis": "plan-view area \u00f7 cos(slope), using the pitch you supplied (6.00:12 = 26.6\u00b0) and assuming one uniform slope",
+    "assumption": "uniform user-supplied pitch"
+   },
+   "pitch": {
+    "status": "supplied",
+    "degrees": 26.56505117707799,
+    "rise_per_12": 6.0,
+    "source": "user",
+    "note": "User-supplied. Not measured from the image."
+   }
+  }
+ },
+ {
+  "name": "reference",
+  "polygon": [
+   [
+    100,
+    100
+   ],
+   [
+    400,
+    120
+   ],
+   [
+    420,
+    300
+   ],
+   [
+    90,
+    310
+   ],
+   [
+    60,
+    200
+   ]
+  ],
+  "scale": {
+   "type": "reference",
+   "p1": [
+    0,
+    0
+   ],
+   "p2": [
+    300,
+    400
+   ],
+   "length_m": 25
+  },
+  "pitch": {
+   "degrees": 30
+  },
+  "expected": {
+   "pixels": {
+    "area_px": 65100.0,
+    "perimeter_px": 1033.6459493671941,
+    "edge_lengths_px": [
+     300.66592756745814,
+     181.10770276274835,
+     330.15148038438355,
+     114.0175425099138,
+     107.70329614269008
+    ]
+   },
+   "metric": {
+    "available": true,
+    "area_m2": 162.75,
+    "perimeter_m": 51.68229746835969,
+    "edge_lengths_m": [
+     15.033296378372908,
+     9.055385138137417,
+     16.507574019219177,
+     5.70087712549569,
+     5.385164807134504
+    ],
+    "bounding_rectangle_m": {
+     "length": 17.840295791625977,
+     "width": 10.480037689208984
+    },
+    "meaning": "Plan-view measurements from one reference length. Assumes the reference lies in the same plane as what you measure and the view is straight down",
+    "scale_kind": "reference",
+    "scale_source": "user"
+   },
+   "surface": {
+    "available": true,
+    "area_m2": 187.92751262122317,
+    "basis": "plan-view area \u00f7 cos(slope), using the pitch you supplied (6.93:12 = 30.0\u00b0) and assuming one uniform slope",
+    "assumption": "uniform user-supplied pitch"
+   },
+   "pitch": {
+    "status": "supplied",
+    "degrees": 30.0,
+    "rise_per_12": 6.928203230275509,
+    "source": "user",
+    "note": "User-supplied. Not measured from the image."
+   }
+  }
+ },
+ {
+  "name": "plane quad (perspective)",
+  "polygon": [
+   [
+    120,
+    60
+   ],
+   [
+    330,
+    90
+   ],
+   [
+    310,
+    240
+   ],
+   [
+    100,
+    200
+   ]
+  ],
+  "scale": {
+   "type": "plane_quad",
+   "quad": [
+    [
+     80,
+     40
+    ],
+    [
+     360,
+     70
+    ],
+    [
+     340,
+     280
+    ],
+    [
+     60,
+     220
+    ]
+   ],
+   "width_m": 8,
+   "height_m": 5
+  },
+  "pitch": null,
+  "expected": {
+   "pixels": {
+    "area_px": 31150.0,
+    "perimeter_px": 718.6564333618088,
+    "edge_lengths_px": [
+     212.13203435596427,
+     151.32745950421557,
+     213.7755832643195,
+     141.4213562373095
+    ]
+   },
+   "metric": {
+    "available": true,
+    "area_m2": 22.284245891136216,
+    "perimeter_m": 19.404081949578067,
+    "edge_lengths_m": [
+     5.957197028879031,
+     3.6530226285705774,
+     5.968302960028066,
+     3.825559332100395
+    ],
+    "bounding_rectangle_m": {
+     "length": 6.018743991851807,
+     "width": 3.825064182281494
+    },
+    "meaning": "True lengths and areas inside the plane of the rectangle you marked, with perspective corrected. Valid only for points that lie in that plane",
+    "scale_kind": "plane_quad",
+    "scale_source": "user"
+   },
+   "surface": {
+    "available": true,
+    "area_m2": 22.284245891136216,
+    "basis": "true area inside the calibrated plane (perspective corrected); no pitch assumption"
+   },
+   "pitch": {
+    "status": "not_measurable",
+    "reason": "The calibrated plane is metric, but its inclination relative to the horizontal is unknown without camera or gravity information."
+   }
+  }
+ },
+ {
+  "name": "plane quad (axis aligned)",
+  "polygon": [
+   [
+    10,
+    10
+   ],
+   [
+    210,
+    10
+   ],
+   [
+    210,
+    110
+   ],
+   [
+    10,
+    110
+   ]
+  ],
+  "scale": {
+   "type": "plane_quad",
+   "quad": [
+    [
+     0,
+     0
+    ],
+    [
+     200,
+     0
+    ],
+    [
+     200,
+     100
+    ],
+    [
+     0,
+     100
+    ]
+   ],
+   "width_m": 20,
+   "height_m": 10
+  },
+  "pitch": null,
+  "expected": {
+   "pixels": {
+    "area_px": 20000.0,
+    "perimeter_px": 600.0,
+    "edge_lengths_px": [
+     200.0,
+     100.0,
+     200.0,
+     100.0
+    ]
+   },
+   "metric": {
+    "available": true,
+    "area_m2": 200.0,
+    "perimeter_m": 60.0,
+    "edge_lengths_m": [
+     20.0,
+     10.0,
+     20.0,
+     10.0
+    ],
+    "bounding_rectangle_m": {
+     "length": 20.0,
+     "width": 10.0
+    },
+    "meaning": "True lengths and areas inside the plane of the rectangle you marked, with perspective corrected. Valid only for points that lie in that plane",
+    "scale_kind": "plane_quad",
+    "scale_source": "user"
+   },
+   "surface": {
+    "available": true,
+    "area_m2": 200.0,
+    "basis": "true area inside the calibrated plane (perspective corrected); no pitch assumption"
+   },
+   "pitch": {
+    "status": "not_measurable",
+    "reason": "The calibrated plane is metric, but its inclination relative to the horizontal is unknown without camera or gravity information."
+   }
+  }
+ }
+]
