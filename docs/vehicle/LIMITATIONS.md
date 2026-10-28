@@ -1,0 +1,9 @@
+# Limitations
+
+- **Accuracy is not benchmarked here.** The model is small; expect missed distant, small, dark or partly hidden vehicles, duplicate or wrong-class boxes at low confidence, and vans reported as car or truck.
+- **Tracking limits.** ByteTrack uses motion and overlap only. After long occlusion, when vehicles leave and re-enter, or with a **moving camera** (the sample is filmed from a moving car), IDs can switch or split, so one vehicle can get two tracks and two vehicles can share one. IDs are temporary labels, not identities.
+- **Counts.** "Unique tracks" is an estimate of distinct vehicles, never claimed to be the exact number that passed through a scene. "Detection instances" is a frame-level total and is expected to be far larger. The virtual-line count is separate and also approximate (a track is counted when its box centre crosses the line, at most once per half second per track).
+- **Speed.** Measured on the machine that runs the job and shown as such. On the development container's CPU the server engine processed the 720p sample at roughly 10–16 frames/s (model ≈ 30–70 ms per frame, depending on load); the browser engine at roughly 3 frames/s of sampled frames. These are single runs, not benchmarks, and not real time on every machine.
+- **Browser engine.** Samples the video at 2–8 frames/s by seeking, runs single-threaded WebAssembly, handles clips up to 120 s, and does not write a processed video file (overlays are drawn on the original).
+- **Formats.** Video: MP4/MOV (H.264), WebM, MKV, AVI as far as the decoder in OpenCV/FFmpeg and the viewer's browser support them. Image: JPEG, PNG, WebP. Limits (default): 100 MB, 180 s, 6000 frames, 40 megapixels per frame.
+- **Not provided:** number plates, vehicle make/model/colour, speed estimation, direction analytics beyond the line, GPU acceleration, live camera streams, user accounts, persistent storage.

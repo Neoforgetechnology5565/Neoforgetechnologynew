@@ -109,6 +109,18 @@ class FfmpegWriter:
             self.proc.kill()
 
 
+def transcode_webm(src: Path, dst: Path) -> bool:
+    """VP8 WebM copy of the processed video for browsers without H.264 support (e.g. open-source Chromium builds)."""
+    ff = shutil.which("ffmpeg")
+    if not ff:
+        return False
+    try:
+        r = subprocess.run([ff, "-y", "-v", "error", "-i", str(src), "-an", "-c:v", "libvpx", "-deadline", "realtime", "-cpu-used", "8", "-b:v", "2M", "-pix_fmt", "yuv420p", str(dst)], timeout=300, capture_output=True)
+        return r.returncode == 0 and dst.is_file() and dst.stat().st_size > 0
+    except (subprocess.SubprocessError, OSError):
+        return False
+
+
 def transcode_mp4(src: Path, dst: Path) -> bool:
     """Optional H.264 MP4 copy (broadest browser support) when ffmpeg is installed. Returns True on success."""
     ff = shutil.which("ffmpeg")
@@ -230,6 +242,10 @@ def run_pipeline(input_path: Path, out_dir: Path, info: VideoInfo, params: JobPa
                     "line_crossings": {"a_to_b": crossings["a_to_b"], "b_to_a": crossings["b_to_a"], "total": crossings["a_to_b"] + crossings["b_to_a"]} if params.line else None}
     if outs.video_mp4 and not (written and outs.video_mp4.is_file() and outs.video_mp4.stat().st_size > 0):
         outs.video_mp4 = None
+    if outs.video_mp4 and not outs.video_webm:
+        webm = out_dir / "processed.webm"
+        if transcode_webm(outs.video_mp4, webm):
+            outs.video_webm = webm
     if outs.video_webm and not (written and outs.video_webm.is_file()):
         outs.video_webm = None
     return outs

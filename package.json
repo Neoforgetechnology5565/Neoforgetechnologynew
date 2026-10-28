@@ -19,7 +19,11 @@
     "test:foot:ui": "node scripts/test-foot-ui.mjs",
     "test:bim": "tsx src/lib/bim/bim.test.ts && tsx src/lib/bim/export.test.ts && tsx src/lib/bim/input.test.ts && tsx src/lib/bim/cad.test.ts && tsx src/lib/bim/pointcloud.test.ts && tsx src/lib/bim/demos.test.ts",
     "test:bim:api": "node scripts/test-bim-api.mjs && node scripts/test-bim-demos-api.mjs && node scripts/test-bim-collab-api.mjs",
-    "test:bim:ui": "node scripts/test-bim-ui.mjs && node scripts/test-bim-demos-ui.mjs && node scripts/test-bim-collab-ui.mjs"
+    "test:bim:ui": "node scripts/test-bim-ui.mjs && node scripts/test-bim-demos-ui.mjs && node scripts/test-bim-collab-ui.mjs",
+    "postinstall": "node scripts/copy-ort-wasm.mjs",
+    "prebuild": "node scripts/copy-ort-wasm.mjs",
+    "test:vehicle": "tsx src/lib/vehicle/tracker.test.ts",
+    "test:vehicle:ui": "node scripts/test-vehicle-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
@@ -35,6 +39,7 @@
     "geist": "^1.7.2",
     "next": "^15.5.27",
     "nodemailer": "^10.1.0",
+    "onnxruntime-web": "^1.31.1",
     "qrcode": "^1.5.4",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

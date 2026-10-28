@@ -10,10 +10,11 @@
       "fps": 25,
       "duration_seconds": 20,
       "license": "MIT License",
-      "attribution": "\u00a9 2017-2018 Udacity, Inc. Footage from the MIT-licensed repository udacity/CarND-Vehicle-Detection (project_video.mp4), trimmed to 20 s (24-44 s) and re-encoded.",
+      "attribution": "\u00a9 2017-2018 Udacity, Inc. Footage from the MIT-licensed repository udacity/CarND-Vehicle-Detection (project_video.mp4), trimmed to 20 s (24-44 s) and re-encoded as MP4 (H.264) and WebM (VP8).",
       "source": "https://github.com/udacity/CarND-Vehicle-Detection",
       "license_file": "LICENSE-udacity-carnd.txt",
-      "note": "We rely on the repository's MIT licence for this footage. No ground-truth vehicle counts are published for it."
+      "note": "We rely on the repository's MIT licence for this footage. No ground-truth vehicle counts are published for it.",
+      "webm": "highway-dashcam.webm"
     }
   ]
 }
