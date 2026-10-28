@@ -1,0 +1,19 @@
+{
+  "samples": [
+    {
+      "id": "highway-dashcam",
+      "file": "highway-dashcam.mp4",
+      "title": "Highway traffic (dashcam view)",
+      "description": "A 20-second highway clip with several cars at different distances, filmed from a moving vehicle. The moving camera makes tracking harder than a fixed camera, which is stated rather than hidden.",
+      "width": 1280,
+      "height": 720,
+      "fps": 25,
+      "duration_seconds": 20,
+      "license": "MIT License",
+      "attribution": "\u00a9 2017-2018 Udacity, Inc. Footage from the MIT-licensed repository udacity/CarND-Vehicle-Detection (project_video.mp4), trimmed to 20 s (24-44 s) and re-encoded.",
+      "source": "https://github.com/udacity/CarND-Vehicle-Detection",
+      "license_file": "LICENSE-udacity-carnd.txt",
+      "note": "We rely on the repository's MIT licence for this footage. No ground-truth vehicle counts are published for it."
+    }
+  ]
+}
