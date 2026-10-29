@@ -1,0 +1,121 @@
+{
+ "pages": [
+  [
+   "INVOICE",
+   "Harbour Lane Supplies Ltd",
+   "12 Example Street, Sampletown AB1 2CD",
+   "Email: billing@example.com",
+   "Phone: +44 20 7946 0123",
+   "Invoice No: INV-2024-0173",
+   "Invoice Date: 14 March 2024",
+   "Due Date: 13 April 2024",
+   "Bill To: Fictional Customer Co.",
+   "Item",
+   "Qty",
+   "Unit price",
+   "Amount",
+   "Cable ties (100 pack)",
+   "4",
+   "3.50",
+   "14.00",
+   "Safety gloves (pair)",
+   "12",
+   "2.25",
+   "27.00",
+   "Label printer tape",
+   "6",
+   "8.90",
+   "53.40",
+   "Packing tape (6 rolls)",
+   "3",
+   "7.10",
+   "21.30",
+   "Subtotal: £115.70",
+   "VAT (20%): £23.14",
+   "Total: £138.84",
+   "Payment terms: 30 days net. Thank you for your business."
+  ]
+ ],
+ "fields": [
+  {
+   "type": "identifier",
+   "value": "INV-2024-0173",
+   "label": "Invoice No"
+  },
+  {
+   "type": "date",
+   "label": "Invoice Date",
+   "value": "2024-03-14"
+  },
+  {
+   "type": "date",
+   "label": "Due Date",
+   "value": "2024-04-13"
+  },
+  {
+   "type": "amount",
+   "label": "Subtotal",
+   "value": "115.70"
+  },
+  {
+   "type": "amount",
+   "label": "VAT (20%)",
+   "value": "23.14"
+  },
+  {
+   "type": "amount",
+   "label": "Total",
+   "value": "138.84"
+  },
+  {
+   "type": "email",
+   "value": "billing@example.com"
+  },
+  {
+   "type": "phone",
+   "value": "+44 20 7946 0123"
+  }
+ ],
+ "tables": [
+  {
+   "page": 1,
+   "cells": [
+    [
+     "Item",
+     "Qty",
+     "Unit price",
+     "Amount"
+    ],
+    [
+     "Cable ties (100 pack)",
+     "4",
+     "3.50",
+     "14.00"
+    ],
+    [
+     "Safety gloves (pair)",
+     "12",
+     "2.25",
+     "27.00"
+    ],
+    [
+     "Label printer tape",
+     "6",
+     "8.90",
+     "53.40"
+    ],
+    [
+     "Packing tape (6 rolls)",
+     "3",
+     "7.10",
+     "21.30"
+    ]
+   ]
+  }
+ ],
+ "class": "invoice",
+ "degradation": {
+  "skew_degrees_counter_clockwise": 1.4,
+  "dpi": 150
+ }
+}

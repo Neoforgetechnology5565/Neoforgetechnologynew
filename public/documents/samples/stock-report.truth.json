@@ -1,0 +1,120 @@
+{
+ "pages": [
+  [
+   "Monthly Stock Report",
+   "Period: April 2024",
+   "Prepared by: Warehouse Office",
+   "Code",
+   "Description",
+   "On hand",
+   "Reorder level",
+   "Status",
+   "A-100",
+   "Cable ties (100 pack)",
+   "42",
+   "20",
+   "OK",
+   "A-205",
+   "Safety gloves (pair)",
+   "8",
+   "15",
+   "Reorder",
+   "B-310",
+   "Label printer tape",
+   "17",
+   "10",
+   "OK",
+   "B-318",
+   "Packing tape (6 rolls)",
+   "3",
+   "12",
+   "Reorder",
+   "C-402",
+   "Bubble wrap (50 m)",
+   "26",
+   "10",
+   "OK",
+   "C-455",
+   "Archive boxes",
+   "0",
+   "25",
+   "Out of stock",
+   "D-501",
+   "Marker pens (box of 12)",
+   "31",
+   "12",
+   "OK",
+   "Items below reorder level: 3"
+  ]
+ ],
+ "fields": [
+  {
+   "type": "date",
+   "value": null
+  }
+ ],
+ "tables": [
+  {
+   "page": 1,
+   "cells": [
+    [
+     "Code",
+     "Description",
+     "On hand",
+     "Reorder level",
+     "Status"
+    ],
+    [
+     "A-100",
+     "Cable ties (100 pack)",
+     "42",
+     "20",
+     "OK"
+    ],
+    [
+     "A-205",
+     "Safety gloves (pair)",
+     "8",
+     "15",
+     "Reorder"
+    ],
+    [
+     "B-310",
+     "Label printer tape",
+     "17",
+     "10",
+     "OK"
+    ],
+    [
+     "B-318",
+     "Packing tape (6 rolls)",
+     "3",
+     "12",
+     "Reorder"
+    ],
+    [
+     "C-402",
+     "Bubble wrap (50 m)",
+     "26",
+     "10",
+     "OK"
+    ],
+    [
+     "C-455",
+     "Archive boxes",
+     "0",
+     "25",
+     "Out of stock"
+    ],
+    [
+     "D-501",
+     "Marker pens (box of 12)",
+     "31",
+     "12",
+     "OK"
+    ]
+   ]
+  }
+ ],
+ "class": "report"
+}

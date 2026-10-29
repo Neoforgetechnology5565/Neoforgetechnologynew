@@ -1,0 +1,148 @@
+%PDF-1.3
+%“Œ‹ž ReportLab Generated PDF document (opensource)
+1 0 obj
+<<
+/F1 2 0 R /F2 3 0 R
+>>
+endobj
+2 0 obj
+<<
+/BaseFont /Helvetica /Encoding /WinAnsiEncoding /Name /F1 /Subtype /Type1 /Type /Font
+>>
+endobj
+3 0 obj
+<<
+/BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding /Name /F2 /Subtype /Type1 /Type /Font
+>>
+endobj
+4 0 obj
+<<
+/Contents 8 0 R /MediaBox [ 0 0 595.2756 841.8898 ] /Parent 7 0 R /Resources <<
+/Font 1 0 R /ProcSet [ /PDF /Text /ImageB /ImageC /ImageI ]
+>> /Rotate 0 /Trans <<
+
+>> 
+  /Type /Page
+>>
+endobj
+5 0 obj
+<<
+/PageMode /UseNone /Pages 7 0 R /Type /Catalog
+>>
+endobj
+6 0 obj
+<<
+/Author (anonymous) /CreationDate (D:20261029042128+00'00') /Creator (anonymous) /Keywords () /ModDate (D:20261029042128+00'00') /Producer (ReportLab PDF Library - \(opensource\)) 
+  /Subject (unspecified) /Title (Sample stock report \(fictional\)) /Trapped /False
+>>
+endobj
+7 0 obj
+<<
+/Count 1 /Kids [ 4 0 R ] /Type /Pages
+>>
+endobj
+8 0 obj
+<<
+/Length 2968
+>>
+stream
+1 0 0 1 0 0 cm  BT /F1 12 Tf 14.4 TL ET
+BT /F2 24 Tf 28.8 TL ET
+BT 1 0 0 1 50 771.8898 Tm (Monthly Stock Report) Tj T* ET
+BT /F1 12 Tf 14.4 TL ET
+BT 1 0 0 1 50 749.8898 Tm (Period: April 2024) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 50 733.8898 Tm (Prepared by: Warehouse Office) Tj T* ET
+1 w
+n 50 701.8898 m 545 701.8898 l S
+n 50 679.8898 m 545 679.8898 l S
+n 50 657.8898 m 545 657.8898 l S
+n 50 635.8898 m 545 635.8898 l S
+n 50 613.8898 m 545 613.8898 l S
+n 50 591.8898 m 545 591.8898 l S
+n 50 569.8898 m 545 569.8898 l S
+n 50 547.8898 m 545 547.8898 l S
+n 50 525.8898 m 545 525.8898 l S
+n 50 701.8898 m 50 525.8898 l S
+n 110 701.8898 m 110 525.8898 l S
+n 290 701.8898 m 290 525.8898 l S
+n 360 701.8898 m 360 525.8898 l S
+n 460 701.8898 m 460 525.8898 l S
+n 545 701.8898 m 545 525.8898 l S
+BT /F2 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 686.8898 Tm (Code) Tj T* ET
+BT 1 0 0 1 116 686.8898 Tm (Description) Tj T* ET
+BT 1 0 0 1 296 686.8898 Tm (On hand) Tj T* ET
+BT 1 0 0 1 366 686.8898 Tm (Reorder level) Tj T* ET
+BT 1 0 0 1 466 686.8898 Tm (Status) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 664.8898 Tm (A-100) Tj T* ET
+BT 1 0 0 1 116 664.8898 Tm (Cable ties \(100 pack\)) Tj T* ET
+BT 1 0 0 1 341.768 664.8898 Tm (42) Tj T* ET
+BT 1 0 0 1 441.768 664.8898 Tm (20) Tj T* ET
+BT 1 0 0 1 466 664.8898 Tm (OK) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 642.8898 Tm (A-205) Tj T* ET
+BT 1 0 0 1 116 642.8898 Tm (Safety gloves \(pair\)) Tj T* ET
+BT 1 0 0 1 347.884 642.8898 Tm (8) Tj T* ET
+BT 1 0 0 1 441.768 642.8898 Tm (15) Tj T* ET
+BT 1 0 0 1 466 642.8898 Tm (Reorder) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 620.8898 Tm (B-310) Tj T* ET
+BT 1 0 0 1 116 620.8898 Tm (Label printer tape) Tj T* ET
+BT 1 0 0 1 341.768 620.8898 Tm (17) Tj T* ET
+BT 1 0 0 1 441.768 620.8898 Tm (10) Tj T* ET
+BT 1 0 0 1 466 620.8898 Tm (OK) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 598.8898 Tm (B-318) Tj T* ET
+BT 1 0 0 1 116 598.8898 Tm (Packing tape \(6 rolls\)) Tj T* ET
+BT 1 0 0 1 347.884 598.8898 Tm (3) Tj T* ET
+BT 1 0 0 1 441.768 598.8898 Tm (12) Tj T* ET
+BT 1 0 0 1 466 598.8898 Tm (Reorder) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 576.8898 Tm (C-402) Tj T* ET
+BT 1 0 0 1 116 576.8898 Tm (Bubble wrap \(50 m\)) Tj T* ET
+BT 1 0 0 1 341.768 576.8898 Tm (26) Tj T* ET
+BT 1 0 0 1 441.768 576.8898 Tm (10) Tj T* ET
+BT 1 0 0 1 466 576.8898 Tm (OK) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 554.8898 Tm (C-455) Tj T* ET
+BT 1 0 0 1 116 554.8898 Tm (Archive boxes) Tj T* ET
+BT 1 0 0 1 347.884 554.8898 Tm (0) Tj T* ET
+BT 1 0 0 1 441.768 554.8898 Tm (25) Tj T* ET
+BT 1 0 0 1 466 554.8898 Tm (Out of stock) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 56 532.8898 Tm (D-501) Tj T* ET
+BT 1 0 0 1 116 532.8898 Tm (Marker pens \(box of 12\)) Tj T* ET
+BT 1 0 0 1 341.768 532.8898 Tm (31) Tj T* ET
+BT 1 0 0 1 441.768 532.8898 Tm (12) Tj T* ET
+BT 1 0 0 1 466 532.8898 Tm (OK) Tj T* ET
+BT /F1 11 Tf 13.2 TL ET
+BT 1 0 0 1 50 497.8898 Tm (Items below reorder level: 3) Tj T* ET
+ 
+endstream
+endobj
+xref
+0 9
+0000000000 65535 f 
+0000000061 00000 n 
+0000000102 00000 n 
+0000000209 00000 n 
+0000000321 00000 n 
+0000000524 00000 n 
+0000000592 00000 n 
+0000000878 00000 n 
+0000000937 00000 n 
+trailer
+<<
+/ID 
+[<dd8c170de6246308f088ca32a28edcf4><dd8c170de6246308f088ca32a28edcf4>]
+% ReportLab generated PDF document -- digest (opensource)
+
+/Info 6 0 R
+/Root 5 0 R
+/Size 9
+>>
+startxref
+3956
+%%EOF
