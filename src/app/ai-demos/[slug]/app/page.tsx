@@ -6,6 +6,7 @@ import SpatialApp from "@/components/spatial/SpatialApp";
 import RoofApp from "@/components/roof/RoofApp";
 import DefectApp from "@/components/defects/DefectApp";
 import LidarApp from "@/components/lidar/LidarApp";
+import ActivityApp from "@/components/activity/ActivityApp";
 import SportsApp from "@/components/sports/SportsApp";
 import PpeApp from "@/components/ppe/PpeApp";
 import VehicleApp from "@/components/vehicle/VehicleApp";
@@ -25,6 +26,7 @@ export default async function CvDemoApp({ params }: Params) {
   if (slug === "ai-roof-measurement") return <RoofApp branding={await getBranding()} serviceUrl={process.env.ROOF_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "smart-glasses-spatial-mapping") return <SpatialApp branding={await getBranding()} serviceUrl={process.env.SPATIAL_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "lidar-point-cloud-wire-measurement") return <LidarApp branding={await getBranding()} serviceUrl={process.env.LIDAR_API_URL?.replace(/\/$/, "") || null} />;
+  if (slug === "ai-human-activity-fall-aggression-detection") return <ActivityApp branding={await getBranding()} serviceUrl={process.env.ACTIVITY_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "ai-visual-inspection") return <DefectApp branding={await getBranding()} serviceUrl={process.env.DEFECT_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "sports-video-intelligence") return <SportsApp branding={await getBranding()} serviceUrl={process.env.SPORTS_API_URL?.replace(/\/$/, "") || null} />;
   if (slug !== "ai-cctv-intelligence-security-analytics") notFound();

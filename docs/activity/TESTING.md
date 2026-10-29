@@ -1,0 +1,7 @@
+# Testing
+
+* `cd services/activity-monitor && pip install -r requirements-dev.txt && pytest` (31 tests, about 12 s): rule logic on generated skeleton motions (stand, walk, fall, recovery, slow lie-down, brief drop, bending, video ending while lying, thresholds), arm speed relative to the hips, close/far/slow/brief pairs; **real models on a real frame** (detector finds the pedestrians, pose lands on their bodies upright, real keypoints rotated into a fall are found); API validation (empty, wrong type, image, truncated and oversize uploads, ids, parameters, results gating), a people-free video completing with zero tracks and zero alerts, exports, annotated MP4 rendering, cancel, review API (statuses, notes, bad input, re-analysis guard).
+* `pytest -m slow` (about 2–4 min): the full pipeline on the bundled real clip; asserts real counts, no falls, at most one stray alert at default thresholds.
+* `npm run test:activity:ui` (Playwright; `MODE=static` without a service, `MODE=server` with the service and `ACTIVITY_API_URL`): notice and fallibility text, empty states, upload validation, progress, UI counts equal the service's, overlay pixels drawn and toggled, evidence table, review flow stored by the service, filters, exports (CSV/JSON/annotated MP4 and alert clip), threshold re-application with confirmation, phone layout.
+
+Generated-skeleton tests check that the logic does what `RULES.md` says. They are **not** evidence that the rules detect real falls.

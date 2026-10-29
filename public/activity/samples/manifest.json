@@ -1,0 +1,16 @@
+{
+  "samples": [
+    {
+      "id": "pedestrians-opencv-vtest",
+      "title": "Pedestrians on a campus path (OpenCV sample clip)",
+      "file": "pedestrians-opencv-vtest.mp4",
+      "duration_s": 79.5,
+      "resolution": "768x576",
+      "source": "samples/data/vtest.avi in the OpenCV repository (https://github.com/opencv/opencv). Re-encoded to H.264 without other changes.",
+      "licence": "Distributed in the Apache-2.0 licensed OpenCV repository as a sample file for its video examples. The repository does not document who recorded it; no other rights or consents are claimed.",
+      "contains": "Six to eight people walking, mostly in pairs and small groups, filmed from a fixed elevated camera. No one falls and no one behaves aggressively in this clip.",
+      "demonstrates": ["person detection and tracking at small size", "pose estimation on pedestrians", "false-alarm behaviour of the rules on ordinary walking", "the review workflow on candidates produced with a high-sensitivity setting"],
+      "does_not_demonstrate": ["a real fall", "real aggression", "detection rates for either event"]
+    }
+  ]
+}
