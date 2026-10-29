@@ -24,7 +24,7 @@ export default async function Portfolio() {
   const [projects, cats] = await Promise.all([getPublishedProjects(), getCategories()]);
   const items: GalleryItem[] = [
     ...ERP_DEMOS.map((d): GalleryItem => ({ id: `erp-${d.slug}`, group: "crm-hrm-erp", no: d.no, title: d.title, desc: d.problem, tags: d.tags, href: `/erp-demos/${d.slug}`, appHref: `/erp-demos/${d.slug}/app`, status: "live", layout: d.layout, preview: previewFor("crm-hrm-erp", d.slug) })),
-    ...CV_DEMOS.map((d): GalleryItem => ({ id: `cv-${d.slug}`, group: "computer-vision", no: d.no, title: d.title, desc: d.problem, tags: d.tags, href: `/ai-demos/${d.slug}`, appHref: d.status === "live" ? `/ai-demos/${d.slug}/app` : undefined, status: d.status, layout: d.layout, preview: previewFor("computer-vision", d.slug) })),
+    ...CV_DEMOS.map((d): GalleryItem => ({ id: `cv-${d.slug}`, group: "computer-vision", no: d.no, title: d.title, desc: d.problem, tags: d.tags, href: `/ai-demos/${d.slug}`, appHref: d.status === "live" ? `/ai-demos/${d.slug}/app` : undefined, status: d.status, layout: d.layout, cover: d.cover, preview: previewFor("computer-vision", d.slug) })),
     ...DEMOS.map((d): GalleryItem => ({ id: `cad-${d.slug}`, group: "cad-bim", no: d.no, title: d.title, desc: d.problem, tags: d.tags, href: `/demos/${d.slug}`, appHref: d.status === "live" ? `/demos/${d.slug}/app` : undefined, status: d.status, preview: previewFor("cad-bim", d.slug) })),
     ...SUITE.map((d): GalleryItem => ({ id: `suite-${d.slug}`, group: "cad-bim", no: d.no, title: d.title, desc: d.short, tags: d.formats.split(/,\s*/).slice(0, 4), href: `/cad-bim-suite/${d.slug}`, appHref: `/cad-bim-suite/${d.slug}/app`, status: "live", preview: SUITE_PREVIEW[d.key] ?? "model" })),
   ];

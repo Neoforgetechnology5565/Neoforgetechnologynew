@@ -23,6 +23,21 @@ const nextConfig = {
   images: {
     remotePatterns: [{ protocol: "https", hostname: "res.cloudinary.com" }],
   },
+  // Short, memorable entry points for the ML demos (samples 12-21); the real routes follow the portfolio's /ai-demos/<slug>/app pattern.
+  async redirects() {
+    return [
+      { source: "/image-classification-demo", destination: "/ai-demos/ai-image-classification/app", permanent: false },
+      { source: "/object-detection-demo", destination: "/ai-demos/ai-object-detection-video-analytics/app", permanent: false },
+      { source: "/image-segmentation-demo", destination: "/ai-demos/ai-image-segmentation/app", permanent: false },
+      { source: "/ocr-document-intelligence-demo", destination: "/ai-demos/ai-ocr-document-extraction/app", permanent: false },
+      { source: "/image-anomaly-detection-demo", destination: "/ai-demos/ai-image-anomaly-detection/app", permanent: false },
+      { source: "/time-series-forecasting-demo", destination: "/ai-demos/ai-time-series-forecasting/app", permanent: false },
+      { source: "/predictive-maintenance-demo", destination: "/ai-demos/ai-predictive-maintenance/app", permanent: false },
+      { source: "/human-pose-estimation-demo", destination: "/ai-demos/ai-human-pose-estimation/app", permanent: false },
+      { source: "/semantic-document-search-demo", destination: "/ai-demos/ai-semantic-document-search/app", permanent: false },
+      { source: "/product-recommendation-demo", destination: "/ai-demos/ai-product-recommendation/app", permanent: false },
+    ];
+  },
   async headers() {
     return [
       { source: "/:path*", headers: securityHeaders },

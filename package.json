@@ -33,7 +33,8 @@
     "test:lidar:ui": "node scripts/test-lidar-ui.mjs",
     "test:defects:ui": "node scripts/test-defects-ui.mjs",
     "test:activity:ui": "node scripts/test-activity-ui.mjs",
-    "test:documents:ui": "node scripts/test-documents-ui.mjs"
+    "test:documents:ui": "node scripts/test-documents-ui.mjs",
+    "test:ml:ui": "node scripts/test-ml-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

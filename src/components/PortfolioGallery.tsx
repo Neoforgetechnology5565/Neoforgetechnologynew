@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import DemoPreview, { type PreviewKind } from "./DemoPreview";
 
-export interface GalleryItem { id: string; group: "crm-hrm-erp" | "computer-vision" | "cad-bim"; no: string; title: string; desc: string; tags: string[]; href: string; appHref?: string; status: "live" | "soon"; layout?: string; preview: PreviewKind }
+export interface GalleryItem { id: string; group: "crm-hrm-erp" | "computer-vision" | "cad-bim"; no: string; title: string; desc: string; tags: string[]; href: string; appHref?: string; status: "live" | "soon"; layout?: string; cover?: string; preview: PreviewKind }
 const GROUPS = [{ id: "", label: "Everything" }, { id: "crm-hrm-erp", label: "CRM / ERP / HRM" }, { id: "computer-vision", label: "Computer Vision & AI" }, { id: "cad-bim", label: "CAD / BIM" }];
 
 /** Curated demo gallery: search, filter by division, and open any interactive demo. Items without a working app say so. */
@@ -22,7 +22,7 @@ export default function PortfolioGallery({ items }: { items: GalleryItem[] }) {
       <ul className="mt-5 grid gap-6 sm:grid-cols-2 lg:grid-cols-3" data-testid="gallery">
         {rows.map((d) => (
           <li key={d.id} className="flex flex-col rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
-            <DemoPreview kind={d.preview} />
+            {d.cover ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={d.cover} alt="" loading="lazy" width={800} height={450} className="aspect-[16/9] w-full rounded-lg border border-stone-200 object-cover" data-testid="cover" /> : <DemoPreview kind={d.preview} />}
             <div className="mt-4 flex items-center justify-between gap-2"><span className="text-[15px] font-semibold text-blue-700">{GROUPS.find((g) => g.id === d.group)?.label} · {d.no}</span><span className={`rounded-full px-2.5 py-0.5 text-[13px] font-semibold ${d.status === "live" ? "bg-blue-50 text-blue-700" : "bg-stone-100 text-stone-600"}`}>{d.status === "live" ? "Interactive" : "In development"}</span></div>
             <h3 className="mt-1 font-display text-xl font-semibold leading-snug text-stone-900">{d.title}</h3>
             <p className="mt-2 text-[15px] leading-relaxed text-stone-600">{d.desc}</p>
