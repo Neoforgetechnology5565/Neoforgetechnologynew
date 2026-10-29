@@ -61,7 +61,7 @@ export function cleanSeries(t: Table, dateCol: string, cols: string[]): { t: num
   for (const c of [dateCol, ...cols]) if (!t.cols.includes(c)) err(422, `Column '${c}' does not exist.`);
   const notes: string[] = [], d = col(t, dateCol).map(parseDate), badDates = d.filter((x) => x === null).length;
   if (badDates > 0.1 * t.rows.length) err(422, `${badDates} of ${t.rows.length} values in '${dateCol}' are not valid dates.`);
-  const vals = cols.map((c) => col(t, c).map(num)); let recs = d.map((x, i) => ({ t: x, y: vals.map((v) => v[i]) })).filter((r) => r.t !== null) as { t: number; y: (number | null)[] }[];
+  const vals = cols.map((c) => col(t, c).map(num)); const recs = d.map((x, i) => ({ t: x, y: vals.map((v) => v[i]) })).filter((r) => r.t !== null) as { t: number; y: (number | null)[] }[];
   const badVals = recs.filter((r) => r.y.some((v) => v === null)).length; if (badDates) notes.push(`${badDates} row(s) with an invalid date were dropped.`); if (badVals > 0) notes.push(`${badVals} row(s) had a missing or non-numeric value.`);
   recs.sort((a, b) => a.t - b.t); if (cols.some((_, j) => recs.every((r) => r.y[j] === null))) err(422, "A selected column has no numeric values.");
   const by = new Map<number, { t: number; y: (number | null)[][] }>(); let dup = 0; for (const r of recs) { const e = by.get(r.t); if (e) { dup++; e.y.push(r.y); } else by.set(r.t, { t: r.t, y: [r.y] }); }

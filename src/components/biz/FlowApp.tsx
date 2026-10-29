@@ -49,7 +49,7 @@ function Flow({ branding }: { branding: Branding }) {
   const [tab, setTab] = useState("workflows");
   const [wfs, setWfs] = useState<Workflow[]>([]); const [runs, setRuns] = useState<Run[]>([]); const [apps, setApps] = useState<Approval[]>([]); const [alerts, setAlerts] = useState<Alert[]>([]);
   const [edit, setEdit] = useState<Workflow | null>(null); const [test, setTest] = useState<Workflow | null>(null); const [open, setOpen] = useState<Run | null>(null);
-  const ready = sync.mode === "synced" || sync.mode === "saving";
+  const ready = sync.mode === "synced" || sync.mode === "saving" || sync.mode === "local"; // "local": the in-browser engine runs the workflows
   const load = useCallback(async () => {
     if (!ready) return;
     const g = async <T,>(c: string) => (await api<{ items: T[] }>(`/flow/${c}?limit=500`)).items;
@@ -64,7 +64,7 @@ function Flow({ branding }: { branding: Branding }) {
       <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-5 gap-y-2 px-6 py-3">
         <BrandLogo branding={branding} height={28} />
         <div className="border-l border-slate-600 pl-5"><h1 className="font-display text-xl font-semibold text-white">NorthPeak Flow</h1><p className="text-sm text-slate-300">Rule-based workflow automation · fictional data</p></div>
-        <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge text="Demonstration · needs the demo server" /><DemoLinks compact /></div>
+        <div className="ml-auto flex flex-wrap items-center gap-2"><DemoBadge text="Demonstration · runs in your browser" /><DemoLinks compact /></div>
       </div>
       <nav className="mx-auto max-w-[1400px] px-5"><Tabs value={tab} onChange={setTab} tabs={[{ id: "workflows", label: "Workflows", count: wfs.length }, { id: "runs", label: "Execution log", count: runs.length }, { id: "approvals", label: "Approvals", count: pending.length }, { id: "alerts", label: "Alerts", count: alerts.length }]} /></nav>
     </header>

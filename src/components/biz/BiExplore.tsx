@@ -15,7 +15,7 @@ const RECORDS = ["crm.opps", "crm.leads", "fin.invoices", "fin.expenses", "hrm.e
 export default function BiExplore() {
   const sync = useSyncExternalStore(subscribeSync, syncStatus, syncStatus);
   const toast = useToast();
-  const ready = sync.mode === "synced" || sync.mode === "saving";
+  const ready = sync.mode === "synced" || sync.mode === "saving" || sync.mode === "local"; // "local": the in-browser engine
   const [file, setFile] = useState<File | null>(null); const [name, setName] = useState("Imported data"); const [dedupe, setDedupe] = useState(""); const [skip, setSkip] = useState(false);
   const [prev, setPrev] = useState<Preview | null>(null); const [busy, setBusy] = useState(false); const [err, setErr] = useState("");
   const [sets, setSets] = useState<Dataset[]>([]);
@@ -38,9 +38,11 @@ export default function BiExplore() {
     setBusy(true); setErr("");
     const fd = new FormData(); fd.set("file", file); fd.set("name", name); fd.set("mode", mode); fd.set("dedupe_key", dedupe); fd.set("skip_invalid", String(skip));
     try {
-      const r = await fetch(`${serverUrl()}/api/biz/${workspaceId()}/bi/import`, { method: "POST", body: fd }); const body = await r.json().catch(() => ({}));
-      if (!r.ok) { setErr(Array.isArray(body.errors) && body.errors.length ? body.errors.join(" · ") : typeof body.detail === "string" ? body.detail : `Import failed (${r.status})`); if (mode === "preview") setPrev(null); }
-      else { setPrev(body as Preview); if (mode === "commit") { toast(`Imported ${body.valid_rows} rows as “${name}”`); setSource(`dataset:${body.dataset_id}`); await loadSets(); } }
+      let r: { ok: boolean; status: number }, body: Record<string, unknown>;
+      if (serverUrl()) { const resp = await fetch(`${serverUrl()}/api/biz/${workspaceId()}/bi/import`, { method: "POST", body: fd }); r = resp; body = await resp.json().catch(() => ({})); }
+      else { const { localBiImport, LocalError } = await import("@/lib/biz/local-engine"); try { body = await localBiImport(fd); r = { ok: true, status: 200 }; } catch (e) { if (!(e instanceof LocalError)) throw e; body = { errors: e.errors, detail: e.message }; r = { ok: false, status: e.status }; } }
+      if (!r.ok) { setErr(Array.isArray(body.errors) && (body.errors as string[]).length ? (body.errors as string[]).join(" · ") : typeof body.detail === "string" ? body.detail : `Import failed (${r.status})`); if (mode === "preview") setPrev(null); }
+      else { setPrev(body as unknown as Preview); if (mode === "commit") { toast(`Imported ${body.valid_rows} rows as “${name}”`); setSource(`dataset:${body.dataset_id}`); await loadSets(); } }
     } catch { setErr("The business API could not be reached."); } finally { setBusy(false); }
   };
   const run = async () => {

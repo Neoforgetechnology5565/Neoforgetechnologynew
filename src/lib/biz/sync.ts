@@ -80,6 +80,10 @@ const dirty = new Set<string>();
 const PRIORITY = ["inv", "pay", "hrm", "fin", "crm", "desk", "mkt", "proj", "proc", "exec", "activity"];
 
 export async function api<T = Json>(path: string, init?: RequestInit): Promise<T> {
+  if (!base) { // no business API configured: the Flow and BI endpoints are served by the in-browser engine
+    const { localApi, LocalError } = await import("./local-engine");
+    try { return await localApi<T>(path, init); } catch (e) { if (e instanceof LocalError) throw Object.assign(new Error(e.errors.length ? e.errors.slice(0, 3).join("; ") : e.message), { status: e.status, errors: e.errors }); throw e; }
+  }
   let r: Response;
   try { r = await fetch(`${base}/api/biz/${status.ws}${path}`, { cache: "no-store", ...init, headers: { ...(init?.body && !(init.body instanceof FormData) ? { "content-type": "application/json" } : {}), ...init?.headers } }); } catch { throw Object.assign(new Error("The business API could not be reached."), { status: 0 }); }
   const body = await r.json().catch(() => ({}));

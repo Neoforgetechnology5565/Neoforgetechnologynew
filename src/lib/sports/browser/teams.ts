@@ -26,7 +26,7 @@ export function torsoColour(px: Uint8ClampedArray, W: number, H: number, box: [n
   if (L.length < Math.max(6, 0.2 * total)) return null; return [median(L), median(A), median(B)];
 }
 function kmeans2(X: number[][], seed: number[][], iters = 30): { cents: number[][]; assign: number[] } {
-  let cents = seed.map((c) => [...c]), assign = new Array(X.length).fill(0);
+  let cents = seed.map((c) => [...c]); const assign: number[] = new Array(X.length).fill(0);
   for (let it = 0; it < iters; it++) { let changed = false; X.forEach((x, i) => { const d = cents.map((c) => Math.hypot(x[0] - c[0], x[1] - c[1], x[2] - c[2])), a = d[0] <= d[1] ? 0 : 1; if (a !== assign[i]) { assign[i] = a; changed = true; } }); cents = cents.map((c, j) => { const m = X.filter((_, i) => assign[i] === j); return m.length ? [0, 1, 2].map((k) => m.reduce((s, v) => s + v[k], 0) / m.length) : c; }); if (!changed && it > 0) break; }
   return { cents, assign };
 }

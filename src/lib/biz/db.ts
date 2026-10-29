@@ -39,7 +39,7 @@ const SERVER = state;
 /** Debug/test hook: lets browser tests read (and change) the live in-memory store, through the same path the screens use. */
 if (typeof window !== "undefined") { const w = window as unknown as { __erpDb: () => DB; __erpSetDb: (fn: (d: DB) => DB) => void }; w.__erpDb = () => state; w.__erpSetDb = (fn) => setDb(fn); }
 
-export function setDb(fn: (d: DB) => DB) { const prev = state; state = fn(state); persist(); subs.forEach((f) => f()); push(prev as never, state as never); }
+export function setDb(fn: (d: DB) => DB) { const prev = state; state = fn(state); persist(); subs.forEach((f) => f()); push(prev as never, state as never); if (prev !== state) void import("./local-engine").then((m) => m.onStoreChange(prev as never, state as never)); }
 /** Connects the store to the business API (once per page load). Slices already on the server replace the local copy. */
 let connected = "";
 export function connectServer(url: string) {
