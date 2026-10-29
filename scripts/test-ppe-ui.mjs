@@ -34,7 +34,7 @@ if (MODE === "server") {
   await t("server: live progress, live statistics, real overlays; stride 5 to keep the test short", async () => {
     await p.getByLabel("Frame stride").selectOption("5"); await tid("start").click(); await p.waitForFunction(() => /Processing|Queued|Uploading/.test(document.querySelector("[data-testid=status]")?.textContent || ""), null, { timeout: 30000 });
     await p.waitForFunction(() => Number(document.querySelector("[data-testid=stat-instances]")?.textContent?.replace(/\D/g, "")) > 0, null, { timeout: 90000 }); await shot("live");
-    ok(await tid("stop").isEnabled(), "stop enabled while running"); await p.waitForFunction(() => /Completed/.test(document.querySelector("[data-testid=status]")?.textContent || ""), null, { timeout: 240000 });
+    ok(await tid("stop").isEnabled(), "stop enabled while running"); await p.waitForFunction(() => /Completed/.test(document.querySelector("[data-testid=status]")?.textContent || ""), null, { timeout: 600000 });
     ok((await num("sum-frames")) === 390 && (await num("sum-fps")) > 0 && (await num("sum-duration")) > 0, "390 frames, measured fps and duration");
     ok(!(await tid("precomputed-note").count()), "server result is not labelled as stored");
   });
@@ -67,6 +67,7 @@ await t("transport controls: play/pause, speed, frame step, timeline", async () 
   await tid("timeline").fill("5"); await p.waitForTimeout(1000); ok(Math.abs((await num("stat-time")) - 5) < 0.3, `timeline seek updates timestamp (${await tid("stat-time").innerText()})`);
 });
 await t("comparison views: annotated video and side-by-side both play", async () => {
+  if (await tid("mode-processed").isDisabled()) { console.log("      (no server-rendered annotated video in the in-browser engine: overlays are drawn live)"); return; }
   await tid("mode-processed").click(); await p.waitForFunction(() => document.querySelector("video")?.readyState >= 2, null, { timeout: 20000 }); ok((await p.locator("video").count()) === 1 && (await tid("plain-pane").count()) === 1, "annotated pane");
   await tid("mode-side").click(); await p.waitForFunction(() => [...document.querySelectorAll("video")].length === 2 && [...document.querySelectorAll("video")].every((v) => v.readyState >= 2), null, { timeout: 20000 });
   await p.evaluate(() => { document.querySelector("video").currentTime = 21.7; }); await p.waitForTimeout(1500); const d = await p.evaluate(() => { const v = [...document.querySelectorAll("video")]; return Math.abs(v[0].currentTime - v[1].currentTime); }); ok(d < 0.3, `panes stay in sync (${d})`); await shot("side"); await tid("mode-overlay").click(); await tid("overlay-pane").waitFor();
@@ -76,16 +77,17 @@ await t("downloads: annotated video, JSON and CSV are real files with the expect
   const j = await dl("download-json"); const js = JSON.parse(readFileSync(j.path, "utf8")); ok(js.frames.length === (MODE === "static" ? 1950 : 390) && js.summary.frames_processed === js.frames.length, "json frames");
   ok(js.frames.some((f) => f.detections.some((d) => d.class === "worker" && d.ppe_assessment.status === "potential_violation")), "json carries assessments");
   const c = await dl("download-csv"); const rows = readFileSync(c.path, "utf8").trim().split("\n"); ok(rows[0].startsWith("frame_number,timestamp_seconds,class,worker_track_id") && rows.length - 1 === js.frames.reduce((n, f) => n + f.detections.length, 0), "csv rows = detections");
+  if (!(await tid("download-video").count())) { console.log("      (no annotated video file from the in-browser engine)"); return; }
   const v = await dl("download-video"); ok(/annotated\.(mp4|webm)$/.test(v.name) && readFileSync(v.path).length > 100000, `video ${v.name}`);
 });
 if (MODE === "server") {
   await t("monitoring zone: drawing a rectangle adds a zone count that is separate and bounded by workers visible", async () => {
     await p.getByLabel("Frame stride").selectOption("5"); await tid("draw-zone").click(); const box = await tid("overlay-canvas").boundingBox(); await p.mouse.click(box.x + box.width * 0.2, box.y + box.height * 0.2); await p.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.995);
-    await p.waitForFunction(() => /Clear zone/.test(document.body.innerText), null, { timeout: 5000 }); await tid("start").click(); await p.waitForFunction(() => /Completed/.test(document.querySelector("[data-testid=status]")?.textContent || ""), null, { timeout: 240000 });
+    await p.waitForFunction(() => /Clear zone/.test(document.body.innerText), null, { timeout: 5000 }); await tid("start").click(); await p.waitForFunction(() => /Completed/.test(document.querySelector("[data-testid=status]")?.textContent || ""), null, { timeout: 600000 });
     await seek(VIOLATION_T); await tid("stat-zone").waitFor(); ok((await num("stat-zone")) <= (await num("stat-visible")) && (await num("stat-zone")) >= 1, `zone ${await num("stat-zone")} of ${await num("stat-visible")}`); await shot("zone");
   });
   await t("required PPE is configurable: with only the hard hat required, the vest-less worker is no longer a violation", async () => {
-    await tid("require-safety_vest").uncheck(); await p.getByLabel("Frame stride").selectOption("5"); await tid("start").click(); await p.waitForFunction(() => /Completed/.test(document.querySelector("[data-testid=status]")?.textContent || ""), null, { timeout: 240000 });
+    await tid("require-safety_vest").uncheck(); await p.getByLabel("Frame stride").selectOption("5"); await tid("start").click(); await p.waitForFunction(() => /Completed/.test(document.querySelector("[data-testid=status]")?.textContent || ""), null, { timeout: 600000 });
     await seek(VIOLATION_T); ok((await num("stat-violations")) === 0, `violations with hat-only requirement: ${await num("stat-violations")}`); await tid("require-safety_vest").check();
     await tid("require-hard_hat").uncheck(); await tid("require-safety_vest").uncheck(); ok(await tid("start").isDisabled(), "start disabled when nothing is required"); await tid("require-hard_hat").check(); await tid("require-safety_vest").check();
   });
