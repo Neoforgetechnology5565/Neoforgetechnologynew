@@ -29,7 +29,9 @@
     "test:spatial:ui": "node scripts/test-spatial-ui.mjs",
     "test:roof:ui": "node scripts/test-roof-ui.mjs",
     "test:sports": "tsx src/lib/sports/heatmap.test.ts",
-    "test:sports:ui": "node scripts/test-sports-ui.mjs"
+    "test:sports:ui": "node scripts/test-sports-ui.mjs",
+    "test:lidar:ui": "node scripts/test-lidar-ui.mjs",
+    "test:defects:ui": "node scripts/test-defects-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
