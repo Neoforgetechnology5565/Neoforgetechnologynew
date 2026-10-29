@@ -27,7 +27,9 @@
     "test:ppe:ui": "node scripts/test-ppe-ui.mjs",
     "test:roof": "tsx src/lib/roof/measure.test.ts",
     "test:spatial:ui": "node scripts/test-spatial-ui.mjs",
-    "test:roof:ui": "node scripts/test-roof-ui.mjs"
+    "test:roof:ui": "node scripts/test-roof-ui.mjs",
+    "test:sports": "tsx src/lib/sports/heatmap.test.ts",
+    "test:sports:ui": "node scripts/test-sports-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
