@@ -202,14 +202,14 @@ export const browserInspect = () => ({
   reevaluate: async (id: string, rules: Rules) => {
     const r = need(id); let rl: Rules; try { rl = parseRules(rules); } catch (e) { return fail(400, (e as Error).message); } const m = r.meta, full = resizeMap(r.map, SIZE, SIZE, r.orig.width, r.orig.height);
     const { mo, rec } = evaluate(full, r.orig.width, r.orig.height, m.reference.threshold, rl, { images: m.reference.good_images }, m.model_output.condition_checks, m.model_output.anomaly_score); m.model_output = mo; m.recommendation = rec; m.rules_revision = (m.rules_revision ?? 0) + 1;
-    r.urls.annotated = url(renderAnnotated(r.orig, r.heat, mo.regions)); refreshUrls(r); return m;
+    r.urls.annotated = url(renderAnnotated(r.orig, r.heat, mo.regions)); refreshUrls(r); return { ...m };
   },
   review: async (id: string, b: { action: "confirm" | "override"; decision?: string; notes: string; reviewer: string; region_reviews: Record<string, string> }) => {
     const r = need(id), m = r.meta, rec = m.recommendation.decision; let decision: Decision;
     if (b.action === "confirm") { if (rec === "MANUAL_REVIEW") fail(400, "The recommendation is MANUAL REVIEW: choose PASS or FAIL explicitly."); decision = rec; } else if (b.action === "override") { if (!["PASS", "FAIL", "MANUAL_REVIEW"].includes(b.decision ?? "")) fail(400, "decision must be PASS, FAIL or MANUAL_REVIEW."); decision = b.decision as Decision; } else return fail(400, "action must be confirm or override.");
     const ids = new Set(m.model_output.regions.map((x) => String(x.id))), rr = b.region_reviews ?? {}; if (Object.entries(rr).some(([k, v]) => !ids.has(k) || !["confirmed", "dismissed", "pending"].includes(v))) fail(400, "region_reviews must map existing region ids to confirmed, dismissed or pending.");
     const e = { decision, action: b.action, notes: String(b.notes ?? "").slice(0, 2000), reviewer: String(b.reviewer ?? "").replace(/[^\w .@-]/g, "").slice(0, 60), at: Date.now() / 1000, agrees_with_recommendation: decision === rec, recommendation_at_review: rec, rules_revision: m.rules_revision ?? 0, region_reviews: rr as Inspection["review"]["history"][0]["region_reviews"] };
-    m.review.history.push(e); m.review.current = e; refreshUrls(r); return m;
+    m.review.history.push(e); m.review.current = e; refreshUrls(r); return { ...m, review: { ...m.review } };
   },
   image: (id: string, kind: "original" | "annotated" | "heatmap" | "thumb" | "dataset_annotation") => store.get(id)?.urls[kind] ?? "",
   pdf: (id: string) => store.get(id)?.urls.pdf ?? "", reportJson: (id: string) => store.get(id)?.urls.json ?? "",

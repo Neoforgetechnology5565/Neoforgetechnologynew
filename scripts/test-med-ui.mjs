@@ -52,7 +52,7 @@ await t("segmentation: Otsu finds regions with areas and statistics, mask overla
 await t("segmentation of the fluorescence sample: multi-level Otsu, morphology and hole filling", async () => {
   await tid("sample-mitosis").click(); await settle(); await tid("seg").selectOption("multi"); await settle(); ok(/Three-class Otsu/.test(await txt("ops-list")), "multi logged"); await tid("cls").selectOption("2"); await settle();
   await tid("seg").selectOption("otsu"); await tid("open").fill("1"); await tid("fill").check(); await settle(); ok(/Morphological opening/.test(await txt("ops-list")) && /Holes filled/.test(await txt("ops-list")), "morphology logged");
-  const n = await tid("region-row").count(); ok(n >= 5, `cells found ${n}`); await tid("minarea").fill("500"); await p.waitForTimeout(500); const n2 = await tid("region-row").count().catch(() => 0); ok(n2 < n, `min-area removes small regions (${n}→${n2})`);
+  const total = async () => { const t = await txt("regions"); const m = t.match(/Showing 60 of (\d+)/); return m ? Number(m[1]) : await tid("region-row").count(); }; const n = await total(); ok(n >= 5, `cells found ${n}`); await tid("minarea").fill("500"); await p.waitForTimeout(700); const n2 = await total().catch(() => 0); ok(n2 < n, `min-area removes small regions (${n}→${n2})`);
 });
 await t("region growing from a clicked seed", async () => {
   await tid("sample-phase-cell").click(); await settle(); await tid("seg").selectOption("grow"); await settle(); ok(/place the seed/.test(await txt("regions")) || /Click the processed image/.test(await txt("regions")), "asks for a seed");
