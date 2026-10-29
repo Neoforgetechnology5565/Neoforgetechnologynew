@@ -53,7 +53,7 @@ if (MODE === "browser") {
     alertsBefore = await p.locator("[data-testid=alert-item]").count();
     if (alertsBefore === 0) { // pedestrian footage has no real events: loosen the rule until the review workflow has candidates to show, and re-apply to the stored detections (no reprocessing)
       await p.getByText("Show thresholds").click(); const th = tid("thresholds"); await th.getByLabel("Close if distance").fill("3"); await th.getByLabel("Fast arm").fill("1"); await th.getByLabel("Duration").fill("0.6"); await th.getByLabel("Share of fast samples").fill("0.1");
-      p.once("dialog", (d) => d.accept()); await tid("reanalyse").click(); await p.waitForFunction(() => document.querySelectorAll("[data-testid=alert-item]").length > 0, null, { timeout: 20000 }); alertsBefore = await p.locator("[data-testid=alert-item]").count();
+      const acc = (d) => d.accept(); p.on("dialog", acc); await tid("reanalyse").click(); await p.waitForFunction(() => document.querySelectorAll("[data-testid=alert-item]").length > 0, null, { timeout: 20000 }); p.off("dialog", acc); alertsBefore = await p.locator("[data-testid=alert-item]").count();
     }
     ok(alertsBefore >= 1, `loosened rules produced candidates (${alertsBefore})`);
   });
