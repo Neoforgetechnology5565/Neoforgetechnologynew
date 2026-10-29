@@ -13,9 +13,9 @@ export const STAGES: Stage[] = ["New Lead", "Qualified", "Discovery", "Proposal"
 export const STAGE_PROB: Record<Stage, number> = { "New Lead": 0.05, Qualified: 0.1, Discovery: 0.25, Proposal: 0.5, Negotiation: 0.75, Won: 1, Lost: 0 };
 
 const co = (id: string, name: string, industry: string, size: string, city: string, country: string, ownerId: string): Company => ({ id, name, industry, size, city, country, website: `www.${name.toLowerCase().replace(/[^a-z]+/g, "")}.example`, ownerId, notes: [] });
-const ct = (id: string, name: string, title: string, companyId: string, ownerId: string, last: string): Contact => ({ id, name, title, companyId, ownerId, lastContact: last, email: `${name.toLowerCase().replace(/[^a-z ]/g, "").replace(" ", ".")}@${companyId}.example`, phone: `+1 415 555 0${id.slice(1).padStart(3, "0")}`, notes: [] });
+const ct = (id: string, name: string, title: string, companyId: string, ownerId: string, last: string): Contact => ({ id, name, title, companyId, ownerId, lastContact: last, email: `${name.toLowerCase().replace(/[^a-z ]/g, "").replace(/ +/g, ".")}@${companyId}.example`, phone: `+1 415 555 0${id.slice(1).padStart(3, "0")}`, notes: [] });
 const op = (id: string, name: string, companyId: string, contactId: string, value: number, stage: Stage, ownerId: string, closeDate: string, createdAt: string, lostReason?: string): Opp => ({ id, name, companyId, contactId, value, stage, ownerId, closeDate, createdAt, lostReason, notes: [] });
-const ld = (id: string, name: string, company: string, source: string, status: Lead["status"], score: number, ownerId: string, value: number, createdAt: string): Lead => ({ id, name, company, email: `${name.toLowerCase().replace(/[^a-z ]/g, "").replace(" ", ".")}@${company.toLowerCase().replace(/[^a-z]+/g, "")}.example`, source, status, score, ownerId, value, createdAt, notes: [] });
+const ld = (id: string, name: string, company: string, source: string, status: Lead["status"], score: number, ownerId: string, value: number, createdAt: string): Lead => ({ id, name, company, email: `${name.toLowerCase().replace(/[^a-z ]/g, "").replace(/ +/g, ".")}@${company.toLowerCase().replace(/[^a-z]+/g, "")}.example`, source, status, score, ownerId, value, createdAt, notes: [] });
 
 export const seedCrm = () => ({
   companies: [
