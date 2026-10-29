@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DemoShell from "@/components/demos/DemoShell";
 import type { Branding } from "@/lib/types";
 import { RoofApiError, roofApi, type Health } from "@/lib/roof/api";
+import { browserRoof } from "@/lib/roof/browser/engine";
 import { estimate } from "@/lib/roof/estimate";
 import { ScaleError, measurePolygon, pitchFrom, resolveScale, type Scale } from "@/lib/roof/measure";
 import type { ImageEntry, ImageResult, JobResults, Measurements, Region, SampleInfo, ScaleSpec, XY } from "@/lib/roof/types";
@@ -22,8 +23,8 @@ const download = (name: string, body: BlobPart, type: string) => { const u = URL
 const num = (s: string) => { const v = parseFloat(s); return Number.isFinite(v) ? v : null; };
 
 export default function RoofApp({ branding, serviceUrl }: { branding: Branding; serviceUrl: string | null }) {
-  const api = useMemo(() => (serviceUrl ? roofApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
+  const api = useMemo(() => (serviceUrl ? roofApi(serviceUrl) : browserRoof()), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
   const [picks, setPicks] = useState<Pick[]>([]); const [active, setActive] = useState(0);
   const [workflow, setWorkflow] = useState<Workflow>("georeferenced"); const [unit, setUnit] = useState<Unit>("m");
   const [gsd, setGsd] = useState(""); const [pitchMode, setPitchMode] = useState<"rise" | "deg">("rise"); const [pitchVal, setPitchVal] = useState(""); const [roofType, setRoofType] = useState("unknown"); const [view, setView] = useState("nadir");
@@ -86,8 +87,8 @@ export default function RoofApp({ branding, serviceUrl }: { branding: Branding; 
   const start = async () => {
     if (!picks.length || running) return; const keep = { refPts, quad }; reset(); setRefPts(keep.refPts); setQuad(keep.quad);
     try {
-      const s0 = picks[0].sample; const onlyStored = picks.length === 1 && s0 && s0.results && service !== "online";
-      if (onlyStored) await loadStored(s0!); else if (service !== "online") throw new Error("Analysing your own images needs the processing service, which is not connected on this site. The bundled samples open a stored result of a real run of the same pipeline."); else await runServer();
+      const s0 = picks[0].sample; const onlyStored = picks.length === 1 && s0 && s0.results && service === "offline";
+      if (onlyStored) await loadStored(s0!); else if (service !== "online") throw new Error("The analysis engine could not be started in this browser."); else await runServer();
     } catch (e) { setStatus("failed"); setError(e instanceof Error ? e.message : "Processing failed."); }
   };
   const cancel = async () => { if (api && jobId) { try { await api.cancel(jobId); } catch (e) { setError(e instanceof Error ? e.message : "Could not cancel."); } } };
@@ -153,7 +154,7 @@ export default function RoofApp({ branding, serviceUrl }: { branding: Branding; 
               <button type="button" className={BTN} disabled={!running || !jobId} onClick={cancel} data-testid="stop">Cancel</button>
               <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status === "failed" ? "bg-red-900/60 text-red-200" : status === "completed" ? "bg-emerald-900/60 text-emerald-200" : running ? "bg-amber-900/60 text-amber-200" : "bg-slate-800 text-slate-300"}`} role="status" data-testid="status">{statusText}</span>
               {(running || status === "completed") && <div className="min-w-[10rem] flex-1" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}><div className="h-2 rounded bg-slate-800"><div className="h-full rounded bg-amber-500 transition-all" style={{ width: `${pct}%` }} /></div><p className="mt-1 text-[11px] text-slate-400" data-testid="progress-text">{stage}</p></div>}
-              <span className="text-[11px] text-slate-500" data-testid="service-state">Service: {service === "online" ? `online · ${health?.model}` : service === "unknown" ? "checking…" : serviceUrl ? "not reachable" : "not connected on this site (samples open stored results)"}</span>
+              <span className="text-[11px] text-slate-500" data-testid="service-state">Service: {service === "online" ? `online · ${health?.model}` : service === "unknown" ? "checking…" : serviceUrl ? "not reachable" : "engine unavailable"}</span>
             </div>
             {error && <p role="alert" data-testid="error" className="mt-3 rounded-md border border-red-500/50 bg-red-900/30 px-3 py-2 text-sm text-red-100">{error}</p>}
           </section>
@@ -223,8 +224,8 @@ export default function RoofApp({ branding, serviceUrl }: { branding: Branding; 
               <ul className="mt-1 space-y-0.5 text-[11px] text-slate-400" data-testid="features-status"><li><b className="text-slate-200">Model:</b> {entry.features_status.model_detected.join("; ")}</li><li><b className="text-slate-200">Derived:</b> {entry.features_status.derived.join("; ")}</li><li><b className="text-slate-200">Inferred:</b> {entry.features_status.inferred.join("; ")}</li><li><b className="text-slate-200">Could not be determined:</b> {Object.keys(entry.features_status.unavailable).join(", ")}</li></ul>
               <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-1 text-xs text-slate-400"><dt>Model</dt><dd className="text-right text-slate-100">{entry.model.name}</dd><dt>Model time</dt><dd className="text-right text-slate-100">{entry.timing.model_seconds.toFixed(2)} s</dd><dt>Image</dt><dd className="text-right text-slate-100">{entry.image.width}×{entry.image.height}</dd></dl>
               <div className="mt-3 flex flex-wrap gap-2"><button type="button" className={`${BTN} !bg-amber-600 !text-white`} onClick={exportJson} data-testid="download-json">JSON</button><button type="button" className={BTN} onClick={exportCsv} data-testid="download-csv">CSV</button>
-                {api && jobId ? <a className={BTN} href={api.url(`/api/roof/jobs/${jobId}/report.pdf`)} data-testid="download-pdf">PDF report</a> : <span className="text-[11px] text-slate-500" data-testid="pdf-note">PDF report needs the processing service.</span>}</div>
-              {api && jobId && <p className="mt-1 text-[11px] text-slate-500">The PDF reflects the scale and pitch submitted with the analysis.</p>}
+                {serviceUrl && api && jobId ? <a className={BTN} href={api.url(`/api/roof/jobs/${jobId}/report.pdf`)} data-testid="download-pdf">PDF report</a> : <span className="text-[11px] text-slate-500" data-testid="pdf-note">PDF report needs the processing service; the in-browser engine offers the images and numbers only.</span>}</div>
+              {serviceUrl && api && jobId && <p className="mt-1 text-[11px] text-slate-500">The PDF reflects the scale and pitch submitted with the analysis.</p>}
             </>}
           </section>
         </div>

@@ -40,6 +40,8 @@ const kf = {
 
 const NEW = 0, TRACKED = 1, LOST = 2, REMOVED = 3;
 let nextId = 0;
+/** The last track id handed out; a replacement tracker can continue from it so ids stay unique within one analysis. */
+export const lastTrackId = () => nextId;
 export class STrack {
   tlwh0: Vec; mean: Vec | null = null; cov: Mat | null = null; isActivated = false; score: number; state = NEW; trackId = 0; startFrame = 0; frameId = 0; hits = 1; detIndex: number; votes = new Map<VClass, number>();
   constructor(tlwh: Vec, score: number, cls: VClass, detIndex: number) { this.tlwh0 = tlwh; this.score = score; this.detIndex = detIndex; this.votes.set(cls, score); }
@@ -90,7 +92,7 @@ const minus = (a: STrack[], b: STrack[]) => { const s = new Set(b.map((t) => t.t
 
 export class ByteTracker {
   frameId = 0; tracked: STrack[] = []; lost: STrack[] = []; newThresh: number;
-  constructor(private high = 0.5, private low = 0.1, private matchThresh = 0.8, private bufferFrames = 30, margin = 0.1) { this.newThresh = high + margin; nextId = 0; }
+  constructor(private high = 0.5, private low = 0.1, private matchThresh = 0.8, private bufferFrames = 30, margin = 0.1, startId = 0) { this.newThresh = high + margin; nextId = startId; }
   update(boxes: number[][], scores: number[], classes: VClass[]): STrack[] {
     const fid = ++this.frameId; const n = scores.length;
     const tlwh = boxes.map((b) => [b[0], b[1], b[2] - b[0], b[3] - b[1]]);
