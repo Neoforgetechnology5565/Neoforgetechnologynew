@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Logo from "@/components/Logo";
 import type { Branding } from "@/lib/types";
-import { viApi, ViError, type ViApi, type ViHealth, type ViSample, type VideoState, type Observations } from "@/lib/vi/api";
+import { viApi, ViError, type ViApi as ServerApi, type ViHealth, type ViSample, type VideoState, type Observations } from "@/lib/vi/api";
 import { mmss, nearestFrame } from "@/lib/vi/format";
+import { browserApi, type BrowserApi } from "@/lib/vi/browser/engine";
+type ViApi = ServerApi & Partial<Pick<BrowserApi, "browser" | "directUrl">>;
 
 /* ───────── palette (light white + elegant green) ───────── */
 export const GREEN = "#16834A", GREEN_DARK = "#11643A", GREEN_LIGHT = "#E9F7EF", GREEN_PALE = "#F3FBF6", BORDER = "#E2EAE5", TEXT = "#1C2922", SUB = "#66736B", WARN = "#D97706", ERR = "#DC2626";
@@ -52,7 +54,7 @@ export function ViShell({ branding, title, project, nav, active, onNav, service,
           <Link href="/portfolio/computer-vision" aria-label="Neo Forge Technology: back to the computer vision portfolio" className="shrink-0"><Logo media={branding.logoLight} trim={branding.autoTrim} height={30} dark={false} priority /></Link>
           <div className="border-l border-[#E2EAE5] pl-5"><h1 className="text-[22px] font-semibold leading-tight text-[#11643A]">{title}</h1><p className="text-[14px] text-[#66736B]">{project}</p></div>
           <div className="ml-auto flex flex-wrap items-center gap-2">
-            <span data-testid="service-status" data-state={service} className={`rounded-full border px-2.5 py-0.5 text-[13px] font-semibold ${service === "online" ? "border-[#16834A]/40 bg-[#E9F7EF] text-[#11643A]" : service === "offline" ? "border-[#DC2626]/40 bg-red-50 text-[#DC2626]" : "border-[#E2EAE5] bg-[#F7F9F8] text-[#66736B]"}`}>{service === "online" ? "Video service online" : service === "offline" ? "Video service not connected" : "Checking service…"}</span>
+            <span data-testid="service-status" data-state={service} className={`rounded-full border px-2.5 py-0.5 text-[13px] font-semibold ${service === "online" ? "border-[#16834A]/40 bg-[#E9F7EF] text-[#11643A]" : service === "offline" ? "border-[#DC2626]/40 bg-red-50 text-[#DC2626]" : "border-[#E2EAE5] bg-[#F7F9F8] text-[#66736B]"}`}>{service === "online" ? "Analysis engine ready" : service === "offline" ? "Analysis engine unavailable" : "Checking service…"}</span>
             <Link href={back ?? "/portfolio/computer-vision"} className="rounded-lg border border-[#E2EAE5] px-3 py-1.5 text-[14px] font-semibold hover:border-[#16834A]">← All CV demos</Link>
             <Link href="/contact?division=computer-vision" className="rounded-lg bg-[#16834A] px-3 py-1.5 text-[14px] font-semibold text-white hover:bg-[#11643A]">Request similar software</Link>
           </div>
@@ -63,10 +65,10 @@ export function ViShell({ branding, title, project, nav, active, onNav, service,
       </header>
       <main className="mx-auto max-w-[1500px] space-y-4 bg-[#F7F9F8]/0 p-3 sm:p-5" id="app-main">
         <Notice testid="notice">{notice}</Notice>
-        {service === "offline" && <Notice tone="error" testid="offline">The video service is not connected, so nothing can be analysed. Start <code>services/video-intel</code> and set <code>VI_API_URL</code>. No results are shown without it.</Notice>}
+        {service === "offline" && <Notice tone="error" testid="offline">The video service could not be reached, so nothing can be analysed. No results are shown without it.</Notice>}
         {children}
       </main>
-      <footer className="border-t border-[#E2EAE5] bg-[#F7F9F8] px-4 py-3 text-[14px] text-[#66736B]">Demonstration software. Videos are processed on the demo server, kept temporarily and deleted automatically. No face recognition or identification is performed.</footer>
+      <footer className="border-t border-[#E2EAE5] bg-[#F7F9F8] px-4 py-3 text-[14px] text-[#66736B]">Demonstration software. By default the analysis runs in your browser and the video is not uploaded; if a server engine is configured, videos are processed there, kept temporarily and deleted automatically. No face recognition or identification is performed.</footer>
     </div>
   );
 }
@@ -78,8 +80,9 @@ export interface Session {
   open(sample: string): Promise<void>; upload(f: File): Promise<void>; run(params: Record<string, unknown>): Promise<void>; cancel(): Promise<void>; close(): Promise<void>; setError(m: string): void;
 }
 export function useSession(serviceUrl: string | null, app: string): Session {
-  const api = useMemo(() => (serviceUrl ? viApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<Session["service"]>(serviceUrl ? "unknown" : "offline");
+  // With no server configured the demo runs entirely in the browser, so it works on any static host.
+  const api = useMemo<ViApi | null>(() => (typeof window === "undefined" ? null : serviceUrl ? viApi(serviceUrl) : browserApi()), [serviceUrl]);
+  const [service, setService] = useState<Session["service"]>("unknown");
   const [health, setHealth] = useState<ViHealth | null>(null); const [samples, setSamples] = useState<ViSample[]>([]);
   const [video, setVideo] = useState<VideoState | null>(null); const [obs, setObs] = useState<Observations | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState("");
   const [t, setT] = useState(0); const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -197,7 +200,8 @@ export function Stage({ s, overlay = {}, edit, testid = "stage" }: { s: Session;
   return (
     <div data-testid={testid}>
       <div ref={wrap} className="relative w-full overflow-hidden rounded-xl border border-[#E2EAE5] bg-black" style={{ aspectRatio: `${W} / ${H}` }}>
-        {useVideo ? <video key={v.video_id} ref={s.videoRef} muted playsInline preload="auto" className="absolute inset-0 h-full w-full" data-testid="video">{v.playback_formats.includes("webm") && <source src={s.api!.playbackUrl(v.video_id, "webm")} type="video/webm" />}{v.playback_formats.includes("mp4") && <source src={s.api!.playbackUrl(v.video_id, "mp4")} type="video/mp4" />}</video>
+        {useVideo && s.api?.directUrl ? <video key={v.video_id} ref={s.videoRef} src={s.api.directUrl(v.video_id) ?? undefined} muted playsInline preload="auto" className="absolute inset-0 h-full w-full" data-testid="video" />
+          : useVideo ? <video key={v.video_id} ref={s.videoRef} muted playsInline preload="auto" className="absolute inset-0 h-full w-full" data-testid="video">{v.playback_formats.includes("webm") && <source src={s.api!.playbackUrl(v.video_id, "webm")} type="video/webm" />}{v.playback_formats.includes("mp4") && <source src={s.api!.playbackUrl(v.video_id, "mp4")} type="video/mp4" />}</video>
           : v.playback === "pending" ? <p className="absolute inset-0 flex items-center justify-center text-white/80">Preparing a playable copy…</p>
             : <img src={s.api!.frameUrl(v.video_id, s.t)} alt={`Frame at ${mmss(s.t)}`} className="absolute inset-0 h-full w-full object-contain" data-testid="frame-image" />}
         <canvas ref={canvas} onClick={click} data-testid="overlay" className={`absolute left-0 top-0 ${edit ? "cursor-crosshair" : "pointer-events-none"}`} style={{ width: "100%", height: size ? (size * H) / W : "100%" }} />

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Browser tests for samples 22-24 (restaurant area review, table tennis, basketball), Playwright.
- *   MODE=static  site WITHOUT VI_API_URL: honest offline state, covers, routes
+ *   MODE=browser site WITHOUT VI_API_URL: the analysis runs inside the page (default on a static host)
  *   MODE=server  site with services/video-intel (:8130) running
  *   NODE_PATH=<dir with playwright> BASE_URL=http://localhost:3000 MODE=server node scripts/test-vi-ui.mjs [restaurant|tt|bb]
  */
@@ -60,11 +60,11 @@ if (!only.length) {
       ok(/does not recogni[sz]e faces|no face recognition|never.*face|not.*identify/i.test(await txt("notice")) || /face/i.test(await p.locator("#app-main").innerText()), "face statement");
       const labels = await p.locator("[data-status]").evaluateAll((els) => [...new Set(els.map((e) => e.textContent))]);
       for (const l of ["Working", "Coming Soon"]) ok(labels.includes(l), `status label ${l} on overview: ${labels}`);
-      if (MODE === "static") { ok(await tid("offline").isVisible(), "offline notice"); ok((await tid("service-status").getAttribute("data-state")) === "offline", "badge offline"); ok(!(await p.getByText(/Open this sample/).count()), "no sample actions without a service"); }
+      if (MODE === "browser") { await ready(); ok(await p.getByText(/Open this sample/).first().isVisible().catch(() => false) === false, "samples are on the Video Analysis tab"); }
     });
   }
 }
-if (MODE === "server") {
+if (MODE === "server" || MODE === "browser") {
   if (!only.length || only.includes("restaurant")) {
     await t("restaurant: unsupported or empty uploads are refused with a message", async () => {
       await open("restaurant"); await ready(); await nav("analysis");
@@ -98,7 +98,7 @@ if (MODE === "server") {
     });
     await t("restaurant: an evidence clip is a real playable video", async () => {
       await p.locator("[data-testid=make-clip]").first().click(); await tid("clips").waitFor({ timeout: 60000 });
-      await p.waitForFunction(() => { const v = document.querySelector("[data-testid=clip-video]"); return v && v.readyState >= 1 && v.duration > 2; }, null, { timeout: 30000 });
+      await p.waitForFunction(() => { const v = document.querySelector("[data-testid=clip-video]"); return v && v.readyState >= 1 && (v.duration > 2 || !isFinite(v.duration)); }, null, { timeout: 30000 });
       ok(await p.evaluate(() => document.querySelector("[data-testid=clip-video]").videoWidth) > 100, "clip has video frames");
     });
     await t("restaurant: attendance comparison is labelled simulated, needs manual links and reports Insufficient Data", async () => {

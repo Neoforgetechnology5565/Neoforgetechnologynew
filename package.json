@@ -35,7 +35,7 @@
     "test:activity:ui": "node scripts/test-activity-ui.mjs",
     "test:documents:ui": "node scripts/test-documents-ui.mjs",
     "test:ml:ui": "node scripts/test-ml-ui.mjs",
-    "test:vi": "tsx src/lib/vi/vi.test.ts",
+    "test:vi": "tsx src/lib/vi/vi.test.ts && tsx src/lib/vi/browser/analytics.test.ts",
     "test:vi:ui": "node scripts/test-vi-ui.mjs"
   },
   "dependencies": {

@@ -1,7 +1,8 @@
 # Samples 22, 23, 24 — video intelligence
 
 Routes: `/restaurant-employee-monitoring-demo/`, `/table-tennis-intelligence-demo/`, `/basketball-intelligence-demo/` (redirect to `/ai-demos/<slug>/app`).
-Service: `services/video-intel` (FastAPI, port 8130, env `VI_API_URL` for Next.js). See `services/video-intel/README.md`.
+**Default engine: the browser.** With no `VI_API_URL` the three apps run entirely inside the page (works on any static host such as Vercel; nothing to set up, videos are never uploaded): YOLOX-tiny via ONNX Runtime Web (`public/models/vehicle/yolox_tiny.onnx`), ByteTrack, the colour/motion ball finder and a TypeScript port of the analytics (`src/lib/vi/browser/`). Limits: clips up to 120 s, 900 analysed frames, one video at a time; analysis runs on the visitor's CPU (about 1 min for the 15 s table-tennis clip); evidence clips are recorded in real time with MediaRecorder (WebM); PDFs are generated in the page.
+Optional server engine: `services/video-intel` (FastAPI, port 8130, env `VI_API_URL` for Next.js). See `services/video-intel/README.md`.
 
 ## Models and methods
 YOLOX-S (Apache-2.0, COCO person + sports ball) → ByteTrack (temporary ids, no face/appearance model) → optional colour/motion ball finder with a gated tracker.

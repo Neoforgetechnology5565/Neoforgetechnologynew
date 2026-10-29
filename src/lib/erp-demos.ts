@@ -1,5 +1,5 @@
 /** CRM / HRM / ERP interactive demo catalogue. All demos are frontend-only and use local browser data. */
-export interface ErpDemo { slug: string; no: string; title: string; short: string; problem: string; tags: string[]; features: string[]; simulated: string; /** The workspace layout of this demo. */ layout: string }
+export interface ErpDemo { slug: string; no: string; title: string; short: string; problem: string; tags: string[]; features: string[]; simulated: string; /** The workspace layout of this demo. */ layout: string; /** Real screenshot cover under /public/covers */ cover?: string }
 export const ERP_DISCLAIMER = "Interactive demonstrations with fictional data. Changes are stored in your browser and, when the demo server is enabled, also validated and saved there in an anonymous workspace. There is no real integration, and nothing is sent to any other system.";
 
 export const ERP_DEMOS: ErpDemo[] = [
@@ -48,4 +48,5 @@ export const ERP_DEMOS: ErpDemo[] = [
     features: ["Workflow builder: trigger (a record is created, or manual), conditions, tasks, field updates, alerts, approvals and delays", "Server-side validation before saving, with a clear error for every problem", "Active workflows run automatically when a matching lead, ticket, leave request, invoice or other record is created in the other demos", "Test run with a sample record; every step logs what really happened, including failures and steps that were not run", "Approval queue: a run waits at an approval step, then continues or stops on your decision", "Retry only for steps that are safe to repeat; activate or deactivate any workflow"],
     simulated: "Requires the demo server. Actions only change this demo's own records; no e-mail, SMS or webhook is sent, and delays are recorded rather than waited for.", layout: "An automation console: workflow cards with a step builder, an execution log with step-by-step detail, and an approvals queue." },
 ];
-export const ERP_MAP = Object.fromEntries(ERP_DEMOS.map((d) => [d.slug, d]));
+export const ERP_COVERED: ErpDemo[] = ERP_DEMOS.map((d) => ({ ...d, cover: `/covers/erp-${d.no}.jpg` }));
+export const ERP_MAP = Object.fromEntries(ERP_COVERED.map((d) => [d.slug, d]));
