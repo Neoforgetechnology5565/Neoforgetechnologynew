@@ -1,0 +1,54 @@
+{
+ "samples": [
+  {
+   "id": "fundus",
+   "title": "Retinal fundus photograph",
+   "modality": "Fundus photography (colour)",
+   "file": "fundus.jpg",
+   "width": 900,
+   "height": 900,
+   "licence": "Mikael Häggström, Wikimedia Commons, CC0 1.0 (via scikit-image data)",
+   "note": "Teaching image, not a clinical case. No diagnosis is implied."
+  },
+  {
+   "id": "histology-he",
+   "title": "Skin, H&E stained slide (10x)",
+   "modality": "Histology (H&E microscopy)",
+   "file": "histology-he.jpg",
+   "width": 900,
+   "height": 675,
+   "licence": "Kilbad, Wikimedia Commons, public domain (via scikit-image data)",
+   "note": "Teaching image, not a clinical case. No diagnosis is implied."
+  },
+  {
+   "id": "ihc",
+   "title": "Colon glands, immunohistochemistry",
+   "modality": "Histology (IHC with haematoxylin counterstain)",
+   "file": "ihc.png",
+   "width": 512,
+   "height": 512,
+   "licence": "Center for Microscopy And Molecular Imaging; no known copyright restrictions (via scikit-image data)",
+   "note": "Teaching image, not a clinical case. No diagnosis is implied."
+  },
+  {
+   "id": "mitosis",
+   "title": "Human cells in mitosis (fluorescence)",
+   "modality": "Fluorescence microscopy (grayscale)",
+   "file": "mitosis.png",
+   "width": 512,
+   "height": 512,
+   "licence": "David Root, CC0 1.0 (via scikit-image data)",
+   "note": "Teaching image, not a clinical case. No diagnosis is implied."
+  },
+  {
+   "id": "phase-cell",
+   "title": "Cell, quantitative phase image",
+   "modality": "Quantitative phase microscopy (grayscale)",
+   "file": "phase-cell.png",
+   "width": 550,
+   "height": 660,
+   "licence": "CC0 1.0, dedicated to the public domain (via scikit-image data)",
+   "note": "Teaching image, not a clinical case. No diagnosis is implied."
+  }
+ ]
+}

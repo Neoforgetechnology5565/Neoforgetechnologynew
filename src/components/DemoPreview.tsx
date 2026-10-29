@@ -29,6 +29,6 @@ export default function DemoPreview({ kind, className = "" }: { kind: PreviewKin
 }
 
 const ERP_KIND: Record<string, PreviewKind> = { "crm-sales-pipeline": "kanban", "erp-finance-accounting": "ledger", "hrm-employee-management": "people", "payroll-attendance-workforce": "timeline", "inventory-warehouse-management": "split", "procurement-purchase-orders": "funnel", "helpdesk-service-management": "threepanel", "marketing-automation-crm": "canvas", "project-resource-management": "gantt", "executive-analytics-automation": "briefing" };
-const CV_KIND: Record<string, PreviewKind> = { "ai-cctv-intelligence-security-analytics": "video", "lidar-point-cloud-wire-measurement": "cloud", "ai-document-intelligence-ocr": "document" };
+const CV_KIND: Record<string, PreviewKind> = { "ai-cctv-intelligence-security-analytics": "video", "ai-document-intelligence-ocr": "document" };
 const CAD_KIND: Record<string, PreviewKind> = { "autocad-drawing-automation-studio": "plan", "bricscad-automation-workbench": "plan", "cad-batch-processing-manager": "plan", "engineering-calculation-workbench": "calc" };
 export const previewFor = (group: string, slug: string): PreviewKind => (group === "crm-hrm-erp" ? ERP_KIND[slug] : group === "computer-vision" ? CV_KIND[slug] : CAD_KIND[slug]) ?? (group === "computer-vision" ? "detect" : group === "cad-bim" ? "model" : "split");
