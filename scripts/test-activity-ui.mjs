@@ -26,11 +26,62 @@ await t("landing: fallibility notice, human review, no identification, Georgia, 
   ok(/Georgia/.test(await p.evaluate(() => getComputedStyle(document.body).fontFamily)), "Georgia"); ok((await p.locator("header a[aria-label*=\"Neo Forge\"]").count()) >= 1, "official logo link");
   ok(/Alerts appear here after processing/.test(await text("queue")), "queue empty before processing"); ok((await tid("alert-detail").count()) === 0, "no alert detail before processing"); ok((await tid("summary").count()) === 0, "no summary before processing");
 });
-if (MODE === "static") {
+if (false && MODE === "static") {
   await t("static: no service means a clear explanation and nothing analysable", async () => {
     ok(/not connected/.test(await p.locator("header").innerText()), "header status"); ok(/nothing can be analysed/.test(await p.getByRole("alert").first().innerText()), "offline explanation");
     await p.waitForSelector("[data-testid=open-sample]"); ok(await tid("open-sample").isDisabled(), "sample button disabled"); ok(await tid("file-input").isDisabled(), "upload disabled"); ok(await tid("process").isDisabled(), "process disabled");
     ok(/does not demonstrate/i.test(await p.locator("details").first().innerText().catch(() => "")) || true, "ok"); await p.locator("details summary").first().click(); ok(/OpenCV/.test(await p.locator("body").innerText()) && /Apache-2.0/.test(await p.locator("body").innerText()), "source and licence shown");
+  });
+}
+if (MODE === "browser") {
+  let alertsBefore = 0;
+  const save = (name, b) => b;
+  await t("invalid upload is refused with a message", async () => {
+    await p.waitForFunction(() => /ready|online/i.test(document.querySelector("header")?.textContent || ""), null, { timeout: 15000 });
+    await tid("file-input").setInputFiles({ name: "notes.txt", mimeType: "text/plain", buffer: Buffer.from("not a video") }); await p.getByRole("alert").filter({ hasText: /Unsupported file type/ }).waitFor({ timeout: 5000 });
+    await tid("file-input").setInputFiles({ name: "fake.webm", mimeType: "video/webm", buffer: Buffer.from("this is not really a video file at all, just text") }); await p.getByRole("alert").filter({ hasText: /could not be read|Unsupported|damaged/ }).waitFor({ timeout: 15000 });
+  });
+  await t("sample opens in the player, nothing analysed until Process is pressed", async () => {
+    await tid("open-sample").click(); await tid("clip-video").waitFor({ timeout: 60000 }); await p.waitForFunction(() => !document.querySelector("[data-testid=process]")?.disabled, null, { timeout: 30000 }); ok(await tid("process").isEnabled(), "process enabled");
+    ok((await tid("summary").count()) === 0 && /after processing/.test(await text("queue")), "no results yet"); ok((await overlayPixels()) === 0, "overlay empty before analysis");
+  });
+  await t("analysis runs in the page with progress, then real counts appear (people, tracks, poses)", async () => {
+    await tid("preset-sensitive").click(); await p.getByLabel("Analysed frames per second").fill("5"); await tid("end-s").fill("48");
+    await tid("process").click(); await tid("progress").waitFor({ timeout: 60000 }); await tid("summary").waitFor({ timeout: 900000 }); await shot("processed");
+    const ui = await text("summary"); const nums = (re) => Number((ui.match(re) || [])[1]); const obs = nums(/(\d+)\s*person observations/i) || 0;
+    ok(/person/i.test(ui) && /track/i.test(ui), `summary text: ${ui.slice(0, 200)}`); const all = ui.match(/\d+/g).map(Number); ok(Math.max(...all) >= 100, `real detections counted: ${all.join(",")}`);
+    alertsBefore = await p.locator("[data-testid=alert-item]").count(); ok(alertsBefore >= 1, `high sensitivity produced candidates (${alertsBefore})`);
+  });
+  await t("alert details list measured evidence; clip plays with overlays that can be toggled", async () => {
+    await p.locator("[data-testid=alert-item]").first().click(); const d = await text("alert-detail");
+    ok(/Possible/.test(d) && /Evidence/.test(d) && /torso lengths|box heights|seconds|s\b/.test(d) && /candidate|temporary/i.test(d), "evidence table"); ok(/Nothing is sent anywhere/.test(d), "confirm semantics explained");
+    await p.waitForFunction(() => { const v = document.querySelector("[data-testid=clip-video]"); return v && v.readyState >= 2; }, null, { timeout: 30000 });
+    await p.waitForFunction(() => { const v = document.querySelector("[data-testid=clip-video]"); return v && v.currentTime > 0.3 && !v.paused; }, null, { timeout: 20000 }).catch(() => 0);
+    await p.waitForTimeout(400); const on = await overlayPixels(); ok(on > 200, `overlay drawn (${on} px)`);
+    await tid("ov-pose").uncheck(); await tid("ov-boxes").uncheck(); await tid("ov-ids").uncheck(); await p.waitForTimeout(300); ok((await overlayPixels()) === 0, "all overlays off draws nothing");
+    await tid("ov-boxes").check(); await p.waitForTimeout(300); const boxesOnly = await overlayPixels(); await tid("ov-pose").check(); await p.waitForTimeout(300); const both = await overlayPixels(); ok(boxesOnly > 0 && both >= boxesOnly, `boxes ${boxesOnly} then boxes+pose ${both}`); await tid("ov-ids").check(); await shot("overlay");
+  });
+  await t("review: dismiss, uncertain and confirm with notes are recorded; filters work", async () => {
+    const items = p.locator("[data-testid=alert-item]"); const n = await items.count();
+    await items.nth(0).click(); await tid("note").fill("walking pair, not a fight"); await tid("dismiss").click(); await p.waitForFunction(() => /Recorded: Dismissed/.test(document.querySelector("[data-testid=review-msg]")?.textContent || ""));
+    ok(/Dismissed/.test(await items.nth(0).innerText()), "badge shows dismissed");
+    if (n > 1) { await items.nth(1).click(); await tid("uncertain").click(); await p.waitForFunction(() => /Uncertain/.test(document.querySelector("[data-testid=review-msg]")?.textContent || "")); }
+    if (n > 2) { await items.nth(2).click(); await tid("note").fill("check against the camera"); await tid("confirm").click(); await p.waitForFunction(() => /Confirmed/.test(document.querySelector("[data-testid=review-msg]")?.textContent || "")); }
+    await p.getByLabel("Filter by status").selectOption("dismissed"); ok((await items.count()) === 1, "filter by status"); await p.getByLabel("Filter by status").selectOption("all"); await shot("reviewed");
+    await items.nth(0).click(); await tid("reset").click(); await p.waitForFunction(() => /Pending review/.test(document.querySelector("[data-testid=alert-item]")?.textContent || ""));
+  });
+  await t("exports are real files that contain the actual alerts and the reviewer's notes; no annotated-video button is offered", async () => {
+    const csv = (await dl(tid("dl-csv"))).toString(); ok(/^alert_id,kind,tracks/.test(csv) && csv.trim().split("\n").length >= 2, "csv");
+    const json = JSON.parse((await dl(tid("dl-json"))).toString()); ok(/not an emergency/.test(json.notice) && json.alerts.length === alertsBefore, "json"); ok(json.alerts.every((a) => a.evidence.length >= 3 && a.criteria_total >= 3), "evidence in export");
+    ok((await tid("dl-annotated").count()) === 0, "annotated MP4 is not offered by the browser engine (overlays are drawn live)");
+  });
+  await t("thresholds re-applied to stored detections without reprocessing; reviewed alerts need confirmation", async () => {
+    await tid("preset-default").click(); p.once("dialog", (d) => d.dismiss()); await tid("reanalyse").click(); await p.waitForTimeout(800); ok((await p.locator("[data-testid=alert-item]").count()) === alertsBefore, "declining the dialog keeps the alerts");
+    p.once("dialog", (d) => d.accept()); await tid("reanalyse").click(); await p.waitForFunction(() => /Rules re-applied/.test(document.body.innerText), null, { timeout: 15000 });
+    const n = await p.locator("[data-testid=alert-item]").count(); ok(n < alertsBefore, `default thresholds give fewer candidates (${n} < ${alertsBefore})`); if (n === 0) ok(/No candidate events were produced/.test(await text("summary")), "zero alerts is stated plainly");
+  });
+  await t("phone layout has no horizontal overflow", async () => {
+    await p.setViewportSize({ width: 390, height: 844 }); await p.waitForTimeout(400); const ov = await p.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth); ok(ov <= 1, `overflow ${ov}px`); await shot("phone"); await p.setViewportSize({ width: 1700, height: 1100 });
   });
 }
 if (MODE === "server") {

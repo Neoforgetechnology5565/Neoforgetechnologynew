@@ -17,6 +17,7 @@ function findFields(pages: Page[]) {
   return out;
 }
 let workerP: Promise<import("tesseract.js").Worker> | null = null;
+export const ocrWorker = () => worker();
 const worker = () => (workerP ??= import("tesseract.js").then((T) => T.createWorker("eng", 1, { workerPath: "/ml/ocr/worker.min.js", corePath: "/ml/ocr/", langPath: "/ml/ocr/lang", gzip: true })).catch((e) => { workerP = null; throw e; }));
 async function runOcr(c: Cvs): Promise<Line[]> {
   let w; try { w = await worker(); } catch { return err(503, "The OCR engine could not be loaded in this browser. Check your connection and try again."); }

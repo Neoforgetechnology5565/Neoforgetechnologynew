@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import DemoShell from "@/components/demos/DemoShell";
 import type { Branding } from "@/lib/types";
 import { docsApi } from "@/lib/documents/api";
+import { browserDocs } from "@/lib/documents/browser";
 import { FIELD_STATUS_LABEL, LOW_CONF, REVIEW_LABEL, SOURCE_STYLE, type DocInfo, type DocReview, type Field, type FieldStatus, type Health, type ProcessParams, type Results, type SampleInfo } from "@/lib/documents/types";
 import PageViewer, { type Layers } from "./PageViewer";
 
@@ -18,8 +19,8 @@ type Tab = "text" | "fields" | "tables" | "summary";
 function Chip({ cls, children }: { cls: string; children: React.ReactNode }) { return <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${cls}`}>{children}</span>; }
 
 export default function DocumentApp({ branding, serviceUrl }: { branding: Branding; serviceUrl: string | null }) {
-  const api = useMemo(() => (serviceUrl ? docsApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
+  const api = useMemo(() => (serviceUrl ? docsApi(serviceUrl) : browserDocs()), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
   const [doc, setDoc] = useState<DocInfo | null>(null); const [res, setRes] = useState<Results | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
   const [opts, setOpts] = useState<ProcessParams>({ ocr_mode: "auto", deskew: true, enhance: false, sensitivity: "high" });
   const [pageNo, setPageNo] = useState(1); const [tab, setTab] = useState<Tab>("fields"); const [layers, setLayers] = useState<Layers>({ text: true, tables: true, fields: true });
@@ -134,7 +135,7 @@ export default function DocumentApp({ branding, serviceUrl }: { branding: Brandi
                   onItem={(i) => { setSelItem(i); setSelField(null); setTab("text"); }} onField={(f) => { setSelField(f); setSelItem(null); setTab("fields"); }} />
                 <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
                   {(["text", "tables", "fields"] as const).map((k) => <label key={k} className="flex items-center gap-1"><input type="checkbox" checked={layers[k]} onChange={(e) => setLayers({ ...layers, [k]: e.target.checked })} data-testid={`layer-${k}`} />{k === "text" ? "Text lines" : k === "tables" ? "Tables" : "Fields"}</label>)}
-                  <span className="ml-auto flex flex-wrap gap-2">{(["txt", "json", "csv", "tables.csv", "pdf"] as const).map((k) => <a key={k} className={BTN} href={api.exportUrl(id, k)} data-testid={`export-${k}`}>{k === "csv" ? "Fields CSV" : k === "tables.csv" ? "Tables CSV" : k === "pdf" ? "Searchable PDF" : k.toUpperCase()}</a>)}</span>
+                  <span className="ml-auto flex flex-wrap gap-2">{(["txt", "json", "csv", "tables.csv", "pdf"] as const).map((k) => <a key={k} className={BTN} href={api.exportUrl(id, k)} download={api.exportName(id, k) || undefined} data-testid={`export-${k}`}>{k === "csv" ? "Fields CSV" : k === "tables.csv" ? "Tables CSV" : k === "pdf" ? "Searchable PDF" : k.toUpperCase()}</a>)}</span>
                 </div>
                 {page.warnings.map((w) => <p key={w} className="text-xs text-amber-300">{w}</p>)}
               </>

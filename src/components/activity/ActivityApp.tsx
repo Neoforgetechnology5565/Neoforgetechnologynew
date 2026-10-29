@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DemoShell from "@/components/demos/DemoShell";
 import type { Branding } from "@/lib/types";
 import { ActivityApiError, activityApi } from "@/lib/activity/api";
+import { browserActivity } from "@/lib/activity/browser";
 import { DEFAULT_AGGR, DEFAULT_FALL, SENSITIVE_AGGR, SENSITIVE_FALL, STATUS_LABEL, STATUS_STYLE, type AggressionRules, type Alert, type AlertStatus, type FallRules, type FrameObs, type Health, type SampleInfo, type Summary, type VideoStatus } from "@/lib/activity/types";
 import ClipPlayer, { type PlayerHandle } from "./ClipPlayer";
 
@@ -19,12 +20,12 @@ const FALL_LABELS: Record<keyof FallRules, string> = { min_upright_s: "Upright b
 const AGGR_LABELS: Record<keyof AggressionRules, string> = { max_distance: "Close if distance ≤ (box heights)", min_arm_speed: "Fast arm ≥ (torso lengths/s)", min_duration_s: "Duration ≥ (s)", min_fraction: "Share of fast samples ≥", min_visibility: "Min pose visibility" };
 
 export default function ActivityApp({ branding, serviceUrl }: { branding: Branding; serviceUrl: string | null }) {
-  const api = useMemo(() => (serviceUrl ? activityApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
+  const api = useMemo(() => (serviceUrl ? activityApi(serviceUrl) : browserActivity()), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
   const [vs, setVs] = useState<VideoStatus | null>(null); const [summary, setSummary] = useState<Summary | null>(null); const [alerts, setAlerts] = useState<Alert[]>([]); const [frames, setFrames] = useState<FrameObs[]>([]); const [fps, setFps] = useState(5);
   const [error, setError] = useState(""); const [busy, setBusy] = useState(false); const [name, setName] = useState("");
   const [preset, setPreset] = useState<Preset>("default"); const [fall, setFall] = useState<FallRules>(DEFAULT_FALL); const [aggr, setAggr] = useState<AggressionRules>(DEFAULT_AGGR);
-  const [sampleFps, setSampleFps] = useState(5); const [detThr, setDetThr] = useState(0.35); const [usePose, setUsePose] = useState(true); const [advanced, setAdvanced] = useState(false);
+  const [sampleFps, setSampleFps] = useState(serviceUrl ? 5 : 3); const [startS, setStartS] = useState(0); const [endS, setEndS] = useState(""); const [detThr, setDetThr] = useState(0.35); const [usePose, setUsePose] = useState(true); const [advanced, setAdvanced] = useState(false);
   const [overlay, setOverlay] = useState({ boxes: true, ids: true, pose: true }); const [sel, setSel] = useState<string | null>(null); const [note, setNote] = useState(""); const [msg, setMsg] = useState("");
   const [fStatus, setFStatus] = useState<"all" | AlertStatus>("all"); const [fKind, setFKind] = useState<"all" | "fall" | "aggression">("all");
   const player = useRef<PlayerHandle>(null);
@@ -65,7 +66,7 @@ export default function ActivityApp({ branding, serviceUrl }: { branding: Brandi
     const lim = (health?.limits.max_video_mb ?? 300) * 1_000_000; if (f.size > lim) { setError(`The file is larger than the ${lim / 1_000_000} MB limit.`); return; }
     void start(f, f.name);
   };
-  const process = async () => { if (!api || !vid) return; setError(""); setBusy(true); try { setVs(await api.process(vid, { sample_fps: sampleFps, det_threshold: detThr, pose: usePose, ...rules })); setSummary(null); setAlerts([]); setFrames([]); } catch (e) { setError(e instanceof Error ? e.message : "Could not start."); } finally { setBusy(false); } };
+  const process = async () => { if (!api || !vid) return; setError(""); setBusy(true); try { setVs(await api.process(vid, { sample_fps: sampleFps, det_threshold: detThr, pose: usePose, start_s: startS, end_s: endS === "" ? null : Number(endS), ...rules })); setSummary(null); setAlerts([]); setFrames([]); } catch (e) { setError(e instanceof Error ? e.message : "Could not start."); } finally { setBusy(false); } };
   const cancel = async () => { if (api && vid) await api.cancel(vid).catch(() => undefined); };
   const reanalyse = async (discard = false) => {
     if (!api || !vid) return; setError("");
@@ -117,6 +118,8 @@ export default function ActivityApp({ branding, serviceUrl }: { branding: Brandi
               <h2 className={H3}>2 · Settings</h2>
               <div className="mt-3 space-y-3 text-xs text-slate-300">
                 <label className="flex items-center justify-between gap-2">Analysed frames per second<input type="number" min={1} max={12} step={1} value={sampleFps} onChange={(e) => setSampleFps(Number(e.target.value))} className={INPUT} /></label>
+                <label className="flex items-center justify-between gap-2">Start at (seconds)<input type="number" min={0} step={1} value={startS} onChange={(e) => setStartS(Number(e.target.value))} className={INPUT} data-testid="start-s" /></label>
+                <label className="flex items-center justify-between gap-2">End at (seconds, optional)<input type="number" min={1} step={1} value={endS} placeholder="to the end" onChange={(e) => setEndS(e.target.value)} className={INPUT} data-testid="end-s" /></label>
                 <label className="flex items-center justify-between gap-2">Person detection threshold<input type="number" min={0.15} max={0.95} step={0.05} value={detThr} onChange={(e) => setDetThr(Number(e.target.value))} className={INPUT} /></label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={usePose} onChange={(e) => setUsePose(e.target.checked)} />Estimate pose (needed for both rules)</label>
                 <fieldset><legend className="mb-1 text-slate-400">Rule sensitivity</legend>
@@ -154,7 +157,7 @@ export default function ActivityApp({ branding, serviceUrl }: { branding: Brandi
             {vs && !vs.preview_done && <p className="text-xs text-slate-400">Preparing a browser preview…</p>}
             <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
               {(["boxes", "ids", "pose"] as const).map((k) => <label key={k} className="flex items-center gap-1"><input type="checkbox" checked={overlay[k]} onChange={(e) => setOverlay({ ...overlay, [k]: e.target.checked })} data-testid={`ov-${k}`} />{k === "ids" ? "Track ids" : k === "boxes" ? "Boxes" : "Pose"}</label>)}
-              {done && vid && api && <><a className={BTN} href={api.annotatedUrl(vid)} data-testid="dl-annotated">Annotated video (MP4)</a><a className={BTN} href={api.exportUrl(vid, "alerts.csv")}>Alerts CSV</a><a className={BTN} href={api.exportUrl(vid, "alerts.json")}>Alerts JSON</a></>}
+              {done && vid && api && <>{api.annotatedUrl(vid) && <a className={BTN} href={api.annotatedUrl(vid)} data-testid="dl-annotated">Annotated video (MP4)</a>}<a className={BTN} href={api.exportUrl(vid, "alerts.csv")} download={`alerts-${vid.slice(0, 8)}.csv`} data-testid="dl-csv">Alerts CSV</a><a className={BTN} href={api.exportUrl(vid, "alerts.json")} download={`alerts-${vid.slice(0, 8)}.json`} data-testid="dl-json">Alerts JSON</a></>}
             </div>
 
             {summary && counts && (
@@ -204,7 +207,7 @@ export default function ActivityApp({ branding, serviceUrl }: { branding: Brandi
                 <h2 className={H3}>Alert {selected.id.split("-")[1]} · review</h2>
                 <p className="mt-2 text-sm font-semibold text-white">{selected.title}</p>
                 <p className="text-xs text-slate-400">{fmt(selected.t_start)} to {fmt(selected.t_end)}, strongest at {fmt(selected.t_peak)}. Tracks {selected.tracks.map((t) => `#${t}`).join(", ")} (temporary labels). Criteria are measured values compared with the thresholds, not a probability.</p>
-                <div className="mt-2 flex flex-wrap gap-2"><button className={BTN} onClick={() => pick(selected)} data-testid="play-clip">Play clip</button>{vid && api && <a className={BTN} href={api.annotatedUrl(vid, selected.id)}>Annotated clip (MP4)</a>}</div>
+                <div className="mt-2 flex flex-wrap gap-2"><button className={BTN} onClick={() => pick(selected)} data-testid="play-clip">Play clip</button>{vid && api && api.annotatedUrl(vid, selected.id) && <a className={BTN} href={api.annotatedUrl(vid, selected.id)}>Annotated clip (MP4)</a>}</div>
                 <table className="mt-3 w-full text-left text-xs"><thead className="text-slate-400"><tr><th className="py-1 pr-2">Evidence</th><th className="pr-2">Measured</th><th>Rule</th></tr></thead>
                   <tbody>{selected.evidence.map((e) => <tr key={e.name} className="border-t border-slate-800 align-top"><td className="py-1 pr-2 text-slate-200">{e.name}{e.note && <span className="block text-[11px] text-slate-500">{e.note}</span>}</td><td className="pr-2 text-white">{e.value === null ? "n/a" : String(e.value)}</td><td className={e.threshold === null ? "text-slate-500" : e.met ? "text-green-400" : "text-amber-400"}>{e.threshold === null ? "info" : `${e.threshold} ${e.met ? "✓" : "✗"}`}</td></tr>)}</tbody></table>
                 {selected.notes.map((n) => <p key={n} className="mt-2 text-xs text-slate-400">{n}</p>)}

@@ -24,4 +24,6 @@ export const docsApi = (base: string) => ({
   patchField: (id: string, fid: string, body: { value?: string; status?: FieldStatus; note?: string }) => j<Field>(base, `/api/documents/${id}/fields/${fid}`, json(body, "PATCH")),
   review: (id: string, status: DocReview, note: string) => j<{ status: DocReview; note: string; reviewed_at: number | null }>(base, `/api/documents/${id}/review`, json({ status, note })),
   exportUrl: (id: string, kind: "txt" | "json" | "csv" | "tables.csv" | "pdf") => `${base}/api/documents/${id}/export?kind=${kind}`,
+  /** The service names downloads itself (Content-Disposition); the browser engine supplies a file name. */
+  exportName: (_id: string, _kind: "txt" | "json" | "csv" | "tables.csv" | "pdf") => "",
 });
