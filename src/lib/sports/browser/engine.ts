@@ -10,6 +10,7 @@ import { FootAndBall } from "./footandball";
 import { apply3, inv3, type M3 } from "./cvlite";
 import { CalibrationError, fitHomography, landmarks, type Calibration } from "./pitch";
 import { CELL_M, SIGMA_CELLS, inPitch, possessionCandidates, trackStats, type FrameLite } from "./stats";
+import { probeFps, snapFps } from "@/lib/vision/fps";
 import { classify, torsoColour, UNCERTAIN, type Lab, type Team } from "./teams";
 
 const MODEL_INFO: Results["model"] = { name: "FootAndBall (Komorowski, Kurzejamski, Sarwas, VISAPP 2020)", task: "player and ball detection for high-resolution long-shot football video", code_licence: "MIT", trained_on: "ISSIA-CNR Soccer cameras 1-4 and SoccerPlayerDetection set 1 (fixed long-shot cameras)", runtime: "ONNX Runtime Web (WebAssembly, CPU), in your browser" };
@@ -35,12 +36,6 @@ function jobJson(j: Job): JobStatus {
   return { job_id: j.id, status: j.status, stage: j.stage, source: j.source, error: j.error, error_detail: null, video: { width: j.info.width, height: j.info.height, fps: r2(j.info.fps, 3), frames_estimate: j.info.frames, duration_seconds: r2(j.info.duration), fps_assumed: j.info.fpsAssumed },
     progress: { samples_done: j.samplesDone, samples_total: j.samplesTotal, fraction: j.status === "completed" ? 1 : j.samplesTotal ? Math.min(0.99, j.samplesDone / j.samplesTotal) : 0, elapsed_seconds: r2(el), live_fps: j.elapsed > 0 ? r2(j.samplesDone / j.elapsed) : 0, player_detections: j.detections }, latest: j.latest, preview: "ready", preview_formats: [j.fmt], summary: r && done ? (r.summary as Summary) : null };
 }
-/** Measure the frame rate from the browser's own frame callbacks while the clip plays briefly; null when the browser cannot report it. */
-async function probeFps(v: HTMLVideoElement): Promise<number | null> {
-  const vf = v as HTMLVideoElement & { requestVideoFrameCallback?: (cb: (n: number, m: { mediaTime: number }) => void) => number }; if (!vf.requestVideoFrameCallback) return null;
-  return new Promise<number | null>((res) => { const times: number[] = []; const step = (_: number, m: { mediaTime: number }) => { times.push(m.mediaTime); if (times.length >= 12) { v.pause(); const d = times.slice(1).map((t, i) => t - times[i]).filter((x) => x > 0).sort((a, b) => a - b); res(d.length ? 1 / d[Math.floor(d.length / 2)] : null); } else vf.requestVideoFrameCallback!(step); }; vf.requestVideoFrameCallback!(step); v.currentTime = 0; v.muted = true; v.play().catch(() => res(null)); setTimeout(() => { v.pause(); res(times.length >= 4 ? (() => { const d = times.slice(1).map((t, i) => t - times[i]).filter((x) => x > 0).sort((a, b) => a - b); return d.length ? 1 / d[Math.floor(d.length / 2)] : null; })() : null); }, 2500); });
-}
-const snapFps = (f: number) => [23.976, 24, 25, 29.97, 30, 48, 50, 59.94, 60].reduce((b, c) => (Math.abs(c - f) < Math.abs(b - f) ? c : b), 25);
 async function analyse(j: Job) {
   const p = j.params, v = document.createElement("video"); v.muted = true; v.playsInline = true; v.preload = "auto"; v.src = j.url;
   try {

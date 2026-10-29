@@ -6,7 +6,7 @@ from app.footandball import FootAndBall
 from app.media import probe_video
 from app.pipeline import JobParams, Progress, analyse, build_results
 fb=FootAndBall(Path('models/footandball.onnx'))
-vp=Path('/tmp/claude-0/samp/football-demo.mp4'); info=probe_video(vp, 10**8, 10**9); print(info)
+vp=Path('/tmp/claude-0/samp/football-demo.webm'); info=probe_video(vp, 10**8, 10**9); print(info)
 p=JobParams(sample_fps=5, player_conf=0.5, ball_conf=0.3)
 an=analyse(vp,info,p,fb,Progress(),lambda:False,1000)
 res=build_results(an,None)

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DemoShell from "@/components/demos/DemoShell";
 import type { Branding } from "@/lib/types";
 import { PpeApiError, ppeApi, type Health, type JobInfo } from "@/lib/ppe/api";
+import { browserPpe } from "@/lib/ppe/browser/engine";
 import { PPE_COLOR, PPE_KINDS, PPE_LABEL, STATUS_COLOR, STATUS_LABEL, framesToCsv, isWorker, type FrameRec, type ImageResult, type PpeKind, type SampleInfo, type Summary, type Zone } from "@/lib/ppe/types";
 import PpePlayer, { type OverlayOpts, type PlayerHandle, type PlayerMode } from "./PpePlayer";
 import PpeStats from "./PpeStats";
@@ -22,8 +23,8 @@ interface Media { kind: "video" | "image"; name: string; url: string; file?: Fil
 const download = (name: string, body: BlobPart, type: string) => { const u = URL.createObjectURL(new Blob([body], { type })); const a = document.createElement("a"); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u); };
 
 export default function PpeApp({ branding, serviceUrl }: { branding: Branding; serviceUrl: string | null }) {
-  const api = useMemo(() => (serviceUrl ? ppeApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
+  const api = useMemo(() => (serviceUrl ? ppeApi(serviceUrl) : browserPpe()), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
   const [media, setMedia] = useState<Media | null>(null); const [conf, setConf] = useState(0.4); const [pconf, setPconf] = useState(0.4); const [stride, setStride] = useState(1); const [required, setRequired] = useState<PpeKind[]>(["hard_hat", "safety_vest"]);
   const [zone, setZone] = useState<Zone | null>(null); const [drawing, setDrawing] = useState(false);
   const [status, setStatus] = useState<Status>("idle"); const [error, setError] = useState(""); const [progress, setProgress] = useState({ done: 0, total: 0, fps: 0 });
@@ -78,7 +79,7 @@ export default function PpeApp({ branding, serviceUrl }: { branding: Branding; s
   const start = async () => {
     if (!media || running) return; const keep = zone; reset(); setZone(keep);
     try {
-      if (media.kind === "image") { if (!api || service !== "online") throw new Error("Image analysis needs the processing service, which is not connected on this site. The bundled sample video shows a stored result of the same pipeline."); setSource("server"); setStatus("running"); setImgRes(await api.detectImage(media.file!, options)); setStatus("completed"); }
+      if (media.kind === "image") { if (!api || service !== "online") throw new Error("The analysis engine is not ready yet. Wait a moment and try again."); setSource("server"); setStatus("running"); setImgRes(await api.detectImage(media.file!, options)); setStatus("completed"); }
       else if (useStatic && current) await runStatic(current); else await runServer(media);
     } catch (e) { fail(e instanceof PpeApiError ? e : e); }
   };
