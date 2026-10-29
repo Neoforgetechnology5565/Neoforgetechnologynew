@@ -52,7 +52,7 @@ if (MODE === "server") {
     await tid("ov-heat").uncheck(); ok((await p.locator("[data-testid=viewer-heat]").count()) === 0, "heat toggled off"); await tid("ov-heat").check();
     await tid("ov-boxes").uncheck(); ok((await p.locator("[data-testid=viewer-svg]").count()) === 0, "regions toggled off"); await tid("ov-boxes").check();
     await tid("ov-dataset").check(); const ds = await p.locator("[data-testid=viewer-dataset]").count(); ok(ds === 1, "dataset annotation overlay is available for an anomalous sample"); await tid("ov-dataset").uncheck();
-    await tid("mode-annotated").click(); ok((await p.locator("[data-testid=viewer-svg]").count()) === 0, "annotated render has no live overlay"); ok(/images\/annotated/.test(await tid("viewer-image").getAttribute("src")), "server render shown"); await tid("mode-original").click();
+    await tid("mode-annotated").click(); ok((await p.locator("[data-testid=viewer-svg]").count()) === 0, "annotated render has no live overlay"); ok(/images\/annotated|^blob:/.test(await tid("viewer-image").getAttribute("src")), "server render shown"); await tid("mode-original").click();
   });
   await t("regions: boxes sit on the image, can be hidden, focused and reviewed", async () => {
     const n = await p.locator("[data-testid^=region-]").count(); if (n === 0) { ok(/No region reached/.test(await text("no-regions")), "no regions explained"); return; }

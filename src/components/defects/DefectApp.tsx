@@ -221,7 +221,7 @@ export default function DefectApp({ branding, serviceUrl }: { branding: Branding
                       {reviewMsg && <p className="mt-2 text-emerald-300" role="status" data-testid="review-msg">{reviewMsg}</p>}
                       {cur.review.history.length > 1 && <details className="mt-2 text-[11px] text-slate-500"><summary className="cursor-pointer">{cur.review.history.length} review entries</summary><ul>{cur.review.history.map((h) => <li key={h.at}>{when(h.at)} · {DECISION_LABEL[h.decision]} · {h.notes || "no notes"}</li>)}</ul></details>}
                     </div>
-                    <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-2"><a className={BTN} href={api!.pdf(cur.id)} data-testid="report-pdf">Report (PDF)</a><a className={BTN} href={api!.reportJson(cur.id)} data-testid="report-json">Report (JSON)</a><button type="button" className={BTN} onClick={() => void del()}>Delete inspection</button></div>
+                    <div className="flex flex-wrap gap-2 border-t border-slate-800 pt-2"><a className={BTN} href={api!.pdf(cur.id)} download={`inspection-${cur.id.slice(0, 8)}.pdf`} data-testid="report-pdf">Report (PDF)</a><a className={BTN} href={api!.reportJson(cur.id)} download={`inspection-${cur.id.slice(0, 8)}.json`} data-testid="report-json">Report (JSON)</a><button type="button" className={BTN} onClick={() => void del()}>Delete inspection</button></div>
                   </div>
                 </div>
 
