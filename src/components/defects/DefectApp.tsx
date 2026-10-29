@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DemoShell from "@/components/demos/DemoShell";
 import type { Branding } from "@/lib/types";
 import { InspectApiError, inspectApi } from "@/lib/defects/api";
+import { browserInspect } from "@/lib/defects/browser";
 import { DECISION_LABEL, DECISION_STYLE, DEFAULT_RULES, type Decision, type Health, type Inspection, type ReferenceInfo, type Region, type Rules, type SampleImage, type Summary } from "@/lib/defects/types";
 import ImageViewer, { type ViewerHandle } from "./ImageViewer";
 
@@ -20,8 +21,8 @@ function Badge({ d, pre }: { d: Decision; pre?: string }) {
 }
 
 export default function DefectApp({ branding, serviceUrl }: { branding: Branding; serviceUrl: string | null }) {
-  const api = useMemo(() => (serviceUrl ? inspectApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline"); const [health, setHealth] = useState<Health | null>(null);
+  const api = useMemo(() => (serviceUrl ? inspectApi(serviceUrl) : browserInspect()), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown"); const [health, setHealth] = useState<Health | null>(null);
   const [refs, setRefs] = useState<ReferenceInfo[]>([]); const [refId, setRefId] = useState(""); const [samples, setSamples] = useState<SampleImage[]>([]);
   const [rules, setRules] = useState<Rules>(DEFAULT_RULES); const [list, setList] = useState<Summary[]>([]); const [pending, setPending] = useState<Pending[]>([]);
   const [cur, setCur] = useState<Inspection | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);

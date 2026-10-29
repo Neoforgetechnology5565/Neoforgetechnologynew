@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { Branding } from "@/lib/types";
 import { inspectApi } from "@/lib/defects/api";
+import { browserInspect } from "@/lib/defects/browser";
 import { DEFAULT_RULES, type Health, type Inspection, type ReferenceInfo, type SampleImage } from "@/lib/defects/types";
 import { BTN, CARD, Dropzone, ErrorBox, H3, MlShell, PreviewFeatures, StatusChip } from "./common";
 
@@ -9,8 +10,8 @@ const LABEL = { FAIL: "Potential anomaly", PASS: "Normal prediction", MANUAL_REV
 const STYLE = { FAIL: "border-red-500/60 bg-red-500/10 text-red-200", PASS: "border-emerald-500/60 bg-emerald-500/10 text-emerald-200", MANUAL_REVIEW: "border-amber-500/60 bg-amber-500/10 text-amber-200" } as const;
 
 export default function AnomalyApp({ branding, serviceUrl }: { branding: Branding; serviceUrl: string | null }) {
-  const api = useMemo(() => (serviceUrl ? inspectApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline"); const [health, setHealth] = useState<Health | null>(null);
+  const api = useMemo(() => (serviceUrl ? inspectApi(serviceUrl) : browserInspect()), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown"); const [health, setHealth] = useState<Health | null>(null);
   const [refs, setRefs] = useState<ReferenceInfo[]>([]); const [ref, setRef] = useState(""); const [samples, setSamples] = useState<SampleImage[]>([]);
   const [cur, setCur] = useState<Inspection | null>(null); const [busy, setBusy] = useState(false); const [error, setError] = useState(""); const [thr, setThr] = useState(DEFAULT_RULES.min_score_ratio); const [opacity, setOpacity] = useState(0.7); const [view, setView] = useState<"annotated" | "heatmap" | "original">("heatmap");
   useEffect(() => { if (!api) return; api.health().then((h) => { setHealth(h); setService("online"); }).catch(() => setService("offline")); api.references().then((r) => { setRefs(r.references); setRef(r.references[0]?.id ?? ""); }).catch(() => undefined); api.samples().then((s) => setSamples(s.samples)).catch(() => undefined); }, [api]);

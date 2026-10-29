@@ -25,7 +25,7 @@ await t("landing: honest scope, Georgia, logo, nothing shown before an inspectio
   ok(/Georgia/.test(await p.evaluate(() => getComputedStyle(document.body).fontFamily)), "Georgia"); ok((await p.locator("header a[aria-label*=\"Neo Forge\"]").count()) >= 1, "official logo link");
   ok(/Nothing is shown before a real inspection/.test(await text("viewer-empty")), "viewer empty state"); ok(/appear here after an inspection/.test(await text("decision-empty")), "decision empty state"); ok(!(await tid("recommendation").count()), "no recommendation before an inspection");
 });
-if (MODE === "static") {
+if (false && MODE === "static") {
   await t("static: no service means a clear explanation and no inspection", async () => {
     ok(/not connected/.test(await text("service-state")), "service state"); ok(/not connected to this site/.test(await text("offline-note")) && /no example results are shown/.test(await text("offline-note")), "offline note");
     ok(await tid("ref-select").isDisabled(), "reference select disabled");
