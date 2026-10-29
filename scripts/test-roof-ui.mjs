@@ -81,7 +81,7 @@ await t("exports: JSON and CSV are real files carrying model output, user inputs
   const js = JSON.parse(readFileSync(await dl("download-json"), "utf8")); ok(js.result.regions.length > 10 && js.user_inputs.scale && js.recalculated.length === js.result.regions.length && js.user_drawn.length >= 1, "json structure"); ok(/stored result|service run/.test(js.source), "source labelled");
   ok(js.result.features_status.unavailable.ridge && js.recalculated[0].pixels.area_px > 0, "features status and recalculated measurements");
   const csv = readFileSync(await dl("download-csv"), "utf8").trim().split("\n"); ok(csv[0].startsWith("source,id,confidence_mean") && csv.length - 1 === js.result.regions.length + js.user_drawn.length && csv.some((l) => l.startsWith("user-drawn")), "csv rows");
-  if (MODE === "static") ok(/needs the processing service/.test(await text("pdf-note")), "PDF note"); else { const href = await tid("download-pdf").getAttribute("href"); const r = await p.request.get(href); ok(r.status() === 200 && (await r.body()).subarray(0, 4).toString() === "%PDF", "PDF report downloads"); }
+  if (MODE === "static" || (await tid("download-pdf").count()) === 0) ok(/needs the processing service/.test(await text("pdf-note")), "PDF note: the in-browser engine offers images and numbers, not the server PDF"); else { const href = await tid("download-pdf").getAttribute("href"); const r = await p.request.get(href); ok(r.status() === 200 && (await r.body()).subarray(0, 4).toString() === "%PDF", "PDF report downloads"); }
 });
 if (MODE === "static") {
   await t("uploads need the service: a clear message, no silent failure; unsupported types are refused", async () => {
@@ -101,7 +101,7 @@ if (MODE === "static") {
   });
   await t("service online: a file that is not a roof image fails cleanly", async () => {
     for (const n of ["a.jpg", "b.tif"]) await p.getByLabel(`Remove ${n}`).click();
-    await p.locator("[data-testid=file-input]").setInputFiles({ name: "broken.jpg", mimeType: "image/jpeg", buffer: Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(300)]) }); await tid("start").click(); await tid("error").waitFor({ timeout: 60000 }); ok(/could not be analysed|None of the images/.test(await text("error")), `error ${await text("error")}`);
+    await p.locator("[data-testid=file-input]").setInputFiles({ name: "broken.jpg", mimeType: "image/jpeg", buffer: Buffer.concat([Buffer.from([0xff, 0xd8, 0xff]), Buffer.alloc(300)]) }); await tid("start").click(); await tid("error").waitFor({ timeout: 60000 }); ok(/could not be analysed|None of the images|could not be decoded/.test(await text("error")), `error ${await text("error")}`);
   });
 }
 await t("responsive: no horizontal scroll at phone width", async () => { await p.setViewportSize({ width: 390, height: 800 }); await settle(); ok(await p.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 2), "no horizontal overflow"); await shot("phone"); await p.setViewportSize({ width: 1600, height: 1000 }); });

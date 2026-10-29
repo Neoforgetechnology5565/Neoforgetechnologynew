@@ -34,7 +34,7 @@ export default function StatsTable({ tracks, mapped, selected, onToggle, zone, t
         </select>
         <span className="text-slate-500">{rows.length} of {tracks.length} tracks · click a row to select, Shift-click to compare two</span>
         <span className="ml-auto flex gap-2">
-          {trackHref && <a className="rounded border border-slate-600 px-2 py-1 text-slate-200 hover:border-amber-500" href={trackHref} data-testid="export-stats-csv">Statistics CSV</a>}
+          {trackHref && <a className="rounded border border-slate-600 px-2 py-1 text-slate-200 hover:border-amber-500" href={trackHref} download="sports-stats.csv" data-testid="export-stats-csv">Statistics CSV</a>}
           <button type="button" className="rounded border border-slate-600 px-2 py-1 text-slate-200 hover:border-amber-500" onClick={jsonHref} data-testid="export-stats-json">Statistics JSON</button>
         </span>
       </div>

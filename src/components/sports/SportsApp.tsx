@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import DemoShell from "@/components/demos/DemoShell";
 import type { Branding } from "@/lib/types";
 import { SportsApiError, sportsApi } from "@/lib/sports/api";
+import { browserSports } from "@/lib/sports/browser/engine";
 import { CELL_M, MIN_POINTS, SIGMA_CELLS, heatmap, mappedPoints } from "@/lib/sports/heatmap";
 import { TEAM_COLOR, TEAM_LABEL, type AnalysisParams, type Frame, type Health, type JobStatus, type Landmark, type Results, type SampleInfo, type Team } from "@/lib/sports/types";
 import CalibrationModal from "./CalibrationModal";
@@ -29,8 +30,8 @@ const canH264 = () => { try { return !!document.createElement("video").canPlayTy
 const mmss = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
 
 export default function SportsApp({ branding, serviceUrl }: { branding: Branding; serviceUrl: string | null }) {
-  const api = useMemo(() => (serviceUrl ? sportsApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
+  const api = useMemo(() => (serviceUrl ? sportsApi(serviceUrl) : browserSports()), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown"); const [health, setHealth] = useState<Health | null>(null); const [samples, setSamples] = useState<SampleInfo[]>([]);
   const [file, setFile] = useState<File | null>(null); const [sampleId, setSampleId] = useState<string | null>(null); const [localUrl, setLocalUrl] = useState<string | null>(null);
   const [params, setParams] = useState<AnalysisParams>({ sample_fps: 5, start_s: 0, end_s: null, player_conf: 0.5, ball_conf: 0.3, analyse_ball: true, team_mode: "auto", pitch_length: 105, pitch_width: 68 });
   const [job, setJob] = useState<JobStatus | null>(null); const [results, setResults] = useState<Results | null>(null); const [error, setError] = useState(""); const [busy, setBusy] = useState(false);
@@ -265,7 +266,7 @@ export default function SportsApp({ branding, serviceUrl }: { branding: Branding
             <section className={CARD} aria-label="Processing summary" data-testid="summary">
               <div className="mb-2 flex flex-wrap items-center gap-2"><h2 className={H3}>Processing summary</h2>
                 <span className="ml-auto flex flex-wrap gap-2"><button type="button" className={BTN} onClick={exportAll} data-testid="export-json">Full results JSON</button>
-                  {api && job && (["tracks", "ball", "events"] as const).map((k) => <a key={k} className={BTN} href={api.csvUrl(job.job_id, k)} data-testid={`export-${k}`}>{k} CSV</a>)}</span></div>
+                  {api && job && (["tracks", "ball", "events"] as const).map((k) => <a key={k} className={BTN} href={api.csvUrl(job.job_id, k)} download={`sports-${k}.csv`} data-testid={`export-${k}`}>{k} CSV</a>)}</span></div>
               {results.summary && (() => { const s = results.summary; return (
                 <dl className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs sm:grid-cols-3 [&_dd]:text-right [&_dd]:tabular-nums [&_dd]:text-slate-100 [&_dt]:text-slate-400">
                   <div className="flex justify-between gap-2"><dt>Frames analysed</dt><dd data-testid="s-frames">{s.samples_analysed}</dd></div>
