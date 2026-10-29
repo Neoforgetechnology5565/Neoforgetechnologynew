@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ERP_MAP } from "@/lib/erp-demos";
 import { getBranding } from "@/lib/db";
 import type { Branding } from "@/lib/types";
+import ErpSync from "@/components/biz/ErpSync";
 
 type Params = { params: Promise<{ slug: string }> };
 type AppComp = React.ComponentType<{ branding: Branding }>;
@@ -18,6 +19,7 @@ const APPS: Record<string, AppComp> = {
   "helpdesk-service-management": dynamic(() => import("@/components/biz/HelpdeskApp")),
   "marketing-automation-crm": dynamic(() => import("@/components/biz/MarketingApp")),
   "project-resource-management": dynamic(() => import("@/components/biz/ProjectsApp")),
+  "workflow-automation-engine": dynamic(() => import("@/components/biz/FlowApp")),
   "executive-analytics-automation": dynamic(() => import("@/components/biz/ExecApp")),
 };
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
@@ -28,5 +30,5 @@ export default async function ErpDemoApp({ params }: Params) {
   const slug = (await params).slug;
   const App = APPS[slug];
   if (!App) notFound();
-  return <App branding={await getBranding()} />;
+  return <><ErpSync url={process.env.BIZ_API_URL ?? ""} /><App branding={await getBranding()} /></>;
 }

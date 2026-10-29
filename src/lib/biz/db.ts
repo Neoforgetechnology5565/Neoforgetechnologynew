@@ -2,11 +2,13 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { SEEDS, type DB, type SliceKey } from "./seeds";
 import { DEMO_TODAY } from "./util";
+import { connect, push } from "./sync";
 
 /**
  * One local, browser-only data store shared by all ten demos. Each demo owns a slice (crm, fin, hrm, …); some demos read
  * or write another slice on purpose (a procurement goods receipt adds stock to inventory). Persisted in localStorage.
- * No server, no network. Reset restores the original seed for one slice or for everything.
+ * Without a configured business API there is no network. With one (see sync.ts) every change is also validated and stored by the server.
+ * Reset restores the original seed for one slice or for everything.
  */
 const KEY = "neoforge-erp-demos-v1";
 let state: DB = SEEDS();
@@ -34,14 +36,22 @@ const get = () => state;
 const getServer = () => SERVER;
 const SERVER = state;
 
-/** Debug/test hook: lets browser tests read the live in-memory store. */
-if (typeof window !== "undefined") (window as unknown as { __erpDb: () => DB }).__erpDb = () => state;
+/** Debug/test hook: lets browser tests read (and change) the live in-memory store, through the same path the screens use. */
+if (typeof window !== "undefined") { const w = window as unknown as { __erpDb: () => DB; __erpSetDb: (fn: (d: DB) => DB) => void }; w.__erpDb = () => state; w.__erpSetDb = (fn) => setDb(fn); }
 
-export function setDb(fn: (d: DB) => DB) { state = fn(state); persist(); subs.forEach((f) => f()); }
+export function setDb(fn: (d: DB) => DB) { const prev = state; state = fn(state); persist(); subs.forEach((f) => f()); push(prev as never, state as never); }
+/** Connects the store to the business API (once per page load). Slices already on the server replace the local copy. */
+let connected = "";
+export function connectServer(url: string) {
+  if (connected === url) return; connected = url;
+  hydrate();
+  void connect(url, { getState: () => state as never, seed: () => SEEDS() as never, adopt: (s) => { state = migrate({ ...state, ...(s as Partial<DB>) }); persist(); subs.forEach((f) => f()); } });
+}
 export function resetDb(keys?: SliceKey[]) {
+  const prev = state;
   const fresh = SEEDS();
   state = keys ? ({ ...state, ...Object.fromEntries(keys.map((k) => [k, fresh[k]])) } as DB) : fresh;
-  persist(); subs.forEach((f) => f());
+  persist(); subs.forEach((f) => f()); push(prev as never, state as never);
 }
 export const useDb = () => useSyncExternalStore(subscribe, get, getServer);
 

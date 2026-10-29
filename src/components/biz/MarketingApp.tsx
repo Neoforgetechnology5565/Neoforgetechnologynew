@@ -14,7 +14,7 @@ const SIM = "SIMULATED sample metrics: no email was sent, and no real recipient 
 
 export default function MarketingApp({ branding }: { branding: Branding }) {
   return (
-    <AppProviders className="bg-violet-50 text-slate-800" note="Demonstration marketing software. No emails are sent: campaign execution is a simulated workflow and every delivery, open and click figure is simulated sample data. Contacts are fictional. Stored only in this browser (localStorage); no server.">
+    <AppProviders className="bg-violet-50 text-slate-800" note="Demonstration marketing software. No emails are sent: campaign execution is a simulated workflow and every delivery, open and click figure is simulated sample data. Contacts are fictional.">
       <Studio branding={branding} />
     </AppProviders>
   );

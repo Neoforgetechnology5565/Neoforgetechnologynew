@@ -19,7 +19,7 @@ export default function PayrollApp({ branding }: { branding: Branding }) {
   const [date, setDate] = useState("2026-03-13"); const [shift, setShift] = useState("all"); const [clock, setClock] = useState<null | { empId?: string; action?: string }>(null);
   const { pay, hrm } = useData(); const open = exceptionsOf(pay, hrm, EXC_FROM, PAY_TODAY).filter((x) => !pay.excused.includes(x.key)).length;
   return (
-    <AppProviders className="bg-slate-200 text-slate-800" note="Demonstration only. Payroll rules are example assumptions, not country-specific legal compliance. No salary payment occurs and no real data is used. Clock events are simulated. Stored only in this browser (localStorage); no server.">
+    <AppProviders className="bg-slate-200 text-slate-800" note="Demonstration only. Payroll rules are example assumptions, not country-specific legal compliance. No salary payment occurs and no real data is used. Clock events are simulated.">
       <header className="no-print bg-slate-950 text-slate-100">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
           <BrandLogo branding={branding} height={28} />

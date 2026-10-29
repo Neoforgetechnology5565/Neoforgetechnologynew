@@ -12,7 +12,7 @@
     "test:cctv:api": "node scripts/test-cctv-api.mjs",
     "test:cctv:ui": "node scripts/test-cctv-ui.mjs",
     "cctv:samples": "node scripts/make-cctv-samples.mjs",
-    "test:biz": "tsx src/lib/biz/biz.test.ts",
+    "test:biz": "tsx src/lib/biz/biz.test.ts && tsx src/lib/biz/sync.test.ts",
     "test:erp": "node scripts/test-erp-ui.mjs",
     "test:foot": "tsx src/lib/foot/foot.test.ts",
     "test:foot:api": "node scripts/test-foot-api.mjs",

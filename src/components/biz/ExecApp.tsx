@@ -12,9 +12,10 @@ import { runTotals } from "@/lib/biz/pay-calc";
 import { rate } from "@/lib/biz/mkt-calc";
 import { overdue as ticketOverdue } from "@/lib/biz/desk-calc";
 import type { Branding } from "@/lib/types";
+import BiExplore from "./BiExplore";
 import { AppProviders, Badge, BarChart, BrandLogo, Btn, DataTable, DemoBadge, DemoLinks, Donut, Drawer, Empty, FilterSelect, ResetButton, Segmented, HBars, Kpi, KpiRow, LineChart, Modal, Notice, PageHead, Panel, Progress, SelectIn, Tabs, TextIn, Timeline, useToast, type Col } from "./kit";
 
-const TABS: { id: string; label: string; unit?: string }[] = [{ id: "briefing", label: "Briefing" }, { id: "commercial", label: "Commercial", unit: "commercial" }, { id: "finance", label: "Finance", unit: "finance" }, { id: "operations", label: "Operations", unit: "operations" }, { id: "people", label: "People & service", unit: "people" }, { id: "workflow", label: "Workflow & alerts" }];
+const TABS: { id: string; label: string; unit?: string }[] = [{ id: "briefing", label: "Briefing" }, { id: "commercial", label: "Commercial", unit: "commercial" }, { id: "finance", label: "Finance", unit: "finance" }, { id: "operations", label: "Operations", unit: "operations" }, { id: "people", label: "People & service", unit: "people" }, { id: "workflow", label: "Workflow & alerts" }, { id: "explore", label: "Import & explore" }];
 const UNITS = [{ id: "commercial", label: "Commercial" }, { id: "finance", label: "Finance" }, { id: "operations", label: "Operations" }, { id: "people", label: "People & service" }];
 const M = (n: number) => money(n, "USD", 0);
 const SIM = "Simulated sample metrics (no email was sent)";
@@ -25,7 +26,7 @@ const SUBSCREENS: Record<string, { id: string; label: string }[]> = { commercial
 
 export default function ExecApp({ branding }: { branding: Branding }) {
   return (
-    <AppProviders className="bg-slate-950 text-slate-100" note="Demonstration executive dashboard. Every number is calculated from the sample records of the other demos stored in this browser (localStorage). There is no real integration, server or database. Marketing engagement figures are simulated.">
+    <AppProviders className="bg-slate-950 text-slate-100" note="Demonstration executive dashboard. Every number is calculated from the sample records of the other demos. Marketing engagement figures are simulated.">
       <Intelligence branding={branding} />
     </AppProviders>
   );
@@ -63,7 +64,7 @@ function Intelligence({ branding }: { branding: Branding }) {
         {cur === "finance" && subId === "finance" && <Finance {...ctx} />}{cur === "finance" && subId === "payroll" && <Payroll {...ctx} />}
         {cur === "operations" && subId === "inventory" && <Inventory {...ctx} />}{cur === "operations" && subId === "procurement" && <Procurement {...ctx} />}{cur === "operations" && subId === "projects" && <Projects {...ctx} />}
         {cur === "people" && subId === "support" && <Support {...ctx} />}{cur === "people" && subId === "workforce" && <Workforce {...ctx} />}
-        {cur === "workflow" && <Workflow {...ctx} />}</div>}
+        {cur === "workflow" && <Workflow {...ctx} />}{cur === "explore" && <BiExplore />}</div>}
     </main>
     {drill && <Drawer title={<span>{drill.title}<span className="block text-sm font-normal text-slate-500">{drill.rows.length} supporting records</span></span>} onClose={() => setDrill(null)}>{drill.rows.length ? <DrillTable d={drill} /> : <Empty>No supporting records.</Empty>}</Drawer>}
   </>);

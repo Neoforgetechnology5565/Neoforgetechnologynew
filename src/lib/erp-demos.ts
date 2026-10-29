@@ -1,6 +1,6 @@
 /** CRM / HRM / ERP interactive demo catalogue. All demos are frontend-only and use local browser data. */
 export interface ErpDemo { slug: string; no: string; title: string; short: string; problem: string; tags: string[]; features: string[]; simulated: string; /** The workspace layout of this demo. */ layout: string }
-export const ERP_DISCLAIMER = "Interactive frontend demonstrations with fictional data. They run entirely in your browser and store changes only in this browser (localStorage). There is no server, shared database or real integration, and nothing is sent anywhere.";
+export const ERP_DISCLAIMER = "Interactive demonstrations with fictional data. Changes are stored in your browser and, when the demo server is enabled, also validated and saved there in an anonymous workspace. There is no real integration, and nothing is sent to any other system.";
 
 export const ERP_DEMOS: ErpDemo[] = [
   { slug: "crm-sales-pipeline", no: "01", title: "CRM & Sales Pipeline Management", short: "CRM", problem: "Leads, contacts and deals scattered across inboxes and spreadsheets make forecasting guesswork.",
@@ -43,5 +43,9 @@ export const ERP_DEMOS: ErpDemo[] = [
     tags: ["KPIs", "Drill-down", "Alerts", "Approvals"],
     features: ["Executive summary written from the live numbers, with headline figures and change versus the previous period", "Business-unit and date-range filters that reshape the briefing and the available report tabs", "Commercial, finance, operations and people reports with dimension filters and drill-down to supporting records", "Scorecard of every measure with a Show records action and CSV / JSON exports", "Approval workflow across executive, procurement and HR requests, and threshold alerts; sample data and simulated marketing are labelled"],
     simulated: "Reads this browser's sample data from the other demos. No real integration exists.", layout: "An executive intelligence workspace: wide presentation-style briefing with a written summary, period comparison, business-unit filters and a drill-down scorecard." },
+  { slug: "workflow-automation-engine", no: "11", title: "Workflow Automation Engine & Approvals", short: "Flow", problem: "Routine follow-ups and approvals depend on people remembering to do them.",
+    tags: ["Workflow automation", "Rules", "Approvals", "Audit log"],
+    features: ["Workflow builder: trigger (a record is created, or manual), conditions, tasks, field updates, alerts, approvals and delays", "Server-side validation before saving, with a clear error for every problem", "Active workflows run automatically when a matching lead, ticket, leave request, invoice or other record is created in the other demos", "Test run with a sample record; every step logs what really happened, including failures and steps that were not run", "Approval queue: a run waits at an approval step, then continues or stops on your decision", "Retry only for steps that are safe to repeat; activate or deactivate any workflow"],
+    simulated: "Requires the demo server. Actions only change this demo's own records; no e-mail, SMS or webhook is sent, and delays are recorded rather than waited for.", layout: "An automation console: workflow cards with a step builder, an execution log with step-by-step detail, and an approvals queue." },
 ];
 export const ERP_MAP = Object.fromEntries(ERP_DEMOS.map((d) => [d.slug, d]));

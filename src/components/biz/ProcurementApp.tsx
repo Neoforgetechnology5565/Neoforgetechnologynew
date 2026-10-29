@@ -28,7 +28,7 @@ function useItems(): Item[] {
 
 export default function ProcurementApp({ branding }: { branding: Branding }) {
   return (
-    <AppProviders className="bg-stone-100 text-slate-800" note="Demonstration procurement software. Approvals, orders and deliveries are simulated: nothing is sent to suppliers. A goods receipt adds stock to the Inventory demo (shared local data). Stored only in this browser (localStorage); no server.">
+    <AppProviders className="bg-stone-100 text-slate-800" note="Demonstration procurement software. Approvals, orders and deliveries are simulated: nothing is sent to suppliers. A goods receipt adds stock to the Inventory demo (shared local data).">
       <Workspace branding={branding} />
     </AppProviders>
   );

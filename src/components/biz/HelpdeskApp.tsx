@@ -18,7 +18,7 @@ const ME = "e24";
 
 export default function HelpdeskApp({ branding }: { branding: Branding }) {
   return (
-    <AppProviders className="bg-slate-200 text-slate-800" note="Demonstration helpdesk with fictional customers and conversations. Replies and notes are stored only in this browser: no message is sent to any real customer. Overdue status is calculated against the demo time shown above. No server or shared database.">
+    <AppProviders className="bg-slate-200 text-slate-800" note="Demonstration helpdesk with fictional customers and conversations. No message is sent to any real customer. Overdue status is calculated against the demo time shown above.">
       <Desk branding={branding} />
     </AppProviders>
   );

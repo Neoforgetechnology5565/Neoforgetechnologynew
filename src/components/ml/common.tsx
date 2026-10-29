@@ -10,9 +10,9 @@ export const CARD = "rounded-lg border border-slate-800 bg-slate-900 p-4";
 export const H3 = "text-[13px] font-semibold uppercase tracking-wider text-slate-400";
 export const INPUT = "rounded border border-slate-700 bg-slate-950 px-2 py-1 text-slate-100";
 
-export type FeatureStatus = "working" | "preview" | "soon" | "external" | "hardware";
-export const STATUS_TEXT: Record<FeatureStatus, string> = { working: "Working", preview: "UI Preview — Not Functional", soon: "Coming Soon", external: "Requires External Integration", hardware: "Requires Compatible Hardware" };
-const STATUS_CLS: Record<FeatureStatus, string> = { working: "border-green-500/50 bg-green-500/10 text-green-300", preview: "border-amber-500/50 bg-amber-500/10 text-amber-300", soon: "border-slate-500/50 bg-slate-500/10 text-slate-300", external: "border-violet-500/50 bg-violet-500/10 text-violet-300", hardware: "border-rose-500/50 bg-rose-500/10 text-rose-300" };
+export type FeatureStatus = "working" | "preview" | "soon" | "external" | "hardware" | "model";
+export const STATUS_TEXT: Record<FeatureStatus, string> = { working: "Working", preview: "UI Preview — Not Functional", soon: "Coming Soon", external: "Requires External Integration", hardware: "Requires Compatible Hardware", model: "Requires Model Setup" };
+const STATUS_CLS: Record<FeatureStatus, string> = { working: "border-green-500/50 bg-green-500/10 text-green-300", preview: "border-amber-500/50 bg-amber-500/10 text-amber-300", soon: "border-slate-500/50 bg-slate-500/10 text-slate-300", external: "border-violet-500/50 bg-violet-500/10 text-violet-300", hardware: "border-rose-500/50 bg-rose-500/10 text-rose-300", model: "border-sky-500/50 bg-sky-500/10 text-sky-300" };
 export const StatusChip = ({ s }: { s: FeatureStatus }) => <span className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-semibold ${STATUS_CLS[s]}`}>{STATUS_TEXT[s]}</span>;
 
 /** Advanced capabilities the product could have but this demo does not implement. Buttons never pretend to act. */

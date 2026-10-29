@@ -14,7 +14,7 @@ const AISLES = ["A", "B", "C", "D", "E", "F"], RACKS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function InventoryApp({ branding }: { branding: Branding }) {
   return (
-    <AppProviders className="bg-slate-300 text-slate-800" note="Demonstration inventory software with fictional data. Stock levels are derived from the movement history. Resetting also resets the Procurement demo, because the two share stock. Stored only in this browser (localStorage); no server.">
+    <AppProviders className="bg-slate-300 text-slate-800" note="Demonstration inventory software with fictional data. Stock levels are derived from the movement history. Resetting also resets the Procurement demo, because the two share stock.">
       <Workstation branding={branding} />
     </AppProviders>
   );

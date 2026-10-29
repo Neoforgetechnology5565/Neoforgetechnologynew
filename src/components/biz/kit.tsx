@@ -1,9 +1,10 @@
 "use client";
 import Link from "next/link";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import Logo from "@/components/Logo";
 import type { Branding } from "@/lib/types";
 import { downloadCsv, num } from "@/lib/biz/util";
+import { onSyncNotice, subscribeSync, syncStatus } from "@/lib/biz/sync";
 
 /* ───────────────────────── Shell ───────────────────────── */
 type Tone = "green" | "amber" | "red" | "blue" | "slate" | "violet";
@@ -18,11 +19,16 @@ export function AppProviders({ note, children, className = "" }: { note?: string
   const [conf, setConf] = useState<{ msg: string; yes: string; danger: boolean; res(v: boolean): void } | null>(null);
   const toast = useCallback((msg: string, tone: Tone = "green") => { const id = Date.now() + Math.random(); setToasts((t) => [...t, { id, msg, tone }]); setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3500); }, []);
   const confirm = useCallback((msg: string, o?: { yes?: string; danger?: boolean }) => new Promise<boolean>((res) => setConf({ msg, yes: o?.yes ?? "Confirm", danger: o?.danger ?? true, res })), []);
+  useEffect(() => onSyncNotice((m) => toast(m, "red")), [toast]);
+  const sync = useSyncExternalStore(subscribeSync, syncStatus, syncStatus);
   return (
     <ToastCtx.Provider value={toast}><ConfirmCtx.Provider value={confirm}>
       <div className={`erp-root app-readable flex min-h-screen flex-col ${className}`}>
         <div className="flex min-h-0 flex-1 flex-col">{children}</div>
-        <footer className="no-print border-t border-slate-800 bg-slate-900 px-4 py-2.5 text-[13px] leading-snug text-slate-300">{note ?? "Interactive frontend demonstration with fictional data. Everything runs in your browser and is stored only in this browser's localStorage. There is no server or shared database, and nothing is sent anywhere."}</footer>
+        <footer className="no-print border-t border-slate-800 bg-slate-900 px-4 py-2.5 text-[13px] leading-snug text-slate-300" data-testid="storage-note">
+          <span className={`mr-2 inline-block rounded px-1.5 py-0.5 text-[12px] font-semibold ${sync.mode === "synced" || sync.mode === "saving" ? "bg-emerald-800 text-emerald-100" : sync.mode === "offline" || sync.mode === "error" ? "bg-red-900 text-red-100" : "bg-slate-700 text-slate-100"}`} data-testid="sync-badge" data-mode={sync.mode}>{sync.mode === "synced" ? "Saved on the demo server" : sync.mode === "saving" ? "Saving…" : sync.mode === "connecting" ? "Connecting…" : sync.mode === "offline" ? "Server unreachable: changes kept in this browser" : sync.mode === "error" ? "Server error" : "Local only"}</span>
+          {note ?? "Interactive demonstration with fictional data."} {sync.mode === "local" ? "No business API is configured, so data is stored only in this browser's localStorage and nothing is sent anywhere." : "Changes are validated and saved by the demo server in an anonymous workspace tied to this browser; nothing is sent to any other system (no e-mail, SMS or payment)."}{sync.message && sync.mode !== "synced" ? ` ${sync.message}` : ""}
+        </footer>
         <div className="no-print pointer-events-none fixed bottom-4 right-4 z-[70] flex w-80 flex-col gap-2" role="status" aria-live="polite">
           {toasts.map((t) => <div key={t.id} className={`pointer-events-auto rounded-lg border px-3 py-2.5 text-[15px] shadow-lg ${t.tone === "red" ? "border-red-300 bg-red-50 text-red-800" : t.tone === "amber" ? "border-amber-300 bg-amber-50 text-amber-900" : "border-blue-300 bg-white text-slate-800"}`} data-testid="toast">{t.msg}</div>)}
         </div>

@@ -33,5 +33,7 @@ class Settings:
     max_doc_mb: int = field(default_factory=lambda: _int("ML_MAX_DOC_MB", 15))
     max_pdf_pages: int = field(default_factory=lambda: _int("ML_MAX_PDF_PAGES", 10))
     max_search_docs: int = field(default_factory=lambda: _int("ML_MAX_SEARCH_DOCS", 30))
+    rate_per_minute: int = field(default_factory=lambda: _int("ML_RATE_PER_MINUTE", 240))
+    max_concurrent: int = field(default_factory=lambda: _int("ML_MAX_CONCURRENT", 4))
     job_ttl_seconds: int = field(default_factory=lambda: _int("ML_JOB_TTL_SECONDS", 1800))
     allowed_origins: tuple[str, ...] = field(default_factory=lambda: tuple(o.strip() for o in os.environ.get("ML_ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",") if o.strip()))

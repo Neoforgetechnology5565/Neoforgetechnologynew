@@ -17,7 +17,7 @@ export default function HrmApp({ branding }: { branding: Branding }) {
   const hits = find.trim().length >= 2 ? hrm.employees.filter((e) => `${e.name} ${e.position} ${e.dept}`.toLowerCase().includes(find.trim().toLowerCase())).slice(0, 6) : [];
   const badge = (id: string) => (id === "leave" ? pending : id === "onboarding" ? onboarding : 0);
   return (
-    <AppProviders className="bg-stone-50 text-slate-800" note="Demonstration HR software. All employees, salaries and reviews are fictional; no real personal data is used. Data is stored only in this browser (localStorage); there is no server or shared database.">
+    <AppProviders className="bg-stone-50 text-slate-800" note="Demonstration HR software. All employees, salaries and reviews are fictional; no real personal data is used.">
       <header className="no-print bg-slate-900 text-slate-100">
         <div className="mx-auto flex max-w-[1500px] flex-wrap items-center gap-x-5 gap-y-2 px-5 py-3">
           <BrandLogo branding={branding} height={30} />

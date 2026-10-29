@@ -4,6 +4,8 @@ import time
 
 from PIL import Image
 
+from app.config import Settings
+from app.main import create_app
 from tests.conftest import SAMPLES, post, up
 
 
@@ -94,3 +96,10 @@ def test_pose_on_people_and_on_nobody(client):
     assert none["persons"] == [] and "No person" in none["message"]
     a = post(client, "/api/pose/image", "astronaut").json()["persons"]
     assert a and a[0]["keypoints"] and a[0]["joint_angles_degrees"] is not None
+
+
+def test_rate_limit_is_enforced_per_client(tmp_path):
+    from fastapi.testclient import TestClient
+    with TestClient(create_app(Settings(work_dir=tmp_path, rate_per_minute=3))) as c:
+        codes = [c.get("/api/health").status_code for _ in range(5)]
+    assert codes[:3] == [200, 200, 200] and codes[3:] == [429, 429]

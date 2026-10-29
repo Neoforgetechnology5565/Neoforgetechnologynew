@@ -18,7 +18,7 @@ export default function FinanceApp({ branding }: { branding: Branding }) {
   const overdue = fin.invoices.filter((i) => invStatus(i) === "Overdue").length;
   const toLedger = (id: string) => { setAcct(id); setTab("transactions"); };
   return (
-    <AppProviders className="bg-stone-100 text-slate-800" note="Demonstration accounting software with fictional data. Not certified accounting, audit or tax software, and tax rates are demo assumptions. Stored only in this browser (localStorage); no server or database.">
+    <AppProviders className="bg-stone-100 text-slate-800" note="Demonstration accounting software with fictional data. Not certified accounting, audit or tax software, and tax rates are demo assumptions.">
       <header className="no-print border-b-2 border-slate-800 bg-white">
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-5 pt-3">
           <BrandLogo branding={branding} dark={false} height={28} />

@@ -9,6 +9,7 @@ import json
 import re
 import shutil
 import time
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -64,6 +65,30 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app = FastAPI(title="Neo Forge ML lab", version="1.0.0", lifespan=lifespan)
     app.add_middleware(CORSMiddleware, allow_origins=list(s.allowed_origins), allow_methods=["GET", "POST", "DELETE"], allow_headers=["*"])
     app.add_middleware(GZipMiddleware, minimum_size=2000)
+    hits: dict[str, deque] = defaultdict(deque)
+    busy = {"n": 0}
+
+    @app.middleware("http")
+    async def guard(request: Request, call_next):
+        """Per-IP request limit and a cap on simultaneous inference requests, so one visitor cannot exhaust the CPU."""
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        ip = request.client.host if request.client else "?"
+        q, now = hits[ip], time.time()
+        while q and q[0] < now - 60:
+            q.popleft()
+        if len(q) >= s.rate_per_minute:
+            return JSONResponse({"detail": "Too many requests. Please slow down."}, status_code=429, headers={"Retry-After": "10"})
+        q.append(now)
+        if request.method != "POST":
+            return await call_next(request)
+        if busy["n"] >= s.max_concurrent:
+            return JSONResponse({"detail": "The demo server is busy with other analyses. Try again in a moment."}, status_code=429, headers={"Retry-After": "5"})
+        busy["n"] += 1
+        try:
+            return await call_next(request)
+        finally:
+            busy["n"] -= 1
 
     def need(name: str):
         if st.get(name) is None:

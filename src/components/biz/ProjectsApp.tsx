@@ -19,7 +19,7 @@ const Scope = createContext("");
 
 export default function ProjectsApp({ branding }: { branding: Branding }) {
   return (
-    <AppProviders className="bg-sky-50 text-slate-800" note="Demonstration project software with fictional projects, rates and hours. Costs are hours × sample hourly rates; the progress and budget figures are calculated from the task and time records. Stored only in this browser (localStorage); no server.">
+    <AppProviders className="bg-sky-50 text-slate-800" note="Demonstration project software with fictional projects, rates and hours. Costs are hours × sample hourly rates; the progress and budget figures are calculated from the task and time records.">
       <Workspace branding={branding} />
     </AppProviders>
   );
