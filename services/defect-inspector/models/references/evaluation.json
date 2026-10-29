@@ -1,0 +1,206 @@
+{
+ "pcb1": {
+  "test_normal": 100,
+  "test_anomalous": 100,
+  "image_auroc": 0.9459,
+  "pixel_auroc": 0.9938,
+  "at_threshold": {
+   "true_positive_rate": 0.83,
+   "false_positive_rate": 0.1
+  },
+  "tau": 7.693,
+  "normal_score_range_test": [
+   6.362,
+   10.48
+  ],
+  "anomalous_score_median_test": 8.934,
+  "seconds": 129.9
+ },
+ "candle": {
+  "test_normal": 100,
+  "test_anomalous": 100,
+  "image_auroc": 0.9193,
+  "pixel_auroc": 0.9917,
+  "at_threshold": {
+   "true_positive_rate": 0.38,
+   "false_positive_rate": 0.03
+  },
+  "tau": 7.883,
+  "normal_score_range_test": [
+   4.886,
+   8.838
+  ],
+  "anomalous_score_median_test": 7.598,
+  "seconds": 142.2
+ },
+ "capsules": {
+  "test_normal": 60,
+  "test_anomalous": 100,
+  "image_auroc": 0.877,
+  "pixel_auroc": 0.9911,
+  "at_threshold": {
+   "true_positive_rate": 0.33,
+   "false_positive_rate": 0.017
+  },
+  "tau": 9.737,
+  "normal_score_range_test": [
+   7.824,
+   9.997
+  ],
+  "anomalous_score_median_test": 9.063,
+  "seconds": 118.1
+ },
+ "cashew": {
+  "test_normal": 50,
+  "test_anomalous": 100,
+  "image_auroc": 0.8756,
+  "pixel_auroc": 0.9523,
+  "at_threshold": {
+   "true_positive_rate": 0.4,
+   "false_positive_rate": 0.0
+  },
+  "tau": 8.873,
+  "normal_score_range_test": [
+   6.38,
+   8.826
+  ],
+  "anomalous_score_median_test": 8.218,
+  "seconds": 139.7
+ },
+ "chewinggum": {
+  "test_normal": 50,
+  "test_anomalous": 100,
+  "image_auroc": 0.9744,
+  "pixel_auroc": 0.9849,
+  "at_threshold": {
+   "true_positive_rate": 0.84,
+   "false_positive_rate": 0.0
+  },
+  "tau": 8.669,
+  "normal_score_range_test": [
+   6.982,
+   8.533
+  ],
+  "anomalous_score_median_test": 9.8,
+  "seconds": 209.3
+ },
+ "fryum": {
+  "test_normal": 50,
+  "test_anomalous": 100,
+  "image_auroc": 0.9714,
+  "pixel_auroc": 0.911,
+  "at_threshold": {
+   "true_positive_rate": 0.73,
+   "false_positive_rate": 0.0
+  },
+  "tau": 7.609,
+  "normal_score_range_test": [
+   6.065,
+   7.571
+  ],
+  "anomalous_score_median_test": 8.639,
+  "seconds": 164.3
+ },
+ "macaroni1": {
+  "test_normal": 100,
+  "test_anomalous": 100,
+  "image_auroc": 0.9458,
+  "pixel_auroc": 0.9934,
+  "at_threshold": {
+   "true_positive_rate": 0.5,
+   "false_positive_rate": 0.03
+  },
+  "tau": 7.306,
+  "normal_score_range_test": [
+   5.296,
+   8.372
+  ],
+  "anomalous_score_median_test": 7.322,
+  "seconds": 133.7
+ },
+ "macaroni2": {
+  "test_normal": 100,
+  "test_anomalous": 100,
+  "image_auroc": 0.8145,
+  "pixel_auroc": 0.9828,
+  "at_threshold": {
+   "true_positive_rate": 0.2,
+   "false_positive_rate": 0.02
+  },
+  "tau": 8.955,
+  "normal_score_range_test": [
+   6.381,
+   9.329
+  ],
+  "anomalous_score_median_test": 7.844,
+  "seconds": 130.4
+ },
+ "pcb2": {
+  "test_normal": 100,
+  "test_anomalous": 100,
+  "image_auroc": 0.9224,
+  "pixel_auroc": 0.9814,
+  "at_threshold": {
+   "true_positive_rate": 0.63,
+   "false_positive_rate": 0.04
+  },
+  "tau": 7.963,
+  "normal_score_range_test": [
+   6.236,
+   9.115
+  ],
+  "anomalous_score_median_test": 8.563,
+  "seconds": 132.7
+ },
+ "pcb3": {
+  "test_normal": 101,
+  "test_anomalous": 100,
+  "image_auroc": 0.9513,
+  "pixel_auroc": 0.9846,
+  "at_threshold": {
+   "true_positive_rate": 0.57,
+   "false_positive_rate": 0.01
+  },
+  "tau": 8.267,
+  "normal_score_range_test": [
+   6.168,
+   8.883
+  ],
+  "anomalous_score_median_test": 8.747,
+  "seconds": 128.2
+ },
+ "pcb4": {
+  "test_normal": 101,
+  "test_anomalous": 100,
+  "image_auroc": 0.9926,
+  "pixel_auroc": 0.9869,
+  "at_threshold": {
+   "true_positive_rate": 0.91,
+   "false_positive_rate": 0.01
+  },
+  "tau": 7.966,
+  "normal_score_range_test": [
+   6.098,
+   8.228
+  ],
+  "anomalous_score_median_test": 9.235,
+  "seconds": 126.6
+ },
+ "pipe_fryum": {
+  "test_normal": 50,
+  "test_anomalous": 100,
+  "image_auroc": 0.9888,
+  "pixel_auroc": 0.987,
+  "at_threshold": {
+   "true_positive_rate": 0.98,
+   "false_positive_rate": 0.16
+  },
+  "tau": 6.301,
+  "normal_score_range_test": [
+   5.179,
+   7.678
+  ],
+  "anomalous_score_median_test": 8.93,
+  "seconds": 112.9
+ }
+}
