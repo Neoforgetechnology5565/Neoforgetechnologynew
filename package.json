@@ -34,7 +34,9 @@
     "test:defects:ui": "node scripts/test-defects-ui.mjs",
     "test:activity:ui": "node scripts/test-activity-ui.mjs",
     "test:documents:ui": "node scripts/test-documents-ui.mjs",
-    "test:ml:ui": "node scripts/test-ml-ui.mjs"
+    "test:ml:ui": "node scripts/test-ml-ui.mjs",
+    "test:vi": "tsx src/lib/vi/vi.test.ts",
+    "test:vi:ui": "node scripts/test-vi-ui.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",

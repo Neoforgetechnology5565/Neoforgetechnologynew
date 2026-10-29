@@ -36,6 +36,9 @@ const nextConfig = {
       { source: "/human-pose-estimation-demo", destination: "/ai-demos/ai-human-pose-estimation/app", permanent: false },
       { source: "/semantic-document-search-demo", destination: "/ai-demos/ai-semantic-document-search/app", permanent: false },
       { source: "/product-recommendation-demo", destination: "/ai-demos/ai-product-recommendation/app", permanent: false },
+      { source: "/restaurant-employee-monitoring-demo", destination: "/ai-demos/ai-restaurant-employee-monitoring/app", permanent: false },
+      { source: "/table-tennis-intelligence-demo", destination: "/ai-demos/ai-table-tennis-video-intelligence/app", permanent: false },
+      { source: "/basketball-intelligence-demo", destination: "/ai-demos/ai-basketball-video-intelligence/app", permanent: false },
     ];
   },
   async headers() {

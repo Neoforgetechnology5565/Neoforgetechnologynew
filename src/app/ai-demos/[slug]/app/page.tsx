@@ -21,6 +21,9 @@ import DocumentApp from "@/components/documents/DocumentApp";
 import SportsApp from "@/components/sports/SportsApp";
 import PpeApp from "@/components/ppe/PpeApp";
 import VehicleApp from "@/components/vehicle/VehicleApp";
+import RestaurantApp from "@/components/vi/RestaurantApp";
+import TableTennisApp from "@/components/vi/TableTennisApp";
+import BasketballApp from "@/components/vi/BasketballApp";
 import { CV_MAP } from "@/lib/cv-demos";
 import { getBranding } from "@/lib/db";
 
@@ -51,6 +54,9 @@ export default async function CvDemoApp({ params }: Params) {
   if (slug === "ai-image-anomaly-detection") return <AnomalyApp branding={await getBranding()} serviceUrl={process.env.DEFECT_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "ai-visual-inspection") return <DefectApp branding={await getBranding()} serviceUrl={process.env.DEFECT_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "sports-video-intelligence") return <SportsApp branding={await getBranding()} serviceUrl={process.env.SPORTS_API_URL?.replace(/\/$/, "") || null} />;
+  if (slug === "ai-restaurant-employee-monitoring") return <RestaurantApp branding={await getBranding()} serviceUrl={process.env.VI_API_URL?.replace(/\/$/, "") || null} />;
+  if (slug === "ai-table-tennis-video-intelligence") return <TableTennisApp branding={await getBranding()} serviceUrl={process.env.VI_API_URL?.replace(/\/$/, "") || null} />;
+  if (slug === "ai-basketball-video-intelligence") return <BasketballApp branding={await getBranding()} serviceUrl={process.env.VI_API_URL?.replace(/\/$/, "") || null} />;
   if (slug !== "ai-cctv-intelligence-security-analytics") notFound();
   return <CctvPlatform branding={await getBranding()} />;
 }
