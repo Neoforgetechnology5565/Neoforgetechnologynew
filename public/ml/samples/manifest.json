@@ -52,7 +52,8 @@
    "title": "Pedestrians, 8 s clip",
    "description": "Eight seconds of people walking.",
    "provenance": "Cut from samples/data/vtest.avi in the OpenCV repository (Apache-2.0 licensed repository; the recording's author is not documented)",
-   "licence": "Apache-2.0 repository sample; see provenance"
+   "licence": "Apache-2.0 repository sample; see provenance",
+   "file_web": "pedestrians-8s.webm"
   },
   {
    "id": "invoice-text",
@@ -79,7 +80,8 @@
    "title": "Clean test scan (Tesseract project)",
    "description": "Eight lines of 12-point text.",
    "provenance": "See public/documents/samples/manifest.json",
-   "licence": "Created for this project / Apache-2.0 (Tesseract test image)"
+   "licence": "Created for this project / Apache-2.0 (Tesseract test image)",
+   "file_web": "scan-tesseract-phototest.png"
   },
   {
    "id": "co2-monthly",

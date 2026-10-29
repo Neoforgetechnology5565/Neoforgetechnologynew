@@ -8,6 +8,7 @@
 import { createRequire } from "node:module";
 import { mkdirSync, readFileSync } from "node:fs";
 const { chromium } = createRequire(import.meta.url)("playwright");
+const FIX = new URL("../test-fixtures/vi/", import.meta.url).pathname;
 const BASE = process.env.BASE_URL || "http://localhost:3000", MODE = process.env.MODE || "server", SHOTS = process.env.SHOTS || "/tmp/vi-shots"; mkdirSync(SHOTS, { recursive: true });
 const only = process.argv.slice(2);
 const SLUGS = { restaurant: "ai-restaurant-employee-monitoring", tt: "ai-table-tennis-video-intelligence", bb: "ai-basketball-video-intelligence" };
@@ -118,18 +119,17 @@ if (MODE === "server" || MODE === "browser") {
   if (!only.length || only.includes("tt")) {
     await t("table tennis: analysis tracks the ball and players on the composite clip", async () => {
       await open("tt"); await ready(); await nav("analysis");
-      const prov = await p.locator("[data-testid=samples] details").first().evaluate((d) => { d.open = true; return d.innerText; }); ok(/Not match footage|not match footage|rendered/i.test(prov) && /Does not demonstrate/i.test(prov), "provenance");
-      await tid("open-table-tennis-composite").click(); await tid("run").waitFor(); await p.getByLabel("End (s, optional)").count().catch(() => 0);
+      await tid("upload").setInputFiles(FIX + "table-tennis-composite.webm"); await tid("run").waitFor(); await p.getByLabel("End (s, optional)").count().catch(() => 0);
       await analyse(300000);
       await tid("scrub").evaluate((el) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; set.call(el, "2.4"); el.dispatchEvent(new Event("input", { bubbles: true })); }); await p.waitForTimeout(700);
       ok(await canvasHas([217, 119, 6], 60), "ball trail is drawn in amber");
     });
     await t("table tennis: a swapped click order is refused; correct corners calibrate with a reported error", async () => {
-      await nav("calibration"); await tid("sample-corners").click(); await tid("clear-corners").click();
+      await nav("calibration"); 
       const pts = [[0.24, 0.55], [0.75, 0.56], [0.70, 0.43], [0.31, 0.42]]; const bad = [pts[0], pts[2], pts[1], pts[3]];
       for (const [x, y] of bad) { const c = await canvasPoint(x, y); await p.mouse.click(c.x, c.y); }
       await tid("calibrate").click(); await tid("calib-error").waitFor(); ok(/order/i.test(await txt("calib-error")), await txt("calib-error"));
-      await tid("clear-corners").click(); await tid("sample-corners").click(); await tid("calibrate").click(); await tid("calibration-result").waitFor();
+      await tid("clear-corners").click(); for (const [x, y] of pts) { const c = await canvasPoint(x, y); await p.mouse.click(c.x, c.y); await p.waitForTimeout(250); } await tid("calibrate").click(); await tid("calibration-result").waitFor();
       ok(/cm/.test(await txt("rms")), "rms reported");
     });
     await t("table tennis: ball-visible segments, gaps, and the table-plane map", async () => {
@@ -152,14 +152,17 @@ if (MODE === "server" || MODE === "browser") {
   }
   if (!only.length || only.includes("bb")) {
     await t("basketball: analysis tracks players and the orange ball", async () => {
-      await open("bb"); await ready(); await nav("analysis"); await tid("open-basketball-composite").click(); await tid("run").waitFor(); await analyse(300000);
+      await open("bb"); await ready(); await nav("analysis"); await tid("upload").setInputFiles(FIX + "basketball-composite.webm"); await tid("run").waitFor(); await analyse(300000);
       await tid("scrub").evaluate((el) => { const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value").set; set.call(el, "6"); el.dispatchEvent(new Event("input", { bubbles: true })); }); await p.waitForTimeout(700);
       ok(await canvasHas([217, 119, 6], 60), "ball trail");
     });
     await t("basketball: court mapping needs four landmarks and reports the error in metres", async () => {
       await nav("court"); await tid("calibrate").isDisabled().then((d) => ok(d, "calibrate disabled without points"));
       await tid("landmark").selectOption({ index: 1 }); const c = await canvasPoint(0.5, 0.5); await p.mouse.click(c.x, c.y); ok((await p.locator("[data-testid=refs] tbody tr").count()) === 1, "one point added");
-      await tid("clear-refs").click(); await tid("sample-refs").click(); await tid("calibrate").click(); await tid("calibration-result").waitFor();
+      await tid("clear-refs").click();
+      const L = JSON.parse(readFileSync(FIX + "basketball-composite.truth.json", "utf8")).landmarks_px.filter((x) => x.visible && x.px[1] < 400).slice(0, 7);
+      for (const l of L) { await tid("landmark").selectOption(l.name); const c = await canvasPoint(l.px[0] / 960, l.px[1] / 540); await p.mouse.click(c.x, c.y); await p.waitForTimeout(250); }
+      ok((await p.locator("[data-testid=refs] tbody tr").count()) >= 4, "landmarks added"); await tid("calibrate").click(); await tid("calibration-result").waitFor();
       const rms = parseFloat((await txt("rms")).replace(/[^\d.]/g, "")); ok(rms < 0.1, `rms ${rms} m`);
     });
     await t("basketball: heat map and distances come from the tracks; possession events are labelled as a rule", async () => {

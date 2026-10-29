@@ -1,6 +1,6 @@
 /**
  * Browser tests for the ten ML demos (samples 12-21), Playwright.
- *   MODE=static  site WITHOUT ML_API_URL / DEFECT_API_URL: honest offline state on every page, covers and routes work
+ *   MODE=static  (legacy) the demos now run in the browser when no service is configured, so MODE=server is the meaningful one
  *   MODE=server  site with services/ml-lab (:8110) and services/defect-inspector (:8060) running
  *   NODE_PATH=<dir containing playwright> BASE_URL=http://localhost:3000 MODE=server node scripts/test-ml-ui.mjs
  */
@@ -17,7 +17,7 @@ const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 1500, height: 1000 }, acceptDownloads: true }); const p = await ctx.newPage(); const errors = [];
 p.on("pageerror", (e) => errors.push(e.message)); p.on("console", (m) => { if (m.type() === "error" && !/favicon|Failed to load resource|the server responded|MEDIA_ELEMENT|Media resource/i.test(m.text())) errors.push(m.text()); });
 const tid = (id) => p.getByTestId(id); const txt = (id) => tid(id).innerText(); const shot = (n) => p.screenshot({ path: `${SHOTS}/${MODE}-${n}.png` });
-const open = async (key) => { await p.goto(`${BASE}/ai-demos/${SLUGS[key]}/app`, { waitUntil: "load" }); await p.getByRole("button", { name: "Decline" }).click({ timeout: 1200 }).catch(() => 0); if (MODE === "server") await p.waitForFunction(() => /online/.test(document.querySelector("header")?.textContent || ""), null, { timeout: 20000 }); };
+const open = async (key) => { await p.goto(`${BASE}/ai-demos/${SLUGS[key]}/app`, { waitUntil: "load" }); await p.getByRole("button", { name: "Decline" }).click({ timeout: 1200 }).catch(() => 0); if (MODE === "server") await p.waitForFunction(() => /online|ready/i.test(document.querySelector("header")?.textContent || ""), null, { timeout: 20000 }); };
 const dl = async (loc) => { const [d] = await Promise.all([p.waitForEvent("download", { timeout: 60000 }), loc.click()]); const path = `${SHOTS}/${MODE}-${d.suggestedFilename()}`; await d.saveAs(path); return readFileSync(path); };
 const loaded = async (sel = "img") => p.waitForFunction((s) => { const i = document.querySelector(s); return i?.complete && i.naturalWidth > 50; }, sel, { timeout: 30000 });
 console.log(`ml ui tests (${MODE}) →`, BASE);
@@ -44,7 +44,7 @@ for (const key of Object.keys(SLUGS)) {
     const pv = tid("previews"); ok((await pv.count()) === 1, "preview section"); ok(/None of them works/.test(await pv.innerText()), "preview section says none works");
     const first = pv.getByTestId("preview-item").first(); await first.getByRole("button").click({ force: true }); ok(/Not available/.test(await first.innerText()), "preview buttons explain instead of acting");
     ok(/Coming Soon|UI Preview|Requires/.test(await pv.innerText()), "status labels");
-    if (MODE === "static") { ok(/not connected/.test(await p.locator("header").innerText()) && (await tid("offline").count()) === 1, "offline state"); ok((await tid("result").count()) === 0 || /Choose|Add documents|Select|Nothing/.test(await tid("result").innerText()), "no results shown offline"); }
+    if (false) { ok(/not connected/.test(await p.locator("header").innerText()) && (await tid("offline").count()) === 1, "offline state"); ok((await tid("result").count()) === 0 || /Choose|Add documents|Select|Nothing/.test(await tid("result").innerText()), "no results shown offline"); }
     else ok((await tid("empty").count()) >= 1 || (await tid("no-docs").count()) >= 1 || (await tid("result").count()) === 1, "empty state");
   });
 }
@@ -59,7 +59,7 @@ if (MODE === "server") {
     await open("detect"); await tid("sample-street").click(); await tid("annotated").waitFor({ timeout: 30000 }); await loaded("[data-testid=annotated]"); const rows = await p.locator("[data-testid=detections] tbody tr").count(); ok(rows >= 3, `${rows} detections`);
     const img = await dl(tid("dl-image")); ok(img[0] === 0xff && img[1] === 0xd8, "jpeg download"); await tid("threshold").fill("0.9"); await tid("sample-street").click(); await p.waitForFunction((n) => document.querySelectorAll("[data-testid=detections] tbody tr").length < n, rows, { timeout: 30000 });
     await tid("threshold").fill("0.35"); await tid("sample-pedestrians-8s").click(); await tid("progress").waitFor({ timeout: 20000 }).catch(() => 0); await tid("video-result").waitFor({ timeout: 180000 }); ok(/person/.test(await txt("video-counts")) && /no tracking/.test(await txt("video-result")), "video counts and the no-tracking note");
-    const mp4 = await dl(tid("dl-video")); ok(mp4.slice(4, 8).toString() === "ftyp" && mp4.length > 5000, "annotated mp4"); await shot("detect");
+    const mp4 = await dl(tid("dl-video")); ok((mp4.slice(4, 8).toString() === "ftyp" || (mp4[0] === 0x1a && mp4[1] === 0x45)) && mp4.length > 5000, "annotated video (MP4 from the service, WebM from the in-browser engine)"); await shot("detect");
   });
   await t("segment: mask, overlay opacity, views, downloads", async () => {
     await open("segment"); await tid("sample-astronaut").click(); await tid("classes").waitFor({ timeout: 30000 }); ok(/person/.test(await txt("classes")), "person class"); await tid("mask-overlay").waitFor();
@@ -97,7 +97,7 @@ if (MODE === "server") {
     await tid("sample-pedestrians-8s").click(); await tid("video-result").waitFor({ timeout: 240000 }); ok(/frames analysed/.test(await txt("video-result")) && /no activity/.test((await txt("video-result")) + "no activity" ) , "video summary"); await shot("pose");
   });
   await t("search: build an index, semantic finds meaning, keyword needs words, remove works", async () => {
-    await open("search"); await p.evaluate(() => localStorage.removeItem("neoforge-ml-session")); await p.reload({ waitUntil: "load" }); await p.waitForFunction(() => /online/.test(document.querySelector("header")?.textContent || ""));
+    await open("search"); await p.evaluate(() => localStorage.removeItem("neoforge-ml-session")); await p.reload({ waitUntil: "load" }); await p.waitForFunction(() => /online|ready/i.test(document.querySelector("header")?.textContent || ""));
     ok(/empty/i.test(await txt("no-docs")), "empty index"); await tid("sample-docs-activity-rules").click(); await tid("sample-docs-lidar-measurement").click(); await p.waitForFunction(() => document.querySelectorAll("[data-testid=docs] li").length === 2, null, { timeout: 30000 });
     await tid("query").fill("sag of an overhead power cable"); await tid("mode-semantic").check(); await tid("search").click(); await tid("hit").first().waitFor({ timeout: 30000 }); ok(/LiDAR/i.test(await tid("hit").first().innerText()) && /matched by meaning/.test(await tid("hit").first().innerText()), "semantic hit by meaning");
     await tid("mode-keyword").check(); await tid("search").click(); await p.waitForFunction(() => document.querySelector("[data-testid=meta]")?.textContent?.includes("keyword"), null, { timeout: 15000 }); ok(/BM25/.test(await txt("mode-text")), "mode explained");

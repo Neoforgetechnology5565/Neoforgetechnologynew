@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import DemoShell from "@/components/demos/DemoShell";
 import type { Branding } from "@/lib/types";
 import { mlApi, type MlApi, type MlHealth, type Sample } from "@/lib/ml/api";
+import { browserMl } from "@/lib/ml/browser";
 
 export const BTN = "rounded-md border border-slate-600 px-3 py-1.5 text-xs font-medium text-slate-200 hover:border-blue-500 hover:text-white disabled:opacity-40";
 export const GO = "rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-40";
@@ -36,8 +37,9 @@ export function PreviewFeatures({ items }: { items: { name: string; status: Excl
 }
 
 export function useMl(serviceUrl: string | null, kind?: string) {
-  const api = useMemo(() => (serviceUrl ? mlApi(serviceUrl) : null), [serviceUrl]);
-  const [service, setService] = useState<"unknown" | "online" | "offline">(serviceUrl ? "unknown" : "offline");
+  // With no server configured the demo runs entirely in the browser (ONNX Runtime Web), so it works on any static host.
+  const api = useMemo<MlApi | null>(() => (serviceUrl ? mlApi(serviceUrl) : typeof window === "undefined" ? null : (browserMl() as MlApi)), [serviceUrl]);
+  const [service, setService] = useState<"unknown" | "online" | "offline">("unknown");
   const [health, setHealth] = useState<MlHealth | null>(null); const [samples, setSamples] = useState<Sample[]>([]);
   useEffect(() => { if (!api) return; api.health().then((h) => { setHealth(h); setService("online"); }).catch(() => setService("offline")); api.samples(kind).then((s) => setSamples(s.samples)).catch(() => undefined); }, [api, kind]);
   return { api, service, health, samples };
@@ -45,7 +47,7 @@ export function useMl(serviceUrl: string | null, kind?: string) {
 
 export function MlShell({ branding, title, project, service, notice, children, footer }: { branding: Branding; title: string; project: string; service: "unknown" | "online" | "offline"; notice: string; children: ReactNode; footer: string }) {
   return (
-    <DemoShell branding={branding} app={title} project={project} status={service === "online" ? "Service online" : service === "offline" ? "Service not connected" : "Checking service…"} badge="Computer Vision · prototype"
+    <DemoShell branding={branding} app={title} project={project} status={service === "online" ? "Engine ready" : service === "offline" ? "Engine unavailable" : "Checking engine…"} badge="Computer Vision · prototype"
       back={{ href: "/portfolio/computer-vision", label: "Computer Vision portfolio", all: "← All CV demos" }} contact="/contact?division=computer-vision" footer={footer}>
       <div className="mx-auto max-w-[1500px] space-y-4 p-3 sm:p-4">
         <div role="note" className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-4 py-2.5 text-[13px] leading-snug text-amber-100" data-testid="notice">{notice}</div>

@@ -9,7 +9,6 @@ import { Btn, Card, Empty, FeatureList, Field, INPUT, Kpi, Notice, Num, SourcePa
 const NAV = [{ id: "overview", label: "Overview" }, { id: "analysis", label: "Video Analysis" }, { id: "calibration", label: "Table Calibration" }, { id: "rallies", label: "Ball & Rallies" }, { id: "players", label: "Players" }, { id: "annotation", label: "Manual Annotation" }, { id: "reports", label: "Reports" }];
 const NOTICE = "Table tennis analysis from video. Players and the ball are really detected and tracked, but ball tracking is experimental: frames where the ball was not found are shown as gaps, never filled in. Rally segments are ball-visible periods, not officiated rallies; scoring and rally marks are Manual Annotation. The service does not recognise faces or identify players.";
 const CORNER_LABELS = ["1 left-near", "2 right-near", "3 right-far", "4 left-far"];
-const SAMPLE_CORNERS: Pt[] = [[236.1, 297.2], [716.9, 303.2], [666.9, 235.2], [302.4, 231.7]];
 const FEATURES = [
   { name: "Player detection and tracking", status: "working" as const, note: "YOLOX-S + ByteTrack; temporary track numbers, no identification." },
   { name: "Ball tracking", status: "experimental" as const, note: "YOLOX ball class plus a colour/motion finder and a gated tracker. Only detected positions are reported; gaps stay gaps." },
@@ -57,7 +56,7 @@ function Overview({ s, res, done, setTab }: Ctx) {
       {done && s.video?.summary && <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4"><Kpi label="Analysed frames" value={s.video.summary.analysed_frames} /><Kpi label="Tracked people" value={s.video.summary.tracks} /><Kpi label="Ball detections" value={s.video.summary.ball_points} /><Kpi label="Ball visible" value={res ? `${res.ball.visibility_pct}%` : "—"} sub="of analysed frames" /></div>}
     </Card>
     <Card title="Feature status"><FeatureList items={FEATURES} /></Card>
-    <Card title="Honest limits"><ul className="list-disc space-y-1 pl-5"><li>The bundled clip is a composite: a rendered table and ball with a known camera, plus real-pixel people cut from a pedestrian clip. It lets the ball tracker and calibration be checked against known truth, but it is not match footage, and accuracy on real video with motion blur and clutter has not been measured.</li><li>A small, fast, blurred white ball is hard to see. Expect gaps; they are shown as gaps.</li><li>Calibration maps the table surface. A ball in flight is above it, so its table-plane position and speed are projections.</li></ul></Card>
+    <Card title="Honest limits"><ul className="list-disc space-y-1 pl-5"><li>No sample video is bundled because no legal real match footage could be included: upload your own clip. The ball tracker and calibration were checked against a rendered test clip with known truth, but accuracy on real video with motion blur and clutter has not been measured.</li><li>A small, fast, blurred white ball is hard to see. Expect gaps; they are shown as gaps.</li><li>Calibration maps the table surface. A ball in flight is above it, so its table-plane position and speed are projections.</li></ul></Card>
   </>);
 }
 
@@ -78,13 +77,12 @@ function Analysis({ s }: Ctx) {
 function Calibration({ s, corners, setCorners, res, err, busy, calibrate, done, gap, setGap, minLen, setMinLen }: Ctx) {
   if (!s.video) return <SourcePanel s={s} />;
   if (!done) return <Notice tone="warn" testid="need-analysis">Run the video analysis first (Video Analysis tab).</Notice>;
-  const sample = s.video.source === "sample:table-tennis-composite";
   const ready = corners.length === 4;
   return (<>
     <Card title="Click the four table corners">
       <p className="mb-2 text-[14px] text-[#66736B]">Click the corners of the table top in this order: <b>left-near, right-near, right-far, left-far</b> (the table is 2.74 m long). Pause on a frame with the table fully visible.</p>
       <Stage s={s} overlay={{ persons: true, polygon: corners, closed: ready, points: corners.map((p, i) => ({ p, label: CORNER_LABELS[i] })) }} edit={ready ? undefined : { onAdd: (p) => setCorners([...corners, p]), hint: `Click corner ${corners.length + 1} of 4 (${CORNER_LABELS[corners.length]})` }} />
-      <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setCorners(corners.slice(0, -1))} disabled={!corners.length} testid="undo-corner">Undo last corner</Btn><Btn onClick={() => setCorners([])} disabled={!corners.length} testid="clear-corners">Clear</Btn>{sample && <Btn onClick={() => setCorners(SAMPLE_CORNERS)} testid="sample-corners">Use the corners of this sample clip</Btn>}</div>
+      <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setCorners(corners.slice(0, -1))} disabled={!corners.length} testid="undo-corner">Undo last corner</Btn><Btn onClick={() => setCorners([])} disabled={!corners.length} testid="clear-corners">Clear</Btn></div>
     </Card>
     <Card title="Settings and analysis"><div className="grid gap-3 sm:grid-cols-4"><Num label="Largest gap inside a segment (s)" value={gap} min={0.05} max={5} step={0.05} onChange={setGap} /><Num label="Shortest segment (s)" value={minLen} min={0.1} max={60} step={0.1} onChange={setMinLen} />
       <div className="flex items-end sm:col-span-2"><Btn kind="primary" disabled={!ready || busy} onClick={calibrate} testid="calibrate">{busy ? "Working…" : "Calibrate and analyse"}</Btn></div></div>

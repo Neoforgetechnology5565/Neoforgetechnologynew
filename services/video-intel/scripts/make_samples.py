@@ -18,7 +18,8 @@ import numpy as np
 
 ROOT = Path(__file__).resolve().parent.parent
 REPO = ROOT.parent.parent
-OUT = REPO / "public" / "vi" / "samples"
+OUT = REPO / "test-fixtures" / "vi"  # composite clips are test fixtures, not site samples
+SAMPLES_PUBLIC = REPO / "public" / "vi" / "samples"
 sys.path.insert(0, str(ROOT))
 from app.detector import Detector  # noqa: E402
 
@@ -289,7 +290,7 @@ def basketball(crops):
 
 if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(REPO / "public" / "activity" / "samples" / "pedestrians-opencv-vtest.mp4", OUT / "pedestrians-opencv-vtest.mp4")
+    shutil.copyfile(REPO / "public" / "activity" / "samples" / "pedestrians-opencv-vtest.mp4", SAMPLES_PUBLIC / "pedestrians-opencv-vtest.mp4")
     crops = person_crops(4)
     print("crops:", [c.shape[:2] for c in crops])
     table_tennis(crops)

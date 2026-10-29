@@ -8,6 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 SAMPLES = ROOT.parent.parent / "public" / "vi" / "samples"
+FIXTURES = ROOT.parent.parent / "test-fixtures" / "vi"  # rendered composite clips with known truth: test data only, not shipped as site samples
 
 from app.config import Settings  # noqa: E402
 from app.main import create_app  # noqa: E402
@@ -36,7 +37,7 @@ def box_at(x: float, y: float, w: float = 40, h: float = 100) -> list[float]:
 @pytest.fixture(scope="module")
 def client(tmp_path_factory):
     from fastapi.testclient import TestClient
-    s = Settings(work_dir=tmp_path_factory.mktemp("vi"), samples_dir=SAMPLES, max_video_mb=5, max_videos=6, rate_per_minute=100000)
+    s = Settings(work_dir=tmp_path_factory.mktemp("vi"), samples_dir=SAMPLES, max_video_mb=20, max_videos=6, rate_per_minute=100000)
     with TestClient(create_app(s)) as c:
         yield c
 
@@ -62,8 +63,18 @@ def run_sample(c, sample, **params):
     return vid, st
 
 
+def run_file(c, path, **params):
+    r = c.post("/api/videos", files={"file": (path.name, path.read_bytes(), "video/mp4")})
+    assert r.status_code == 201, r.text
+    vid = r.json()["video_id"]
+    assert c.post(f"/api/videos/{vid}/jobs", json=params).status_code == 202
+    st = wait_done(c, vid)
+    assert st["status"] == "completed", st
+    return vid, st
+
+
 def truth(name):
-    return json.loads((SAMPLES / f"{name}.truth.json").read_text())
+    return json.loads((FIXTURES / f"{name}.truth.json").read_text())
 
 
 def up(name, data: bytes, mime="application/octet-stream"):

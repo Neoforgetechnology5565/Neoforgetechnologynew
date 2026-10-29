@@ -5,7 +5,7 @@ import cv2
 import numpy as np
 import pytest
 
-from tests.conftest import SAMPLES, run_sample, truth, up
+from tests.conftest import FIXTURES, SAMPLES, run_file, run_sample, truth, up
 
 ROI = [[200, 180], [520, 180], [520, 520], [200, 520]]
 
@@ -17,12 +17,12 @@ def ped(client):
 
 @pytest.fixture(scope="module")
 def tt(client):
-    return run_sample(client, "table-tennis-composite", mode="tabletennis", sample_fps=30, ball=True, ball_kind="white")
+    return run_file(client, FIXTURES / "table-tennis-composite.mp4", mode="tabletennis", sample_fps=30, ball=True, ball_kind="white")
 
 
 @pytest.fixture(scope="module")
 def bb(client):
-    return run_sample(client, "basketball-composite", mode="basketball", sample_fps=15, ball=True, ball_kind="orange")
+    return run_file(client, FIXTURES / "basketball-composite.mp4", mode="basketball", sample_fps=15, ball=True, ball_kind="orange")
 
 
 def test_health_samples_and_models_are_described_honestly(client):
@@ -30,7 +30,7 @@ def test_health_samples_and_models_are_described_honestly(client):
     assert h["ok"] and "YOLOX" in h["models"]["detector"]["name"] and "no appearance" in h["models"]["tracker"]["note"] and "never interpolated" in h["models"]["ball"]["note"]
     assert "does not recognise faces" in h["notice"]
     ids = {x["id"] for x in client.get("/api/samples").json()["samples"]}
-    assert {"pedestrians-opencv-vtest", "table-tennis-composite", "basketball-composite"} <= ids
+    assert ids == {"pedestrians-opencv-vtest"}  # no composite clips are shipped as samples
     for x in client.get("/api/samples").json()["samples"]:
         assert x["licence"] and x["source"] and x["does_not_demonstrate"]
     lm = client.get("/api/court-landmarks").json()

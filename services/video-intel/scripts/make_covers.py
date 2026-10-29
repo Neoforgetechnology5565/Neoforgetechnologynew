@@ -28,7 +28,7 @@ from app.pipeline import JobParams, Progress, analyse  # noqa: E402
 from app.tracker import ByteTracker  # noqa: E402
 
 OUT = REPO / "public" / "covers"
-S = REPO / "public" / "vi" / "samples"
+S = REPO / "test-fixtures" / "vi"
 W, H = 1200, 675
 SERIF, SERIFB = "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf", "/usr/share/fonts/truetype/dejavu/DejaVuSerif-Bold.ttf"
 GREEN, DARK, LIGHT, PALE, TEXT, SUB, BORDER, WARN = (22, 131, 74), (17, 100, 58), (233, 247, 239), (243, 251, 246), (28, 41, 34), (102, 115, 107), (226, 234, 229), (217, 119, 6)

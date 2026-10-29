@@ -9,11 +9,6 @@ import { Btn, Card, Empty, FeatureList, Field, INPUT, Kpi, Notice, Num, SourcePa
 const NAV = [{ id: "overview", label: "Overview" }, { id: "analysis", label: "Video Analysis" }, { id: "court", label: "Court Mapping" }, { id: "players", label: "Players & Heatmap" }, { id: "possession", label: "Ball & Possession" }, { id: "annotation", label: "Manual Annotation" }, { id: "reports", label: "Reports" }];
 const NOTICE = "Basketball video analysis. Players and the ball are really detected and tracked, and the court is mapped from reference points you click. Heat maps and distances come from real tracks. Possession events are a geometric rule, and shots, assists and scoring are Manual Annotation: nothing here is an official statistic. The service does not recognise faces or identify players.";
 interface Ref { image: Pt; world: [number, number]; name: string }
-const SAMPLE_REFS: Ref[] = [
-  { image: [952, 410.2], world: [28, 0], name: "Corner: baseline right / sideline bottom" }, { image: [689.6, 176.6], world: [28, 15], name: "Corner: baseline right / sideline top" },
-  { image: [70.9, 410.2], world: [14, 0], name: "Halfway line at bottom sideline" }, { image: [298.4, 176.6], world: [14, 15], name: "Halfway line at top sideline" },
-  { image: [555.3, 285.6], world: [22.2, 5.05], name: "Right free-throw line, bottom end of lane" }, { image: [538.4, 219.6], world: [22.2, 9.95], name: "Right free-throw line, top end of lane" },
-];
 const FEATURES = [
   { name: "Player detection and tracking", status: "working" as const, note: "YOLOX-S + ByteTrack, temporary numbers; identities can switch when players overlap." },
   { name: "Ball detection and tracking", status: "experimental" as const, note: "Orange-ball colour finder plus the YOLOX ball class and a gated tracker. A held or hidden ball is a gap, never estimated." },
@@ -62,7 +57,7 @@ function Overview({ s, res, done, setTab }: Ctx) {
       {done && s.video?.summary && <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4"><Kpi label="Analysed frames" value={s.video.summary.analysed_frames} /><Kpi label="Tracked people" value={s.video.summary.tracks} /><Kpi label="Ball detections" value={s.video.summary.ball_points} /><Kpi label="Possession events" value={res?.possession.length ?? "—"} /></div>}
     </Card>
     <Card title="Feature status"><FeatureList items={FEATURES} /></Card>
-    <Card title="Honest limits"><ul className="list-disc space-y-1 pl-5"><li>The bundled clip is a composite: a rendered court and ball with a known camera plus real-pixel people on known paths. It checks the tracker, mapping and possession rule against known truth. It is not game footage and says nothing about accuracy on real broadcast video.</li><li>Mapping covers the floor plane. A ball in the air or a player&apos;s upper body is not on it, so ball positions on the court are projections.</li><li>Players are followed as temporary numbers, so one player may be split over several numbers, and no team is assigned automatically.</li></ul></Card>
+    <Card title="Honest limits"><ul className="list-disc space-y-1 pl-5"><li>No sample video is bundled because no legal real game footage could be included: upload your own clip. The tracker, mapping and possession rule were checked against a rendered test clip with known truth, which says nothing about accuracy on real broadcast video.</li><li>Mapping covers the floor plane. A ball in the air or a player&apos;s upper body is not on it, so ball positions on the court are projections.</li><li>Players are followed as temporary numbers, so one player may be split over several numbers, and no team is assigned automatically.</li></ul></Card>
   </>);
 }
 
@@ -82,7 +77,7 @@ function Analysis({ s }: Ctx) {
 function Court({ s, refs, setRefs, lm, next, setNext, cell, setCell, minPoss, setMinPoss, margin, setMargin, ids, setIds, res, err, busy, calibrate, done }: Ctx) {
   if (!s.video) return <SourcePanel s={s} />;
   if (!done) return <Notice tone="warn" testid="need-analysis">Run the video analysis first (Video Analysis tab).</Notice>;
-  const sample = s.video.source === "sample:basketball-composite"; const ready = refs.length >= 4;
+  const ready = refs.length >= 4;
   const tr = s.obs!.tracks.filter((t) => t.observations >= 5);
   return (<>
     <Card title="1 · Match clicked points to court landmarks">
@@ -90,7 +85,7 @@ function Court({ s, refs, setRefs, lm, next, setNext, cell, setCell, minPoss, se
       <div className="mb-3 flex flex-wrap items-end gap-3"><Field label="Next point is"><select className={`${INPUT} min-w-80`} value={next} onChange={(e) => setNext(e.target.value)} data-testid="landmark">{lm.map((l) => <option key={l.name}>{l.name}</option>)}</select></Field></div>
       <Stage s={s} overlay={{ persons: false, points: refs.map((r, i) => ({ p: r.image, label: String(i + 1) })) }} edit={{ onAdd: (p) => { const l = lm.find((x) => x.name === next); if (l) setRefs([...refs, { image: p, world: [l.x_m, l.y_m], name: l.name }]); }, hint: `Click “${next}” on the video` }} />
       <div className="mt-3"><Table testid="refs" empty="No reference points yet." head={["#", "Landmark", "Court position (m)", "Image position (px)", ""]} rows={refs.map((r, i) => [i + 1, r.name, `${r.world[0]}, ${r.world[1]}`, `${Math.round(r.image[0])}, ${Math.round(r.image[1])}`, <Btn key={i} small kind="danger" onClick={() => setRefs(refs.filter((_, j) => j !== i))} aria-label={`Remove point ${i + 1}`}>Remove</Btn>])} /></div>
-      <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setRefs([])} disabled={!refs.length} testid="clear-refs">Clear all</Btn>{sample && <Btn onClick={() => setRefs(SAMPLE_REFS)} testid="sample-refs">Use six landmarks for this sample clip</Btn>}</div>
+      <div className="mt-3 flex flex-wrap gap-2"><Btn onClick={() => setRefs([])} disabled={!refs.length} testid="clear-refs">Clear all</Btn></div>
     </Card>
     <Card title="2 · Settings and analysis">
       <div className="grid gap-3 sm:grid-cols-4"><Num label="Heat-map cell (m)" value={cell} min={0.5} max={4} step={0.5} onChange={setCell} /><Num label="Minimum possession time (s)" value={minPoss} min={0.1} max={30} step={0.1} onChange={setMinPoss} /><Num label="Box margin (fraction of height)" value={margin} min={0} max={0.5} step={0.02} onChange={setMargin} /></div>
