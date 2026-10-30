@@ -11,7 +11,7 @@ Upload an aerial / top-down image (JPG, PNG, WebP, or a GeoTIFF), and a real seg
 ## What is not
 * It is not a survey and makes no survey-grade claim. Model accuracy is modest (held-out IoU 0.456, see `MODEL_AND_LICENSES.md`).
 * **Roof pitch is never measured.** It is used only if the user enters it. A single top-down image does not contain it.
-* Photogrammetry (multi-image 3D) is **not** part of this tool; several images are analysed independently. (Multi-view reconstruction is the Spatial Mapping demo.)
+* Photogrammetry (multi-image 3D) is **not** part of this tool; several images are analysed independently.
 * Individual roof planes, ridges, hips and valleys are not recognised by the model. Outline edges are *derived* from the mask; interior line segments are *unclassified candidates*; everything else is *undeterminable*, and the page says so.
 
 ## Scale workflows
