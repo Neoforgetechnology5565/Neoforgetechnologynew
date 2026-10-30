@@ -15,6 +15,8 @@ const nextConfig = {
   serverExternalPackages: ["web-ifc", "firebase-admin", "google-gax", "@grpc/grpc-js", "@google-cloud/firestore"],
   // web-ifc loads its .wasm from node_modules at run time; file tracing cannot see that, so ship it with every route that reads IFC (otherwise ENOENT on Vercel).
   outputFileTracingIncludes: { "/api/bim/**/*": ["./node_modules/web-ifc/*.wasm"], "/api/bim/projects/[id]/*": ["./node_modules/web-ifc/*.wasm"] },
+  // The CCTV routes read public/cctv/*.json by a computed path, so the tracer would bundle all of public/ (models for the browser demos) and exceed Vercel's 250 MB function limit.
+  outputFileTracingExcludes: { "/api/**/*": ["./public/!(cctv)/**/*", "./public/*.js"] },
   // @vladmandic/human exposes its Node build to the server compile pass; the in-browser detector must always use the ESM build.
   webpack: (config) => {
     config.resolve.alias = { ...config.resolve.alias, "@vladmandic/human$": path.resolve("node_modules/@vladmandic/human/dist/human.esm.js") };
