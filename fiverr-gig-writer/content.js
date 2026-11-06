@@ -186,8 +186,11 @@ function strictMatch(want, text) {                     // for metadata ticks: ev
   const [s, l] = A.size <= B.size ? [A, B] : [B, A];
   return [...s].every(w => l.has(w));
 }
-const altsOf = s => { const w = String(s || "").replace(/\(.*?\)/g, "").replace(/\bif available\b/gi, "").replace(/[,;\s]+$/, "").trim(); if (!w) return [];
-  return [w, ...w.split(/\s*(?:\/|;|\|)\s*|\s+or\s+/i).map(x => x.trim()).filter(Boolean)].filter((x, i, a) => a.indexOf(x) === i); };
+const altsOf = s => {
+  if (Array.isArray(s)) return [...new Set(s.flatMap(altsOf))];
+  const w = String(s || "").replace(/\(.*?\)/g, "").replace(/\bif available\b/gi, "").replace(/[,;\s]+$/, "").trim(); if (!w) return [];
+  return [w, ...w.split(/\s*(?:\/|;|\|)\s*|\s+or\s+/i).map(x => x.trim()).filter(Boolean)].filter((x, i, a) => a.indexOf(x) === i);
+};
 const kindOf = label => /sub\s*-?\s*categor/i.test(label) ? "subcategory" : /categor/i.test(label) ? "category" : /service\s*type/i.test(label) ? "serviceType" : "other";
 const clearDone = () => document.querySelectorAll("[data-fgw-done]").forEach(e => delete e.dataset.fgwDone);
 
@@ -223,16 +226,25 @@ const handlers = {
   },
 
   // ---- Overview: gig metadata ticks, only options that match values written in the paste
-  async FILL_METADATA({ wanted }) {
+  async FILL_METADATA({ wanted, corpus }) {
     clearDone(); visitedTabs.clear();
     const W = (wanted || []).filter(Boolean), ticked = [], manual = []; let tab = "", first = true;
+    const text = " " + normK(corpus || "").replace(/[^a-z0-9+#. ]/g, " ").replace(/\s+/g, " ") + " ";
+    const VENDOR = new Set(["autodesk", "adobe", "microsoft", "google", "apple", "amazon", "aws", "ibm"]);
+    const inText = opt => {                              // the option is written in the gig text itself
+      const p = normK(opt).replace(/[^a-z0-9+#. ]/g, " ").replace(/\s+/g, " ").trim();
+      if (p.length < 3 || ["other", "all", "none"].includes(p)) return false;
+      if (text.includes(" " + p + " ")) return true;
+      const core = p.split(" ").filter(w => !VENDOR.has(w));                       // "Autodesk AutoCAD" -> autocad
+      return core.length === 1 && core[0].length >= 4 && text.includes(" " + core[0] + " ");
+    };
     for (let i = 0; i < 14; i++) {
       const t = await handlers.NEXT_TAB({});                // open the next metadata tab (none = a single list)
       if (t.clicked) { tab = t.clicked; await sleep(450); } else if (!first) break;
       const c = await handlers.NEXT_CHECKS({});
       if (c.found) {
-        const picks = c.options.filter(o => W.some(w => strictMatch(w, o.text)));
-        if (picks.length) { await handlers.CHOOSE_CHECKS({ ids: picks.map(p => p.id) }); ticked.push(...picks.map(p => p.text)); }
+        const picks = c.options.filter(o => W.some(w => strictMatch(w, o.text)) || inText(o.text));
+        if (picks.length) { await handlers.CHOOSE_CHECKS({ ids: picks.map(p => p.id) }); ticked.push(...picks.map(p => ({ text: p.text, src: W.some(w => strictMatch(w, p.text)) ? "paste" : "gig text" }))); }
         else manual.push({ tab: (tab || c.label || "a metadata group").replace(/\s*\*\s*$/, ""), required: /\*/.test(tab) });
       }
       first = false;
@@ -246,7 +258,7 @@ const handlers = {
     clearDone();
     const r = await handlers.FILL_PRICING({ packages });
     const g = await handlers.PRICING_ROWS({});
-    const mentions = (p, label) => (p.includes || []).some(inc => strictMatch(label, inc));
+    const mentions = (p, label) => [...(p.includes || []), p.name || "", p.description || ""].some(inc => strictMatch(label, inc));
     const unmatched = [], apply = [];
     for (const row of g.rows) {
       if (row.kind === "check") {

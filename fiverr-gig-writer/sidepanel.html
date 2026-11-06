@@ -16,7 +16,8 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 #status{margin-top:10px;color:#b00;min-height:16px}#status.ok{color:#117a45}
 #thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#thumbs div{position:relative}#thumbs img{width:90px;border-radius:5px;display:block}
 #thumbs b{position:absolute;top:2px;right:4px;background:#000a;color:#fff;border-radius:9px;padding:0 6px;cursor:pointer}
-.hint{color:#777;font-size:11px}
+.hint{color:#777;font-size:11px;margin-top:4px}
+#cands button{background:#fff;color:#222;border:1px solid var(--g);text-align:left;font-weight:400}
 </style></head>
 <body>
 <h1>Fiverr Gig Helper</h1>
@@ -25,7 +26,11 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 <div class="row"><button id="read">Read paste</button><button id="clear" class="secondary">Clear</button></div>
 <div id="warn" class="warn"></div>
 
-<div class="card"><h2>1 · Overview</h2><div class="pv" id="pv-ov">Nothing read yet.</div><button id="f-ov" disabled>Fill Overview</button><div class="st" id="st-ov"></div></div>
+<div class="card"><h2>1 · Overview</h2><div class="pv" id="pv-ov">Nothing read yet.</div>
+  <div class="hint" id="scanInfo"></div>
+  <div class="row"><button id="scanTax" class="secondary">Scan Fiverr categories</button><button id="stopScan" class="secondary" hidden>Stop</button></div>
+  <div class="hint">Scan once on a fresh <b>Create a Gig</b> page (nothing selected). It reads Fiverr's real categories so the extension can derive the right one from your gig. Takes about a minute; saves nothing on Fiverr.</div>
+  <div id="cands"></div><button id="f-ov" disabled>Fill Overview</button><div class="st" id="st-ov"></div></div>
 <div class="card"><h2>2 · Scope &amp; Pricing</h2><div class="pv" id="pv-pr"></div><button id="f-pr" disabled>Fill Scope &amp; Pricing</button><div class="st" id="st-pr"></div></div>
 <div class="card"><h2>3 · Description &amp; FAQ</h2><div class="pv" id="pv-ds"></div><button id="f-ds" disabled>Fill Description &amp; FAQ</button><div class="st" id="st-ds"></div></div>
 <div class="card"><h2>4 · Requirements</h2><div class="pv" id="pv-rq"></div><button id="f-rq" disabled>Fill Requirements</button><div class="st" id="st-rq"></div></div>
@@ -41,5 +46,6 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 <p class="hint">Nothing is rewritten: your paste is copied as written. Check each page before you continue.</p>
 <button id="scan" class="secondary">Troubleshooting: copy a page report</button>
 <script src="parse.js"></script>
+<script src="derive.js"></script>
 <script src="sidepanel.js"></script>
 </body></html>

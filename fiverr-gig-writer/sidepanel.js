@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-let G = null, NAMES = [], stop = false;
+let G = null, NAMES = [], stop = false, SCAN = null, SVC = {}, IDF = null, OVERRIDE = null, STOPSCAN = false;
 
 const status = (m, ok) => { $("status").textContent = m; $("status").className = ok ? "ok" : ""; };
 const card = (k, m, ok) => { $("st-" + k).textContent = m || ""; $("st-" + k).className = "st" + (ok ? " ok" : ""); };
@@ -16,7 +16,9 @@ async function page(type, data) {
     catch { throw new Error("Couldn't reach the Fiverr page. Reload the Fiverr tab and try again."); }
   }
 }
-fetch(chrome.runtime.getURL("fiverr-names.json")).then(r => r.json()).then(j => { NAMES = [...j.c, ...j.s, ...j.t]; }).catch(() => {});
+fetch(chrome.runtime.getURL("fiverr-names.json")).then(r => r.json()).then(j => { NAMES = [...j.c, ...j.s, ...j.t]; IDF = GigDerive.makeIdf(NAMES); render(); }).catch(() => {});
+fetch(chrome.runtime.getURL("fiverr-service-types.json")).then(r => r.json()).then(j => { SVC = j; }).catch(() => {});
+chrome.storage.local.get("scan").then(v => { SCAN = v.scan || null; showScanInfo(); render(); });
 const sendNames = () => NAMES.length ? page("SET_NAMES", { names: NAMES }) : null;
 async function need(name, label) {
   const { page: p } = await page("DETECT", {});
@@ -26,10 +28,17 @@ async function report(probe) { try { await navigator.clipboard.writeText(JSON.st
 
 // ---- reading the paste
 function read() {
-  const text = $("paste").value;
+  const text = $("paste").value; OVERRIDE = null; $("cands").innerHTML = "";
   chrome.storage.local.set({ paste: text });
   if (!text.trim()) { G = null; render(); return; }
   G = parseGig(text); render();
+}
+function categoryLine() {
+  const c = G.cat, lit = [c.category, c.subcategory, c.serviceType].filter(Boolean).join(" › ");
+  if (!SCAN || !IDF) return `Category: ${lit || "(not in your paste: scan Fiverr categories so I can derive it)"}${lit ? " (from your paste)" : ""}`;
+  try { const t = chooseTarget(); if (t?.candidates) return `Category: ${lit ? lit + " (from your paste, not found on Fiverr)" : "not in your paste"}\nDerived suggestions: ${t.candidates.map(x => x.subcategory).join(" / ")} (you will be asked)`;
+    if (t) return `Category: ${t.category} › ${t.subcategory}${t.serviceType[0] ? " › " + t.serviceType[0] : ""} (${t.source})`; } catch {}
+  return `Category: ${lit || "(none)"}`;
 }
 function render() {
   const on = !!G;
@@ -38,7 +47,7 @@ function render() {
   if (!G) { $("pv-ov").textContent = "Nothing read yet."; ["pr", "ds", "rq"].forEach(k => $("pv-" + k).textContent = ""); $("warn").textContent = ""; return; }
   const c = G.cat;
   $("pv-ov").textContent = [`Title: ${G.title || "(not found)"}`, `Tags: ${G.tags.join(", ") || "(not found)"}`,
-    `Category: ${[c.category, c.subcategory, c.serviceType].filter(Boolean).join(" › ") || "(not in your paste: choose it on the page)"}`,
+    categoryLine(),
     `Metadata to tick: ${c.meta.join(", ") || "(none)"}`].join("\n");
   $("pv-pr").textContent = G.packages.map((p, i) => p ? `${["Basic", "Standard", "Premium"][i]}: ${p.name || "(no name)"} · $${p.price} · ${p.days}d · ${p.revisions} rev\n   ${p.description}\n   Includes: ${p.includes.join("; ") || "-"}` : `${["Basic", "Standard", "Premium"][i]}: not found`).join("\n");
   $("pv-ds").textContent = `Description: ${G.description.length} characters\n${G.description.slice(0, 140)}${G.description.length > 140 ? "…" : ""}\nFAQs: ${G.faq.length}`;
@@ -60,25 +69,86 @@ for (const id of ["onpaste", "auto"]) {                       // remember the tw
 chrome.storage.local.get("paste").then(s => { if (s.paste) { $("paste").value = s.paste; read(); } });
 
 // ---- the five fillers: each returns { ok, msg }
+// ---- category: the paste wins; otherwise (or if Fiverr has no such option) derive it from the gig text using the scanned list
+function showScanInfo() {
+  $("scanInfo").textContent = SCAN ? `Scanned list: ${new Set(SCAN.items.map(i => i.category)).size} categories, ${SCAN.items.length} subcategories (${new Date(SCAN.at).toLocaleDateString()}).` : "Not scanned yet: categories can only be taken literally from your paste.";
+}
+function chooseTarget() {                       // -> { category, subcategory, serviceType[], source } or { candidates } or null
+  const c = G.cat;
+  if (OVERRIDE) return { ...OVERRIDE, source: "your choice" };
+  if (!SCAN) return c.category ? { category: c.category, subcategory: c.subcategory, serviceType: c.serviceType, source: "your paste" } : null;
+  const cats = [...new Set(SCAN.items.map(i => i.category))];
+  const mc = GigDerive.matchName(c.category, cats);
+  const subs = SCAN.items.filter(i => i.category === mc).map(i => i.subcategory);
+  const ms = mc && c.subcategory ? GigDerive.matchName(c.subcategory, subs) : null;
+  if (mc && ms) {                                // the paste names a real category and subcategory
+    const ranked = GigDerive.rankServices(G, ms, SVC, IDF);
+    const own = c.serviceType ? GigDerive.matchName(c.serviceType.replace(/\s*if available/i, "").split("/")[0].trim(), ranked.map(r => r.name)) : null;
+    return { category: mc, subcategory: ms, serviceType: own ? [own, ...ranked.map(r => r.name)] : ranked.slice(0, 4).map(r => r.name), source: own ? "your paste" : "your paste (service type derived from your gig)" };
+  }
+  const d = GigDerive.derive(G, SCAN.items, SVC, IDF);
+  if (!d.best) return null;
+  const withSvc = x => ({ category: x.category, subcategory: x.subcategory, serviceType: [...new Set([x.serviceType, ...GigDerive.rankServices(G, x.subcategory, SVC, IDF).map(r => r.name)].filter(Boolean))], score: x.score });
+  return d.confident ? { ...withSvc(d.best), source: "derived from your gig text" } : { candidates: d.top.map(withSvc) };
+}
+function showCandidates(list) {
+  $("cands").innerHTML = ""; if (!list) return;
+  const h = document.createElement("div"); h.className = "hint"; h.textContent = "I'm not sure. Choose the right category, then it fills:"; $("cands").append(h);
+  list.forEach(x => { const b = document.createElement("button"); b.textContent = `${x.category} › ${x.subcategory}${x.serviceType[0] ? " › " + x.serviceType[0] : ""}`; b.onclick = () => { OVERRIDE = x; $("cands").innerHTML = ""; run("overview"); }; $("cands").append(b); });
+}
+
 async function fillOverview() {
   await need("overview", "Overview");
   await sendNames();
+  const target = chooseTarget();
+  if (target?.candidates) { showCandidates(target.candidates); return { ok: false, msg: "The paste doesn't pin down the category and I can't be sure from the gig text. Choose one of the suggestions below." }; }
+  if (!target) return { ok: false, msg: SCAN ? "I couldn't derive a category from your gig." : "Your paste has no category. Click “Scan Fiverr categories” once so I can derive it from your gig, or choose it yourself on the page." };
+  $("cands").innerHTML = "";
   const r = await page("FILL_OVERVIEW", { title: G.title, tags: G.tags.slice(0, 5) });
   if (!r.filled.length) return { ok: false, msg: "Couldn't find the title/tag boxes. Use the troubleshooting button and send me the report." };
   const parts = [`Filled ${r.filled.join(" and ")}.`];
-  const c = await page("FILL_CATEGORIES", { category: G.cat.category, subcategory: G.cat.subcategory, serviceType: G.cat.serviceType });
+  const c = await page("FILL_CATEGORIES", { category: target.category, subcategory: target.subcategory, serviceType: target.serviceType });
   if (c.probe) await report(c.probe);
-  if (c.steps?.length) parts.push("Selected: " + c.steps.map(s => s.choice).join(" › ") + ".");
-  const near = (c.steps || []).filter(s => !s.exact);
+  if (c.steps?.length) parts.push(`Category (${target.source}): ` + c.steps.map(s => s.choice).join(" › ") + ".");
+  const near = (c.steps || []).filter(s => !s.exact && s.kind !== "serviceType");
   if (near.length) parts.push("Closest match used: " + near.map(s => `"${s.wanted}" → "${s.choice}"`).join(", ") + ". Check it.");
   if (c.error) return { ok: false, msg: parts.join(" ") + "\n" + c.error + (c.probe ? " I copied a page report to your clipboard: paste it in the chat." : "") };
-  const m = await page("FILL_METADATA", { wanted: G.cat.meta });
-  parts.push(m.ticked.length ? `Ticked: ${m.ticked.join(", ")}.` : "Ticked nothing in Gig metadata.");
+  const corpus = [G.title, G.tags.join(" "), G.description, G.packages.filter(Boolean).map(p => [p.name, p.description, ...p.includes].join(" ")).join(" ")].join(" ");
+  const m = await page("FILL_METADATA", { wanted: G.cat.meta, corpus });
+  const fromPaste = m.ticked.filter(x => x.src === "paste").map(x => x.text), fromText = m.ticked.filter(x => x.src !== "paste").map(x => x.text);
+  parts.push(m.ticked.length ? `Ticked${fromPaste.length ? " from your paste: " + fromPaste.join(", ") : ""}${fromText.length ? `${fromPaste.length ? "; " : ": "}found in your gig text: ${fromText.join(", ")}` : ""}.` : "Ticked nothing in Gig metadata.");
   const req = m.manual.filter(x => x.required), opt = m.manual.filter(x => !x.required);
-  if (opt.length) parts.push(`Optional metadata not in your paste (left empty): ${opt.map(x => x.tab).join(", ")}.`);
-  if (req.length) return { ok: false, msg: parts.join(" ") + `\nRequired metadata with nothing matching in your paste. Choose these yourself: ${req.map(x => x.tab).join(", ")}.` };
+  if (opt.length) parts.push(`Optional metadata with no match (left empty): ${opt.map(x => x.tab).join(", ")}.`);
+  if (req.length) return { ok: false, msg: parts.join(" ") + `\nRequired metadata with nothing matching in your paste or gig text. Choose these yourself: ${req.map(x => x.tab).join(", ")}.` };
   return { ok: true, msg: parts.join(" ") };
 }
+
+// ---- scan: read Fiverr's real category > subcategory list from the open Create-a-Gig page
+$("scanTax").onclick = async function () {
+  STOPSCAN = false; this.disabled = true; $("stopScan").hidden = false;
+  const items = [];
+  try {
+    await sendNames();
+    const init = await page("TAX_INIT", {});
+    if (!init.ok) throw new Error("I can't find the empty category and subcategory dropdowns. Open a fresh Create a Gig page (nothing selected) and try again.");
+    const cats = (await page("TAX_LIST", { role: "category" })).options;
+    if (!cats.length) { const probe = await page("PROBE_DROPDOWN", { role: "category" }); await report(probe); throw new Error("I couldn't open Fiverr's category dropdown. I copied a page report to your clipboard: paste it in the chat."); }
+    for (let i = 0; i < cats.length && !STOPSCAN; i++) {
+      status(`Scanning ${cats[i]} (${i + 1}/${cats.length})…`, true);
+      if (!(await page("TAX_PICK", { role: "category", text: cats[i] })).ok) continue;
+      await sleep(900);
+      const subs = (await page("TAX_LIST", { role: "subcategory" })).options;
+      subs.forEach(sb => items.push({ category: cats[i], subcategory: sb }));
+      SCAN = { at: Date.now(), items: [...items] }; await chrome.storage.local.set({ scan: SCAN }); showScanInfo();   // keep progress
+    }
+    if (!items.length) throw new Error("Nothing was scanned.");
+    status(`${STOPSCAN ? "Stopped. Saved" : "Done. Saved"} ${items.length} subcategories. Reload the Fiverr page before filling, because the scan changed the dropdowns.`, true);
+    render();
+  } catch (e) { status(e.message); }
+  finally { this.disabled = false; $("stopScan").hidden = true; }
+};
+$("stopScan").onclick = () => { STOPSCAN = true; status("Stopping after this category…"); };
+
 async function fillPricing() {
   await need("pricing", "Pricing");
   if (G.packages.some(p => !p)) return { ok: false, msg: "Your paste doesn't have all three packages (Basic, Standard, Premium)." };
