@@ -20,15 +20,25 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 </style></head>
 <body>
 <h1>Fiverr Gig Helper</h1>
-<div class="hint">Open a Fiverr gig page, paste that page's text into its box below, and it fills the page. Nothing is rewritten.</div>
+<div class="hint">Open a Fiverr gig page, paste that page's text into its box below, and it fills the page. Your text is used as written, unless you press a ✨ AI button.</div>
+
+<details id="aiBox" style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">✨ AI (Gemini) <span id="aiState" class="hint"></span></summary>
+  <label>Gemini API key</label><input type="password" id="gkey" placeholder="AIza..." style="width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px">
+  <label>Model (blank = default)</label><input type="text" id="gmodel" placeholder="gemini-3.8-flash" style="width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px">
+  <button id="gsave">Save &amp; test key</button><div class="st" id="gmsg"></div>
+  <label style="font-weight:400"><input type="checkbox" id="aiFill" checked> Let AI help while filling (category when unsure, metadata, pricing ticks)</label>
+  <div class="hint">Get a free key at aistudio.google.com. The key stays in this browser and goes only to Google. AI is used only for the ✨ buttons and this switch.</div>
+</details>
 
 <details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">Paste the whole gig once (optional): it splits into the boxes</summary>
   <textarea id="master" rows="5" placeholder="Paste a whole gig document here. Each part goes into its box below."></textarea>
+  <button id="ai-all">✨ Generate the whole gig with AI from these notes</button><button id="un-all" class="secondary" hidden>Undo AI</button>
   <button id="clear" class="secondary">Clear all boxes</button>
 </details>
 
 <div class="card"><h2>1 · Overview page</h2>
   <textarea id="t-ov" rows="5" placeholder="Title, Category / Subcategory / Service type, metadata values (e.g. Software: AutoCAD), Tags…"></textarea>
+  <div class="row"><button id="ai-ov" class="secondary">✨ Write with AI</button><button id="un-ov" class="secondary" hidden>Undo AI</button></div>
   <div class="pv" id="pv-ov"></div>
   <div class="hint" id="scanInfo"></div>
   <div class="row"><button id="scanTax" class="secondary">Scan Fiverr categories</button><button id="stopScan" class="secondary" hidden>Stop</button></div>
@@ -38,6 +48,7 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 
 <div class="card"><h2>2 · Scope &amp; Pricing page</h2>
   <textarea id="t-pr" rows="5" placeholder="Basic / Standard / Premium: name, price, delivery days, revisions, description, Includes (or a table)…"></textarea>
+  <div class="row"><button id="ai-pr" class="secondary">✨ Write with AI</button><button id="un-pr" class="secondary" hidden>Undo AI</button></div>
   <div class="pv" id="pv-pr"></div>
   <button id="f-pr" disabled>Fill Pricing page</button><div class="st" id="st-pr"></div></div>
 
@@ -46,11 +57,13 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
   <textarea id="t-ds" rows="5" placeholder="Your gig description (you can put the FAQs under it)"></textarea>
   <label>FAQ</label>
   <textarea id="t-fq" rows="3" placeholder="Q1. question&#10;answer…"></textarea>
+  <div class="row"><button id="ai-ds" class="secondary">✨ Write with AI</button><button id="un-ds" class="secondary" hidden>Undo AI</button></div>
   <div class="pv" id="pv-ds"></div>
   <button id="f-ds" disabled>Fill Description &amp; FAQ page</button><div class="st" id="st-ds"></div></div>
 
 <div class="card"><h2>4 · Requirements page</h2>
   <textarea id="t-rq" rows="5" placeholder="1. Question&#10;Option A&#10;Option B&#10;2. Question…"></textarea>
+  <div class="row"><button id="ai-rq" class="secondary">✨ Write with AI</button><button id="un-rq" class="secondary" hidden>Undo AI</button></div>
   <div class="pv" id="pv-rq"></div>
   <button id="f-rq" disabled>Fill Requirements page</button><div class="st" id="st-rq"></div></div>
 

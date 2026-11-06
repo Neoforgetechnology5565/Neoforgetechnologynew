@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Fiverr Gig Helper",
-  "version": "3.0.0",
-  "description": "Paste your gig text once, then fill each Fiverr gig page (Overview, Scope & Pricing, Description & FAQ, Requirements, Gallery) with one click. No AI, nothing is rewritten.",
+  "version": "4.0.0",
+  "description": "One paste box per Fiverr gig page, filled with one click. Optional Gemini AI writes the boxes from your notes and helps with category, metadata and pricing choices.",
   "permissions": [
     "activeTab",
     "scripting",
@@ -10,6 +10,7 @@
     "storage"
   ],
   "host_permissions": [
+    "https://generativelanguage.googleapis.com/*",
     "https://*.fiverr.com/*"
   ],
   "action": {

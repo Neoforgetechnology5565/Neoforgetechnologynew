@@ -7,6 +7,74 @@ const BOXES = ["ov", "pr", "ds", "fq", "rq"];
 const SECS = { ov: { page: "overview", label: "Overview" }, pr: { page: "pricing", label: "Scope & Pricing" }, ds: { page: "description", label: "Description & FAQ" }, rq: { page: "requirements", label: "Requirements" }, gl: { page: "gallery", label: "Gallery" } };
 const CARD_OF = { ov: "ov", pr: "pr", ds: "ds", fq: "ds", rq: "rq" };
 
+// ---- optional AI (Gemini, through the background script)
+let HASKEY = false;
+const aiOn = () => HASKEY && $("aiFill").checked;
+function bg(action, payload) {
+  return new Promise((res, rej) => chrome.runtime.sendMessage({ ai: action, payload }, r => chrome.runtime.lastError ? rej(new Error(chrome.runtime.lastError.message)) : r?.ok ? res(r.result) : rej(new Error(r?.error || "The AI did not answer."))));
+}
+function gigBrief() {                           // a compact description of the gig, sent with AI requests
+  const o = D.ov, pk = (D.pr?.packages || []).filter(Boolean);
+  return [o?.title && `Title: ${o.title}`, o?.tags?.length && `Tags: ${o.tags.join(", ")}`,
+    o?.cat && [o.cat.category, o.cat.subcategory, o.cat.serviceType].some(Boolean) && `Category notes: ${[o.cat.category, o.cat.subcategory, o.cat.serviceType].filter(Boolean).join(" > ")}`,
+    o?.cat?.meta?.length && `Tools/values: ${o.cat.meta.join(", ")}`,
+    pk.length && `Packages: ${pk.map(p => `${p.name} (${p.includes.join("; ")})`).join(" | ")}`,
+    D.ds?.description && `Description: ${D.ds.description.slice(0, 700)}`].filter(Boolean).join("\n");
+}
+const fmt = {
+  ov: o => [o.title, o.category && `Category: ${o.category}`, o.subcategory && `Subcategory: ${o.subcategory}`, o.serviceType && `Service type: ${o.serviceType}`,
+    ...Object.entries(o.meta || {}).map(([k, v]) => `${k}: ${[].concat(v).join(", ")}`), `Tags: ${(o.tags || []).join(", ")}`].filter(Boolean).join("\n"),
+  pr: p => (p.packages || []).map((x, i) => `${["Basic", "Standard", "Premium"][i]} - ${x.name}\n$${x.price}\n${x.days}-day delivery · ${x.revisions} revision${x.revisions == 1 ? "" : "s"}\nPackage description: ${x.description}\nIncludes:\n${(x.includes || []).map(i => "- " + i).join("\n")}`).join("\n\n"),
+  fq: f => (f || []).map((x, i) => `Q${i + 1}. ${x.question}\n${x.answer}`).join("\n"),
+  rq: r => (r || []).map((x, i) => `${i + 1}. ${x}`).join("\n")
+};
+const UNDO = {};
+function setBox(k, text) { $("t-" + k).value = text; }
+async function aiWrite(boxes, notes, label) {      // boxes: subset of ov, pr, ds, rq
+  if (!HASKEY) throw new Error("Add your Gemini API key in the ✨ AI settings first.");
+  const ctx = ["ov", "pr", "ds", "rq"].filter(b => !boxes.includes(b)).map(b => $("t-" + b).value.trim() && `[${b}] ${$("t-" + b).value.trim().slice(0, 600)}`).filter(Boolean).join("\n");
+  const r = await bg("generate", { boxes, notes, ctx, taxonomy: boxes.includes("ov") && SCAN ? SCAN.items : null });
+  for (const b of [...boxes, "fq"]) UNDO[b] = $("t-" + b).value;
+  if (r.ov) setBox("ov", fmt.ov(r.ov));
+  if (r.pr) setBox("pr", fmt.pr(r.pr));
+  if (r.ds) { setBox("ds", r.ds.description || ""); setBox("fq", fmt.fq(r.ds.faq)); }
+  if (r.rq) setBox("rq", fmt.rq(r.rq.requirements));
+  BOXES.forEach(readBox); render(); saveBoxes();
+  return r;
+}
+function wireAi() {
+  for (const k of ["ov", "pr", "ds", "rq"]) {
+    $("ai-" + k).onclick = async () => {
+      const btn = $("ai-" + k); btn.disabled = true; card(k, "AI is writing…", true);
+      try { await aiWrite([k], $("t-" + k).value + (k === "ds" && $("t-fq").value ? "\n" + $("t-fq").value : ""));
+        $("un-" + k).hidden = false; card(k, "Written by AI from your notes. Read it, edit it, then fill. Undo AI brings your text back.", true); }
+      catch (e) { card(k, e.message); } finally { btn.disabled = false; }
+    };
+    $("un-" + k).onclick = () => { for (const b of k === "ds" ? ["ds", "fq"] : [k]) if (b in UNDO) setBox(b, UNDO[b]); BOXES.forEach(readBox); render(); saveBoxes(); $("un-" + k).hidden = true; card(k, "Your text is back.", true); };
+  }
+  $("ai-all").onclick = async () => {
+    const notes = $("master").value.trim() || ["ov", "pr", "ds", "fq", "rq"].map(b => $("t-" + b).value).join("\n\n");
+    const btn = $("ai-all"); btn.disabled = true; status("AI is writing the whole gig from your notes…", true);
+    try { await aiWrite(["ov", "pr", "ds", "rq"], notes); $("un-all").hidden = false; status("The AI wrote all the boxes. Read them, then fill the pages (or paste in a box to start).", true);
+      if ($("onpaste").checked) { try { await page("DETECT", {}); startChain(); } catch {} } }
+    catch (e) { status(e.message); } finally { btn.disabled = false; }
+  };
+  $("un-all").onclick = () => { for (const b of BOXES) if (b in UNDO) setBox(b, UNDO[b]); BOXES.forEach(readBox); render(); saveBoxes(); $("un-all").hidden = true; status("Your texts are back.", true); };
+  $("gsave").onclick = async () => {
+    const msg = (t, ok) => { $("gmsg").textContent = t; $("gmsg").className = "st" + (ok ? " ok" : ""); };
+    const key = $("gkey").value.trim(); if (!key) return msg("Paste your Gemini API key first.");
+    await chrome.storage.local.set({ geminiKey: key, geminiModel: $("gmodel").value.trim() }); HASKEY = true; msg("Saved. Testing…", true);
+    try { await bg("ping", {}); msg("Saved ✓ The key works.", true); } catch (e) { msg("Saved, but the test failed: " + e.message); }
+    $("aiState").textContent = "(on)";
+  };
+  $("aiFill").onchange = () => chrome.storage.local.set({ aiFill: $("aiFill").checked });
+  chrome.storage.local.get(["geminiKey", "geminiModel", "aiFill"]).then(v => {
+    HASKEY = !!v.geminiKey; $("gkey").value = v.geminiKey || ""; $("gmodel").value = v.geminiModel || "";
+    if ("aiFill" in v) $("aiFill").checked = v.aiFill; $("aiState").textContent = HASKEY ? "(on)" : "(add a key to turn on)";
+    if (!HASKEY) $("aiBox").open = true;
+  });
+}
+
 const status = (m, ok) => { $("status").textContent = m; $("status").className = ok ? "ok" : ""; };
 const card = (k, m, ok) => { $("st-" + k).textContent = m || ""; $("st-" + k).className = "st" + (ok ? " ok" : ""); };
 
@@ -97,24 +165,32 @@ function showCandidates(list) {
 async function fillOverview() {
   await need("overview", "Overview");
   const o = D.ov; await sendNames();
-  const target = chooseTarget();
+  let target = chooseTarget();
+  if (aiOn() && target?.candidates) {            // unsure between candidates: let the AI choose one of them
+    const cands = target.candidates, r = await bg("chooseCategory", { gig: gigBrief(), candidates: cands.map(x => `${x.category} > ${x.subcategory}${x.serviceType[0] ? " > " + x.serviceType[0] : ""}`) }).catch(() => null);
+    if (r && Number.isInteger(r.index) && r.index >= 0 && r.index < cands.length) target = { ...cands[r.index], source: `chosen by AI${r.reason ? ": " + r.reason : ""}` };
+  } else if (aiOn() && !target) {                // nothing to go on: the AI names a category, which the page then verifies
+    const r = await bg("chooseCategory", { gig: gigBrief() }).catch(() => null);
+    if (r?.category) target = { category: r.category, subcategory: r.subcategory || "", serviceType: r.serviceType || "", source: "suggested by AI, checked against Fiverr's options" };
+  }
   if (target?.candidates) { showCandidates(target.candidates); return { ok: false, msg: "The box doesn't pin down the category and I can't be sure from the gig text. Choose one of the suggestions above." }; }
   if (!target) return { ok: false, msg: SCAN ? "I couldn't derive a category from your gig." : "No category in the box. Write “Category: …” / “Subcategory: …”, or scan Fiverr categories once so I can derive it, or choose it yourself on the page." };
   $("cands").innerHTML = "";
   const r = await page("FILL_OVERVIEW", { title: o.title, tags: o.tags.slice(0, 5) });
   if (!r.filled.length) return { ok: false, msg: "Couldn't find the title/tag boxes. Use the troubleshooting button and send me the report." };
   const parts = [`Filled ${r.filled.join(" and ")}.`];
-  const c = await page("FILL_CATEGORIES", { category: target.category, subcategory: target.subcategory, serviceType: target.serviceType });
+  const c = await page("FILL_CATEGORIES", { category: target.category, subcategory: target.subcategory, serviceType: target.serviceType, ai: aiOn(), gig: gigBrief() });
   if (c.probe) await report(c.probe);
-  if (c.steps?.length) parts.push(`Category (${target.source}): ` + c.steps.map(s => s.choice).join(" › ") + ".");
+  if (c.steps?.length) parts.push(`Category (${target.source}): ` + c.steps.map(s => s.choice + (s.byAi ? " (AI)" : "")).join(" › ") + ".");
   const near = (c.steps || []).filter(s => !s.exact && s.kind !== "serviceType");
   if (near.length) parts.push("Closest match used: " + near.map(s => `"${s.wanted}" → "${s.choice}"`).join(", ") + ". Check it.");
   if (c.error) return { ok: false, msg: parts.join(" ") + "\n" + c.error + (c.probe ? " I copied a page report to your clipboard: paste it in the chat." : "") };
   const G = gigView();
   const corpus = [G.title, G.tags.join(" "), G.description, G.packages.filter(Boolean).map(p => [p.name, p.description, ...p.includes].join(" ")).join(" ")].join(" ");
-  const m = await page("FILL_METADATA", { wanted: o.cat.meta, corpus });
-  const fromBox = m.ticked.filter(x => x.src === "paste").map(x => x.text), fromText = m.ticked.filter(x => x.src !== "paste").map(x => x.text);
-  parts.push(m.ticked.length ? `Ticked${fromBox.length ? " from the box: " + fromBox.join(", ") : ""}${fromText.length ? `${fromBox.length ? "; " : ": "}found in your gig text: ${fromText.join(", ")}` : ""}.` : "Ticked nothing in Gig metadata.");
+  const m = await page("FILL_METADATA", { wanted: o.cat.meta, corpus, ai: aiOn(), gig: gigBrief() });
+  const by = src => m.ticked.filter(x => x.src === src).map(x => x.text), fromBox = by("paste"), fromText = by("gig text"), fromAi = by("AI");
+  const bits = [fromBox.length && `from the box: ${fromBox.join(", ")}`, fromText.length && `found in your gig text: ${fromText.join(", ")}`, fromAi.length && `chosen by AI: ${fromAi.join(", ")}`].filter(Boolean);
+  parts.push(bits.length ? `Ticked ${bits.join("; ")}.` : "Ticked nothing in Gig metadata.");
   const req = m.manual.filter(x => x.required), opt = m.manual.filter(x => !x.required);
   if (opt.length) parts.push(`Optional metadata with no match (left empty): ${opt.map(x => x.tab).join(", ")}.`);
   if (req.length) return { ok: false, msg: parts.join(" ") + `\nRequired metadata with nothing matching. Choose these yourself: ${req.map(x => x.tab).join(", ")}.` };
@@ -124,7 +200,7 @@ async function fillPricing() {
   await need("pricing", "Pricing");
   const pk = D.pr.packages;
   if (pk.some(p => !p)) return { ok: false, msg: "The box doesn't have all three packages (Basic, Standard, Premium)." };
-  const r = await page("FILL_SCOPE_PRICING", { packages: pk });
+  const r = await page("FILL_SCOPE_PRICING", { packages: pk, ai: aiOn(), gig: gigBrief() });
   if (!r.filled.length) return { ok: false, msg: "Couldn't find the package boxes. Use the troubleshooting button and send me the report." };
   let msg = `Filled ${r.filled.join(", ")}. Found ${r.rows} feature rows on the page, ${r.changes} ticks/choices set.`;
   if (r.unmatched.length) msg += `\nNot mentioned in any package, left unticked: ${r.unmatched.join(", ")}.`;
@@ -285,6 +361,8 @@ $("scanTax").onclick = async function () {
   finally { this.disabled = false; $("stopScan").hidden = true; }
 };
 $("stopScan").onclick = () => { STOPSCAN = true; status("Stopping after this category…"); };
+
+wireAi();
 
 $("scan").onclick = async () => {
   try { const r = await page("SCAN", {}); await navigator.clipboard.writeText(JSON.stringify(r, null, 1)); status(`Copied a report of ${r.fields.length} fields. Paste it in the chat.`, true); }

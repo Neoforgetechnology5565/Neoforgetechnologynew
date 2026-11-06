@@ -1,6 +1,6 @@
-# Fiverr Gig Helper (Chrome extension, no AI)
+# Fiverr Gig Helper (Chrome extension, optional Gemini AI)
 
-One paste box per Fiverr gig page. Open a page, paste that page's text into its box, and the page is filled. Nothing is rewritten, nothing is sent anywhere, no API key, no cost.
+One paste box per Fiverr gig page. Open a page, paste that page's text into its box, and the page is filled. Without an AI key nothing is rewritten, nothing is sent anywhere and it costs nothing. With a Gemini key, optional AI features are added (below).
 
 ## Install
 1. `chrome://extensions` → **Developer mode** → **Load unpacked** → select this folder.
@@ -33,3 +33,10 @@ Headings are not needed in a box. You can also paste a whole gig document into *
 
 ## Troubleshooting
 The bottom button copies a report of the page's form fields; if a dropdown can't be opened the extension also copies a diagnostic report. Paste it to the developer.
+
+## Optional AI (Gemini)
+Open **✨ AI (Gemini)** at the top, paste a Gemini API key (free at aistudio.google.com) and click **Save & test key**. The key stays in this browser and goes only to Google. Nothing uses AI until you add a key.
+- **✨ Write with AI** (on the Overview, Pricing, Description & FAQ and Requirements boxes): turns your rough notes into that page's text in the right format and within Fiverr's limits. Your seller facts and wording are kept; it never invents credentials or results. **Undo AI** brings your text back. Always read it before filling.
+- **✨ Generate the whole gig with AI** (inside *Paste the whole gig once*): writes all four boxes from rough notes, then fills the pages if *fill as soon as I paste* is on.
+- **Let AI help while filling** (switch): when the category isn't clear, the AI picks one of the candidates; metadata and pricing-feature ticks are added when the AI judges they clearly apply. Every AI choice is checked against the options Fiverr really shows, and the cards say which ticks came from the AI.
+- If the AI is off, has no key, or Google can't be reached, everything falls back to the no-AI behaviour.

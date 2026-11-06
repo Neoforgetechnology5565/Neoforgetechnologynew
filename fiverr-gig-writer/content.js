@@ -194,10 +194,17 @@ const altsOf = s => {
 const kindOf = label => /sub\s*-?\s*categor/i.test(label) ? "subcategory" : /categor/i.test(label) ? "category" : /service\s*type/i.test(label) ? "serviceType" : "other";
 const clearDone = () => document.querySelectorAll("[data-fgw-done]").forEach(e => delete e.dataset.fgwDone);
 
+const ask = (action, payload) => new Promise(res => {
+  try { chrome.runtime.sendMessage({ ai: action, payload }, r => res(chrome.runtime.lastError || !r?.ok ? null : r.result)); }
+  catch { res(null); }
+});
+const WORDNUM = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+const maxFromLabel = label => { const m = String(label || "").match(/up to (\w+)/i); return m ? (WORDNUM[m[1].toLowerCase()] || parseInt(m[1], 10) || 5) : 5; };
+
 const handlers = {
 
   // ---- Overview: category > subcategory > service type, taken from the paste and matched to Fiverr's real options
-  async FILL_CATEGORIES({ category, subcategory, serviceType }) {
+  async FILL_CATEGORIES({ category, subcategory, serviceType, ai, gig }) {
     clearDone();
     const want = { category: altsOf(category), subcategory: altsOf(subcategory), serviceType: altsOf(serviceType) };
     const steps = [];
@@ -213,6 +220,12 @@ const handlers = {
       const eq = s => normK(s).replace(/&/g, "and");
       for (const w of want[kind]) { const ex = d.options.find(o => eq(o) === eq(w)); if (ex) { choice = ex; hit = w; break; } }      // exact name first
       if (!choice) for (const w of want[kind]) { choice = bestMatch(w, d.options); if (choice) { hit = w; break; } }                // then the closest
+      let byAi = false;
+      if (!choice && ai) {                                                                                                          // then ask the AI to choose among the REAL options
+        const r = await ask("pick", { label: d.label, options: d.options, gig, target: want[kind][0] || "", strict: kind !== "serviceType" });
+        const got = r && d.options.find(o => eq(o) === eq(r.choice));
+        if (got) { choice = got; hit = want[kind][0] || ""; byAi = true; }
+      }
       if (!choice) {
         closeMenu(document.querySelector(`[data-fgw-id="${d.id}"]`) || document.body);
         return { steps, error: want[kind].length
@@ -220,13 +233,13 @@ const handlers = {
           : `Your paste has no ${kind === "serviceType" ? "service type" : kind}. Choose it yourself on the page, then click Fill again.` };
       }
       await handlers.CHOOSE_OPTION({ id: d.id, text: choice });
-      steps.push({ kind, choice, wanted: hit, exact: normK(choice).replace(/&/g, "and") === normK(hit).replace(/&/g, "and") }); await sleep(700);
+      steps.push({ kind, choice, wanted: hit, byAi, exact: normK(choice).replace(/&/g, "and") === normK(hit).replace(/&/g, "and") }); await sleep(700);
     }
     return { steps };
   },
 
   // ---- Overview: gig metadata ticks, only options that match values written in the paste
-  async FILL_METADATA({ wanted, corpus }) {
+  async FILL_METADATA({ wanted, corpus, ai, gig }) {
     clearDone(); visitedTabs.clear();
     const W = (wanted || []).filter(Boolean), ticked = [], manual = []; let tab = "", first = true;
     const text = " " + normK(corpus || "").replace(/[^a-z0-9+#. ]/g, " ").replace(/\s+/g, " ") + " ";
@@ -244,7 +257,13 @@ const handlers = {
       const c = await handlers.NEXT_CHECKS({});
       if (c.found) {
         const picks = c.options.filter(o => W.some(w => strictMatch(w, o.text)) || inText(o.text));
-        if (picks.length) { await handlers.CHOOSE_CHECKS({ ids: picks.map(p => p.id) }); ticked.push(...picks.map(p => ({ text: p.text, src: W.some(w => strictMatch(w, p.text)) ? "paste" : "gig text" }))); }
+        const srcOf = new Map(picks.map(p => [p.id, W.some(w => strictMatch(w, p.text)) ? "paste" : "gig text"]));
+        if (ai) {                                                                      // the AI may add options that clearly apply to the gig
+          const r = await ask("pickMany", { label: (tab || c.label || "").replace(/\s*\*\s*$/, "") + " | " + (c.label || ""), options: c.options.map(o => o.text), gig, wanted: W, max: maxFromLabel(c.label) });
+          const names = new Set((r?.choices || []).map(normK));
+          for (const o of c.options) if (names.has(normK(o.text)) && !srcOf.has(o.id)) { picks.push(o); srcOf.set(o.id, "AI"); }
+        }
+        if (picks.length) { await handlers.CHOOSE_CHECKS({ ids: picks.map(p => p.id) }); ticked.push(...picks.map(p => ({ text: p.text, src: srcOf.get(p.id) }))); }
         else manual.push({ tab: (tab || c.label || "a metadata group").replace(/\s*\*\s*$/, ""), required: /\*/.test(tab) });
       }
       first = false;
@@ -254,7 +273,7 @@ const handlers = {
   },
 
   // ---- Scope & Pricing: names, descriptions, prices, delivery, then the feature grid from each package's "Includes"
-  async FILL_SCOPE_PRICING({ packages }) {
+  async FILL_SCOPE_PRICING({ packages, ai, gig }) {
     clearDone();
     const r = await handlers.FILL_PRICING({ packages });
     const g = await handlers.PRICING_ROWS({});
@@ -269,6 +288,12 @@ const handlers = {
         const values = packages.map(p => p.revisions == null ? null : (p.revisions >= 99 ? /unlimited/i : new RegExp(`^\\s*${p.revisions}\\b`)));
         apply.push({ ...row, values });
       }
+    }
+    if (ai) {
+      const checks = apply.filter(x => x.kind === "check");
+      const m = checks.length ? await ask("matrix", { gig, packages, rows: checks.map(x => ({ label: x.label })) }) : null;
+      for (const x of m?.rows || []) { const row = checks[x.index]; if (row && Array.isArray(x.values)) row.values = row.values.map((v, i) => v || !!x.values[i]); }
+      for (const row of checks) { const i = unmatched.indexOf(row.label); if (i >= 0 && row.values.some(Boolean)) unmatched.splice(i, 1); }
     }
     const a = await handlers.PRICING_APPLY({ rows: apply });
     return { filled: r.filled, rows: g.rows.length, changes: a.count, unmatched, min: (await handlers.MIN_PRICE({})).min };
