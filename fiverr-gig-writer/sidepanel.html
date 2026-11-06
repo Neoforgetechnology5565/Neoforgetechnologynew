@@ -2,17 +2,16 @@
 <html><head><meta charset="utf-8"><style>
 :root{--g:#1dbf73}
 body{font:13px system-ui,sans-serif;margin:0;padding:12px;color:#222}
-h1{font-size:16px;margin:0 0 8px;color:var(--g)}
+h1{font-size:16px;margin:0 0 6px;color:var(--g)}
 h2{font-size:13px;margin:0 0 6px}
-label{display:block;margin:8px 0 3px;font-weight:600}
-textarea,input[type=text]{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px;font:inherit}
+label{display:block;margin:6px 0 3px;font-weight:600}
+textarea{width:100%;box-sizing:border-box;padding:7px;border:1px solid #ccc;border-radius:5px;font:inherit}
 button{margin-top:8px;padding:8px 12px;background:var(--g);color:#fff;border:0;border-radius:5px;cursor:pointer;font-weight:600;width:100%}
 button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 .row{display:flex;gap:8px}.row>button{flex:1}
 .card{border:1px solid #ddd;border-radius:8px;padding:10px;margin-top:10px}
-.pv{font-size:12px;white-space:pre-line;color:#333;max-height:150px;overflow:auto}
+.pv{font-size:12px;white-space:pre-line;color:#333;max-height:130px;overflow:auto;margin-top:6px}
 .st{margin-top:6px;font-size:12px;color:#b00;white-space:pre-line}.st.ok{color:#117a45}
-.warn{margin-top:8px;font-size:12px;color:#b45309;white-space:pre-line}
 #status{margin-top:10px;color:#b00;min-height:16px}#status.ok{color:#117a45}
 #thumbs{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}#thumbs div{position:relative}#thumbs img{width:90px;border-radius:5px;display:block}
 #thumbs b{position:absolute;top:2px;right:4px;background:#000a;color:#fff;border-radius:9px;padding:0 6px;cursor:pointer}
@@ -21,29 +20,49 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 </style></head>
 <body>
 <h1>Fiverr Gig Helper</h1>
-<label>Paste your gig text (from ChatGPT)</label>
-<textarea id="paste" rows="7" placeholder="Paste your whole gig here. It fills the open Fiverr page right away."></textarea>
-<div class="row"><button id="read">Read paste</button><button id="clear" class="secondary">Clear</button></div>
-<div id="warn" class="warn"></div>
+<div class="hint">Open a Fiverr gig page, paste that page's text into its box below, and it fills the page. Nothing is rewritten.</div>
 
-<div class="card"><h2>1 · Overview</h2><div class="pv" id="pv-ov">Nothing read yet.</div>
+<details style="margin-top:8px"><summary style="cursor:pointer;font-weight:600">Paste the whole gig once (optional): it splits into the boxes</summary>
+  <textarea id="master" rows="5" placeholder="Paste a whole gig document here. Each part goes into its box below."></textarea>
+  <button id="clear" class="secondary">Clear all boxes</button>
+</details>
+
+<div class="card"><h2>1 · Overview page</h2>
+  <textarea id="t-ov" rows="5" placeholder="Title, Category / Subcategory / Service type, metadata values (e.g. Software: AutoCAD), Tags…"></textarea>
+  <div class="pv" id="pv-ov"></div>
   <div class="hint" id="scanInfo"></div>
   <div class="row"><button id="scanTax" class="secondary">Scan Fiverr categories</button><button id="stopScan" class="secondary" hidden>Stop</button></div>
-  <div class="hint">Scan once on a fresh <b>Create a Gig</b> page (nothing selected). It reads Fiverr's real categories so the extension can derive the right one from your gig. Takes about a minute; saves nothing on Fiverr.</div>
-  <div id="cands"></div><button id="f-ov" disabled>Fill Overview</button><div class="st" id="st-ov"></div></div>
-<div class="card"><h2>2 · Scope &amp; Pricing</h2><div class="pv" id="pv-pr"></div><button id="f-pr" disabled>Fill Scope &amp; Pricing</button><div class="st" id="st-pr"></div></div>
-<div class="card"><h2>3 · Description &amp; FAQ</h2><div class="pv" id="pv-ds"></div><button id="f-ds" disabled>Fill Description &amp; FAQ</button><div class="st" id="st-ds"></div></div>
-<div class="card"><h2>4 · Requirements</h2><div class="pv" id="pv-rq"></div><button id="f-rq" disabled>Fill Requirements</button><div class="st" id="st-rq"></div></div>
-<div class="card"><h2>5 · Gallery</h2>
+  <div class="hint">Optional, once, on a fresh <b>Create a Gig</b> page: reads Fiverr's real categories so a missing category can be derived from your gig.</div>
+  <div id="cands"></div>
+  <button id="f-ov" disabled>Fill Overview page</button><div class="st" id="st-ov"></div></div>
+
+<div class="card"><h2>2 · Scope &amp; Pricing page</h2>
+  <textarea id="t-pr" rows="5" placeholder="Basic / Standard / Premium: name, price, delivery days, revisions, description, Includes (or a table)…"></textarea>
+  <div class="pv" id="pv-pr"></div>
+  <button id="f-pr" disabled>Fill Pricing page</button><div class="st" id="st-pr"></div></div>
+
+<div class="card"><h2>3 · Description &amp; FAQ page</h2>
+  <label>Description</label>
+  <textarea id="t-ds" rows="5" placeholder="Your gig description (you can put the FAQs under it)"></textarea>
+  <label>FAQ</label>
+  <textarea id="t-fq" rows="3" placeholder="Q1. question&#10;answer…"></textarea>
+  <div class="pv" id="pv-ds"></div>
+  <button id="f-ds" disabled>Fill Description &amp; FAQ page</button><div class="st" id="st-ds"></div></div>
+
+<div class="card"><h2>4 · Requirements page</h2>
+  <textarea id="t-rq" rows="5" placeholder="1. Question&#10;Option A&#10;Option B&#10;2. Question…"></textarea>
+  <div class="pv" id="pv-rq"></div>
+  <button id="f-rq" disabled>Fill Requirements page</button><div class="st" id="st-rq"></div></div>
+
+<div class="card"><h2>5 · Gallery page</h2>
   <div class="hint">Your own images (up to 3). Choose files or press Ctrl+V to paste an image. They are saved for next time.</div>
   <input type="file" id="imgFiles" accept="image/*" multiple><div id="thumbs"></div>
   <button id="f-gl" disabled>Upload images to Gallery</button><div class="st" id="st-gl"></div></div>
 
-<label style="font-weight:400;margin-top:14px"><input type="checkbox" id="onpaste" checked> Start filling <b>as soon as I paste</b> (the Fiverr gig page must be the open tab)</label>
-<label style="font-weight:400"><input type="checkbox" id="auto" checked> After filling a page, click <b>Save &amp; Continue</b> and fill the next page too (never Publish)</label>
-<div class="row"><button id="fillThis" disabled>Fill this page again (auto-detect)</button><button id="stopAuto" class="secondary" hidden>Stop</button></div>
+<label style="font-weight:400;margin-top:14px"><input type="checkbox" id="onpaste" checked> Fill the page <b>as soon as I paste</b> into its box</label>
+<label style="font-weight:400"><input type="checkbox" id="auto" checked> After filling, click <b>Save &amp; Continue</b> and fill the next page if its box has text (never Publish)</label>
+<div class="row"><button id="fillThis">Fill this page (auto-detect)</button><button id="stopAuto" class="secondary" hidden>Stop</button></div>
 <div id="status"></div>
-<p class="hint">Nothing is rewritten: your paste is copied as written. Check each page before you continue.</p>
 <button id="scan" class="secondary">Troubleshooting: copy a page report</button>
 <script src="parse.js"></script>
 <script src="derive.js"></script>
