@@ -21,7 +21,7 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
 <body>
 <h1>Fiverr Gig Helper</h1>
 <label>Paste your gig text (from ChatGPT)</label>
-<textarea id="paste" rows="7" placeholder="Paste the whole gig document here: title, category, tags, packages, description, requirements, FAQs…"></textarea>
+<textarea id="paste" rows="7" placeholder="Paste your whole gig here. It fills the open Fiverr page right away."></textarea>
 <div class="row"><button id="read">Read paste</button><button id="clear" class="secondary">Clear</button></div>
 <div id="warn" class="warn"></div>
 
@@ -34,8 +34,9 @@ button.secondary{background:#555}button:disabled{opacity:.5;cursor:not-allowed}
   <input type="file" id="imgFiles" accept="image/*" multiple><div id="thumbs"></div>
   <button id="f-gl" disabled>Upload images to Gallery</button><div class="st" id="st-gl"></div></div>
 
-<label style="font-weight:400;margin-top:14px"><input type="checkbox" id="auto"> After filling, click <b>Save &amp; Continue</b> and fill the next page too (never Publish)</label>
-<div class="row"><button id="fillThis" disabled>Fill this page (auto-detect)</button><button id="stopAuto" class="secondary" hidden>Stop</button></div>
+<label style="font-weight:400;margin-top:14px"><input type="checkbox" id="onpaste" checked> Start filling <b>as soon as I paste</b> (the Fiverr gig page must be the open tab)</label>
+<label style="font-weight:400"><input type="checkbox" id="auto" checked> After filling a page, click <b>Save &amp; Continue</b> and fill the next page too (never Publish)</label>
+<div class="row"><button id="fillThis" disabled>Fill this page again (auto-detect)</button><button id="stopAuto" class="secondary" hidden>Stop</button></div>
 <div id="status"></div>
 <p class="hint">Nothing is rewritten: your paste is copied as written. Check each page before you continue.</p>
 <button id="scan" class="secondary">Troubleshooting: copy a page report</button>

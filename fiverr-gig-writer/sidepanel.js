@@ -48,6 +48,15 @@ function render() {
 $("read").onclick = read;
 $("clear").onclick = () => { $("paste").value = ""; read(); };
 let t; $("paste").addEventListener("input", () => { clearTimeout(t); t = setTimeout(read, 400); });
+// Pasting is the trigger: read the text at once and start filling the open Fiverr page
+$("paste").addEventListener("paste", () => setTimeout(() => {
+  clearTimeout(t); read();
+  if (G && $("onpaste").checked && !$("fillThis").disabled) $("fillThis").onclick();
+}, 150));
+for (const id of ["onpaste", "auto"]) {                       // remember the two switches
+  chrome.storage.local.get(id).then(v => { if (id in v) $(id).checked = v[id]; });
+  $(id).onchange = () => chrome.storage.local.set({ [id]: $(id).checked });
+}
 chrome.storage.local.get("paste").then(s => { if (s.paste) { $("paste").value = s.paste; read(); } });
 
 // ---- the five fillers: each returns { ok, msg }

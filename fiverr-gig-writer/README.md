@@ -7,7 +7,7 @@ Paste your gig text once. Each part of the gig has its own card and button; clic
 2. Pin the extension, open Fiverr → Selling → Gigs → Create, then click the extension icon (side panel).
 
 ## Use
-1. Paste your gig document into the box (it is read instantly). Check the previews and any ⚠ warnings.
+1. Paste your gig document into the box. It is read instantly and, by default, starts filling the open Fiverr page and continues page by page. Check the previews and any ⚠ warnings.
 2. On each Fiverr page click that page's button: **1 Overview**, **2 Scope & Pricing**, **3 Description & FAQ**, **4 Requirements**, **5 Gallery**.
 3. Or tick *After filling, click Save & Continue* and click **Fill this page (auto-detect)** to go page by page. It never clicks Publish and stops at the Gallery.
 
