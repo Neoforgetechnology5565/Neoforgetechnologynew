@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildReport, summarizeVisitor } from "./aggregate";
+import { summarizeLive } from "./live";
 import { geoFromHeaders, placeName, regionName, countryName } from "./geo";
 import { classifyPath, mapKey, pathKey, unPathKey } from "./pages";
 import { deleteVisitor, processTrack, pruneVisitors, recordConversion } from "./process";
@@ -126,6 +127,9 @@ assert.deepEqual(r.conversions.channels.map((x) => [x.label, x.n]), [["search", 
 
 // a referring website keeps its dot in the label
 { const ref = classifySource({ referrer: "https://www.fiverr.com/x" }); const d = { views: 1, sessions: 1, sources: { [ref.name.replace(/\./g, "~")]: 2 } }; assert.equal(buildReport([{ day: "2026-11-14", data: d }], undefined, titles).sources[0].label, "fiverr.com"); }
+// online now: only heartbeats from the last 90 seconds count
+{ const N = 1_000_000, l = summarizeLive([{ at: N - 10_000, path: "/", country: "US" }, { at: N - 20_000, path: "/", country: "GB" }, { at: N - 30_000, path: "/services", country: "US" }, { at: N - 89_000, path: "/pricing", country: "XX" }, { at: N - 91_000, path: "/old", country: "US" }, { path: "/nope" }], N);
+  assert.equal(l.online, 4); assert.deepEqual(l.pages[0], { path: "/", n: 2 }); assert.ok(!l.pages.some((p) => p.path === "/old")); assert.deepEqual(l.countries.map((c) => [c.name, c.n]), [["United States", 2], ["United Kingdom", 1], ["Unknown", 1]]); assert.equal(summarizeLive([], N).online, 0); }
 /* ---------- erase and retention ---------- */
 await deleteVisitor(db, C); assert.equal(db.all.get("analytics_visitors")!.has(C), false);
 await processTrack({ db, inc, headers: LAH, body: { path: "/", vid: "visitor-oldoldol" }, ua: UA.chromeWin, selfHosts: SELF, now: T0 - 200 * DAY });

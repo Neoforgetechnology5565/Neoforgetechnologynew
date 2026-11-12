@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { api } from "@/components/admin/api";
 import { Card, PageTitle, useToast } from "@/components/admin/ui";
 import type { Report, Row, VisitorSummary } from "@/lib/analytics/aggregate";
+import type { Live } from "@/lib/analytics/live";
 
 type Tab = "overview" | "locations" | "sources" | "pages" | "clicks" | "navigation" | "visitors" | "contacts";
 const TABS: [Tab, string][] = [["overview", "Overview"], ["locations", "Locations"], ["sources", "Sources & devices"], ["pages", "Pages & interest"], ["clicks", "Clicks"], ["navigation", "Navigation"], ["visitors", "Visitors"], ["contacts", "Contacts"]];
@@ -30,7 +31,12 @@ const APPROX = "Approximate: estimated from the visitor's IP address by the host
 export default function AnalyticsDashboard() {
   const [days, setDays] = useState(30), [tab, setTab] = useState<Tab>("overview"), [r, setR] = useState<Report | null>(null), [err, setErr] = useState("");
   const [visitors, setVisitors] = useState<VisitorSummary[] | null>(null), [contacts, setContacts] = useState<VisitorSummary[] | null>(null), [detail, setDetail] = useState<Detail | null>(null), [q, setQ] = useState("");
+  const [live, setLive] = useState<Live | null>(null);
   const toast = useToast();
+  useEffect(() => { // visitors online now: refreshed every 10 s while this tab is visible
+    let stop = false; const tick = () => { if (document.hidden) return; api<Live>("/api/admin/analytics/live").then((x) => !stop && setLive(x)).catch(() => undefined); };
+    tick(); const t = setInterval(tick, 10_000); return () => { stop = true; clearInterval(t); };
+  }, []);
   const load = useCallback(() => { setR(null); api<Report>(`/api/admin/analytics?days=${days}`).then(setR).catch((e) => setErr(e.message)); }, [days]);
   useEffect(load, [load]);
   useEffect(() => { if (tab === "visitors" && !visitors) api<{ items: VisitorSummary[] }>("/api/admin/analytics/visitors?filter=all&limit=100").then((x) => setVisitors(x.items)).catch(toast.err); if (tab === "contacts" && !contacts) api<{ items: VisitorSummary[] }>("/api/admin/analytics/visitors?filter=contacted&limit=100").then((x) => setContacts(x.items)).catch(toast.err); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -51,6 +57,16 @@ export default function AnalyticsDashboard() {
       </PageTitle>
       <p className="mb-4 text-sm text-paper/60" data-testid="range-label">{r.from} to {r.to}. Only visitors who accepted statistics are counted; Do-Not-Track is respected.</p>
       {!r.hasData && <p className="mb-4 border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200" data-testid="no-data">No visits recorded in this period yet. Data appears once visitors accept statistics on the live site (Firebase must be configured, and location needs a Vercel deployment).</p>}
+      <Card className="mb-4"><div data-testid="live">
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+          <p className="flex items-center gap-2 text-sm font-semibold"><span className={`inline-block h-2.5 w-2.5 rounded-full ${live && live.online > 0 ? "animate-pulse bg-green-400" : "bg-paper/30"}`} aria-hidden />Online now</p>
+          <p className="text-3xl font-semibold" data-testid="live-count" aria-live="polite">{live ? live.online : "…"}</p>
+          <p className="text-xs text-paper/50">open pages in the last 90 seconds, updated every 10 seconds{live ? ` · ${new Date(live.updatedAt).toLocaleTimeString()}` : ""}</p>
+        </div>
+        {live && live.online === 0 && <p className="mt-2 text-sm text-paper/50" data-testid="live-empty">Nobody is on the site right now.</p>}
+        {live && live.online > 0 && <div className="mt-3 grid gap-4 sm:grid-cols-2"><div><p className="label !mb-1">Pages being viewed</p><ul className="space-y-1 text-sm" data-testid="live-pages">{live.pages.map((p) => <li key={p.path} className="flex justify-between gap-3"><span className="truncate font-mono text-xs">{p.path}</span><span className="font-mono text-forge">{p.n}</span></li>)}</ul></div>
+          <div><p className="label !mb-1">Countries (approximate)</p><ul className="space-y-1 text-sm" data-testid="live-countries">{live.countries.map((c) => <li key={c.code} className="flex justify-between gap-3"><span>{c.name}</span><span className="font-mono text-forge">{c.n}</span></li>)}</ul></div></div>}
+      </div></Card>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Kpi id="k-visits" label="Visits" value={n0(r.kpis.visits)} sub="a visit ends after 30 minutes idle" /><Kpi id="k-views" label="Page views" value={n0(r.kpis.pageViews)} /><Kpi id="k-ppv" label="Pages per visit" value={String(r.kpis.pagesPerVisit)} /><Kpi id="k-new" label="New visitors" value={n0(r.kpis.newVisitors)} sub={`${n0(r.kpis.uniqueVisitorsAllTime)} unique all time`} />
         <Kpi id="k-inq" label="Contact enquiries" value={n0(r.kpis.inquiries)} sub="from visitors who accepted statistics" /><Kpi id="k-conv" label="Enquiries per 100 visits" value={String(r.kpis.conversionPct)} /><Kpi id="k-clicks" label="Clicks tracked" value={n0(r.kpis.clicks)} sub="buttons and links, labels only" />

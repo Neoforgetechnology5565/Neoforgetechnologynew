@@ -14,11 +14,13 @@ const b = await chromium.launch(); let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log("  ✓ " + name); } catch (e) { fail++; console.log("  ✗ " + name + "\n     " + String(e.message).split("\n")[0]); } };
 const ok = (c, m) => { if (!c) throw new Error(m); };
 const page = await (await b.newContext({ viewport: { width: 1500, height: 1000 } })).newPage(), id = (x) => page.getByTestId(x), errors = []; page.on("pageerror", (e) => errors.push(String(e)));
-const calls = [], erased = [];
+const calls = [], erased = []; let liveN = 0;
+const LIVE = [{ online: 3, pages: [{ path: "/", n: 2 }, { path: "/services/revit-plugin-development", n: 1 }], countries: [{ code: "US", name: "United States", n: 2 }, { code: "XX", name: "Unknown", n: 1 }], updatedAt: Date.now() }, { online: 0, pages: [], countries: [], updatedAt: Date.now() }];
 await page.route("**/__t/page", (r) => r.fulfill({ contentType: "text/html", body: `<!doctype html><html><head><meta charset=utf-8>${css.map((c) => `<link rel=stylesheet href="${c}">`).join("")}</head><body class="bg-ink-950 text-paper p-6"><div id="root"></div><script src="/__t/bundle.js"></script></body></html>` }));
 await page.route("**/__t/bundle.js", (r) => r.fulfill({ contentType: "application/javascript", body: js }));
 await page.route("**/api/admin/analytics**", (route) => {
   const r = route.request(), u = new URL(r.url()), parts = u.pathname.split("/").filter(Boolean), json = (b, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(b) }); calls.push(`${r.method()} ${u.pathname}${u.search}`);
+  if (parts[3] === "live") return json(LIVE[Math.min(liveN++, 1)]);
   if (parts.length === 3) return json(fx.reports[u.searchParams.get("days") || "30"]);
   if (parts[3] === "visitors" && parts.length === 4) return json({ items: u.searchParams.get("filter") === "contacted" ? fx.contacted : fx.visitors });
   if (parts[3] === "visitors") { const v = fx.details[parts[4]]; if (r.method() === "DELETE") { erased.push(parts[4]); return json({ ok: true }); } return v ? json(v) : json({ error: "Not found" }, 404); }
@@ -32,6 +34,12 @@ await t("overview: every headline number matches the data", async () => {
   await id("k-visits").waitFor({ timeout: 20000 });
   ok(num(await kpi("k-visits")) === R.kpis.visits && num(await kpi("k-views")) === R.kpis.pageViews && (await kpi("k-ppv")) === String(R.kpis.pagesPerVisit) && num(await kpi("k-new")) === R.kpis.newVisitors && num(await kpi("k-inq")) === R.kpis.inquiries && (await kpi("k-conv")) === String(R.kpis.conversionPct) && num(await kpi("k-clicks")) === R.kpis.clicks, "KPIs");
   ok(await id("chart").isVisible() && (await id("chart").locator("div").count()) >= 30, "30 bars"); ok(/Do-Not-Track is respected/.test(await id("range-label").innerText()), "consent note"); ok(await id("ov-channels").isVisible() && await id("ov-countries").isVisible() && await id("ov-pages").isVisible(), "quick panels");
+});
+await t("online now: count, pages being viewed and countries, refreshed automatically", async () => {
+  await id("live-count").waitFor(); await page.waitForFunction(() => document.querySelector("[data-testid=live-count]")?.textContent === "3", null, { timeout: 8000 });
+  ok(/\/services\/revit-plugin-development/.test(await id("live-pages").innerText()) && /United States/.test(await id("live-countries").innerText()) && /Unknown/.test(await id("live-countries").innerText()), "pages and countries");
+  ok(/last 90 seconds/.test(await id("live").innerText()), "explains the window");
+  await page.waitForFunction(() => document.querySelector("[data-testid=live-count]")?.textContent === "0", null, { timeout: 15000 }); ok(await id("live-empty").isVisible(), "empty state when nobody is online");
 });
 await t("locations: approximate wording, countries, states/regions, cities, time zones, and Unknown", async () => {
   await id("tab-locations").click(); ok(/Approximate/.test(await id("approx-note").innerText()) && /Unknown/.test(await id("approx-note").innerText()) && /GPS/.test(await id("approx-note").innerText()), await id("approx-note").innerText());

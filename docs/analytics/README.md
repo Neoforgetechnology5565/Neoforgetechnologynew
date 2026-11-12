@@ -16,6 +16,7 @@ Nothing is sent until the visitor presses Accept in the privacy notice, never wh
 | Time zone, language | the browser | yes |
 | Device type, browser, operating system | coarse categories derived from the User-Agent | yes (the raw User-Agent is not) |
 | Clicks | label, kind (link/button) and destination **path** of clicked buttons and links | counters and the last 30 clicks of a visitor |
+| Online now | a heartbeat from each open page: random id, page path, country; kept ~1 hour, shown as visitors in the last 90 s (no consent needed, nothing stored on the visitor's device) | yes |
 | Contact link | when a visitor sends the contact form while statistics are on, the form sends their visitor id so the message is tied to the visit | yes, with a snapshot on the inquiry |
 
 **Never collected:** the IP address (we never see or log it), precise/GPS location (the site never requests it), anything typed into a field, email addresses or phone numbers (removed from click labels; `mailto:`/`tel:` links keep only the scheme), full referrer URLs, the raw User-Agent. Demo workspaces (`…/app`) count the visit but their buttons are not click-tracked.
