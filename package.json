@@ -14,6 +14,8 @@
     "cctv:samples": "node scripts/make-cctv-samples.mjs",
     "test:geomsimp": "tsx src/lib/geomsimp/geomsimp.test.ts",
     "test:geomsimp:ui": "node scripts/test-geomsimp-ui.mjs",
+    "test:analytics": "tsx src/lib/analytics/analytics.test.ts",
+    "test:analytics:ui": "node scripts/test-analytics-dashboard.mjs && node scripts/test-analytics-tracker.mjs && node scripts/test-analytics-security.mjs",
     "test:reviews": "tsx src/lib/schemas.reviews.test.ts",
     "test:biz": "tsx src/lib/biz/biz.test.ts && tsx src/lib/biz/sync.test.ts",
     "test:erp": "node scripts/test-erp-ui.mjs",

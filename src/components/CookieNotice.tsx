@@ -17,7 +17,7 @@ export default function CookieNotice() {
   };
   return (
     <div role="dialog" aria-label="Privacy notice" className="fixed inset-x-3 bottom-3 z-[55] mx-auto max-w-2xl rounded-2xl border border-stone-200 bg-white p-4 shadow-2xl sm:bottom-5 sm:p-5">
-      <p className="text-sm text-stone-700">We don&apos;t use advertising cookies. With your OK we count page views with a random ID stored in your browser, to see which pages help. Details in our <Link href="/privacy" className="font-medium text-blue-600 underline">Privacy Policy</Link>.</p>
+      <p className="text-sm text-stone-700">We don&apos;t use advertising cookies. With your OK we count page views and clicks with a random ID stored in your browser, and note your approximate location (country, region and city estimated from your network connection, never your exact location), your device and browser type and where you came from, to see which pages help. If you contact us, we can link that message to your visit. Details in our <Link href="/privacy" className="font-medium text-blue-600 underline">Privacy Policy</Link>.</p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button type="button" onClick={() => choose("accepted")} className="rounded-full bg-blue-500 px-5 py-2 text-sm font-semibold text-slate-950 hover:bg-blue-400">Accept</button>
         <button type="button" onClick={() => choose("declined")} className="rounded-full border border-stone-300 px-5 py-2 text-sm font-semibold text-stone-700 hover:bg-stone-50">Decline</button>

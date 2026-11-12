@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/components/admin/api";
 import { PageTitle, useToast } from "@/components/admin/ui";
+import { placeName } from "@/lib/analytics/geo";
 import { formatBytes, formatDateTime } from "@/lib/utils";
 import type { Inquiry } from "@/lib/types";
 
@@ -60,6 +61,7 @@ export default function Inbox() {
               {([["Company", cur.company], ["Project type", cur.projectType], ["Division", cur.division], ["Budget", cur.budget], ["Timeline", cur.timeline], ["Received", formatDateTime(cur.createdAt)], ["Auto-reply", cur.autoReply ? `Sent ${formatDateTime(cur.autoReply.at)}${cur.autoReply.ai ? " (AI-written)" : " (standard text)"}` : ""], ["Status", cur.status]] as const).map(([k, v]) => v ? <div key={k}><dt className="label">{k}</dt><dd>{v}</dd></div> : null)}
             </dl>
             <p className="label mt-6">Message</p>
+            {cur.visitor && <p className="mb-3 border border-paper/15 bg-paper/5 p-2.5 text-xs text-paper/70" data-testid="inq-visitor">Visit context (approximate, from visitors who accepted statistics): {placeName({ country: cur.visitor.country, regionName: cur.visitor.regionName, city: cur.visitor.city })} · came from {cur.visitor.source} · landed on {cur.visitor.landing || "—"} · {cur.visitor.pages} page{cur.visitor.pages === 1 ? "" : "s"} over {cur.visitor.visits} visit{cur.visitor.visits === 1 ? "" : "s"} · {cur.visitor.daysToContact === 0 ? "contacted on the first day" : `contacted ${cur.visitor.daysToContact} days after the first visit`}</p>}
             <p className="whitespace-pre-wrap text-sm text-paper/85">{cur.message}</p>
             {cur.files?.length > 0 && (<><p className="label mt-6">Attachments</p><ul className="space-y-1 text-sm">{cur.files.map((f) => <li key={f.publicId}><a className="text-forge hover:underline" href={f.url} target="_blank" rel="noopener noreferrer">{f.name || f.publicId} ({formatBytes(f.bytes)})</a></li>)}</ul></>)}
             <p className="label mt-8">Reply by email</p>

@@ -169,6 +169,8 @@ export interface Inquiry {
   files: MediaRef[];
   status: "unread" | "read";
   createdAt: number;
+  /** Approximate, IP-derived context of the visit that led to this inquiry (only when the visitor accepted statistics). */
+  visitor?: { country: string; regionName: string; city: string; source: string; channel: string; landing: string; pages: number; visits: number; device: string; firstSeen: number; daysToContact: number; approximate: true };
   /** Set when an automatic acknowledgement email was sent to the visitor */
   autoReply?: { at: number; ai: boolean };
   /** Replies you sent from the admin (also emailed to the visitor) */

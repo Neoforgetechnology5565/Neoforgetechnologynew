@@ -5,7 +5,7 @@ export const PRIVACY_TEMPLATE = `This policy explains what personal information 
 
 - **Contact form:** your name, email address, company, project type, budget, timeline, message and any files you attach.
 - **Live chat:** your name, email address (optional) and the messages you send.
-- **Visitor statistics (only if you accept):** a random visitor ID stored in your browser, the pages you view and your country. We do not store your IP address or browser details, and we do not use advertising or tracking cookies.
+- **Visitor statistics (only if you accept, and never if your browser sends Do-Not-Track):** a random visitor ID stored in your browser; the pages you view and the order you view them in; the buttons and links you click (their labels only, never anything you type); where you came from (the referring website's name, or campaign tags in the link); your **approximate** location (country, region and city, estimated from your IP address by our hosting provider and rounded; we never receive or store the IP address itself, and we never ask for your precise GPS location); your browser time zone and language; and your device type, browser and operating system as broad categories. If you send us a message while statistics are on, we link it to your visit so we can see which pages led you to contact us. Individual visit records are deleted after 180 days; we can delete yours sooner on request. Totals are kept in aggregate form. We do not use advertising or tracking cookies.
 - **Online-now counter:** an anonymous heartbeat (a random ID that exists only while the page is open and is never stored on your device, the page you are on and your country) so we can see how many people are on the site. We do not store your IP address.
 - **Notifications (optional):** if you choose “Notify me”, your browser or phone gives us a notification address so we can alert you when we reply. You can switch it off in your browser settings at any time. We email you a confirmation and our replies to the address you entered in your enquiry or chat.
 - **Automatic replies:** messages you send through live chat or the contact form may be answered automatically by an AI service. We send the text of your message to that provider (Anthropic) only to write the reply. A member of our team follows up personally.
@@ -25,7 +25,7 @@ We use trusted service providers who process data for us: hosting and delivery (
 
 ## How long we keep it
 
-Enquiries and chats are kept while we are in contact and for up to 24 months afterwards, unless we have a contract with you or the law requires longer. Visitor statistics are kept in aggregate form.
+Enquiries and chats are kept while we are in contact and for up to 24 months afterwards, unless we have a contract with you or the law requires longer. Visitor statistics are kept in aggregate form, and individual visit records are deleted after 180 days.
 
 ## Cookies and local storage
 

@@ -173,6 +173,8 @@ export const inquirySchema = z.object({
   message: z.string().min(10).max(5000).transform(stripTags),
   files: z.array(mediaSchema).max(3).default([]),
   website: z.string().max(200).optional(), // honeypot
+  /** Sent only when the visitor accepted statistics: links this message to their visit record. */
+  vid: z.string().regex(/^[a-zA-Z0-9_-]{8,64}$/).optional(),
 });
 
 export const chatStartSchema = z.object({

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { DIVISIONS, PROJECT_TYPES } from "@/lib/divisions";
 import type { MediaRef } from "@/lib/types";
+import { analyticsAllowed } from "@/lib/consent";
 import { enablePush, pushSupported } from "@/lib/push-client";
 import FileDrop from "./FileDrop";
 
@@ -10,6 +11,11 @@ const F = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-s
 const L = "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500";
 const BUDGETS = ["Under $5k", "$5k – $15k", "$15k – $50k", "$50k – $150k", "$150k+", "Not sure yet"];
 const TIMELINES = ["ASAP", "1–3 months", "3–6 months", "6+ months", "Flexible"];
+
+/** Only when the visitor accepted statistics: lets us see which visit led to this message. */
+function visitorLink(): { vid?: string } {
+  try { const v = analyticsAllowed() && navigator.doNotTrack !== "1" ? localStorage.getItem("nf_vid") : null; return v ? { vid: v } : {}; } catch { return {}; }
+}
 
 export default function ContactForm({ initialDivision = "", defaultMessage = "" }: { initialDivision?: string; defaultMessage?: string }) {
   const [files, setFiles] = useState<MediaRef[]>([]);
@@ -33,7 +39,7 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "" 
     setState("sending");
     const f = new FormData(e.currentTarget);
     const payload = Object.fromEntries(f.entries());
-    const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, files }) });
+    const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, files, ...visitorLink() }) });
     if (res.ok) { const j = await res.json().catch(() => ({})); if (j.id && j.token) setSent({ id: j.id, token: j.token }); setState("done"); return; }
     const j = await res.json().catch(() => ({}));
     setError(j.issues ? "Please check the highlighted fields — name, a valid email, and a description of at least 10 characters are required." : j.error || "Something went wrong. Please try again.");
