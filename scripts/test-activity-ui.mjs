@@ -81,6 +81,8 @@ if (MODE === "browser") {
     ok((await tid("dl-annotated").count()) === 0, "annotated MP4 is not offered by the browser engine (overlays are drawn live)");
   });
   await t("thresholds re-applied to stored detections without reprocessing; reviewed alerts need confirmation", async () => {
+    // with a single candidate the earlier review was reset, so mark one alert reviewed here: re-applying thresholds must then ask first
+    if (!(await p.locator("[data-testid=alert-item]:has-text('Uncertain'), [data-testid=alert-item]:has-text('Confirmed'), [data-testid=alert-item]:has-text('Dismissed')").count())) { await p.locator("[data-testid=alert-item]").first().click(); await tid("uncertain").click(); await p.waitForFunction(() => /Uncertain/.test(document.querySelector("[data-testid=review-msg]")?.textContent || "")); }
     await tid("preset-default").click(); p.once("dialog", (d) => d.dismiss()); await tid("reanalyse").click(); await p.waitForTimeout(800); ok((await p.locator("[data-testid=alert-item]").count()) === alertsBefore, "declining the dialog keeps the alerts");
     p.once("dialog", (d) => d.accept()); await tid("reanalyse").click(); await p.waitForFunction(() => /Rules re-applied/.test(document.body.innerText), null, { timeout: 15000 });
     const n = await p.locator("[data-testid=alert-item]").count(); ok(n < alertsBefore, `default thresholds give fewer candidates (${n} < ${alertsBefore})`); if (n === 0) ok(/No candidate events were produced/.test(await text("summary")), "zero alerts is stated plainly");
