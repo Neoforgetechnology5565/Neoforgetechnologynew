@@ -44,7 +44,7 @@ if (!only.length) {
       await p.goto(`${BASE}${url}`, { waitUntil: "load" }); await p.getByRole("button", { name: "Decline" }).click({ timeout: 1000 }).catch(() => 0);
       if (url === "/portfolio") await p.getByRole("button", { name: /Computer Vision/i }).first().click({ timeout: 3000 }).catch(() => 0);
       await p.waitForTimeout(600);
-      ok((await p.locator("[data-testid=cover]").count()) === 0, `${url}: no cover images`); ok((await p.locator("svg[aria-label^='Layout sketch']").count()) >= 24, `${url}: drawn layout previews for the 24 CV demos`);
+      ok((await p.locator("[data-testid=cover]").count()) === 0, `${url}: no cover images`); { const sk = await p.locator("svg[aria-label^='Layout sketch']").count(); if (url === "/portfolio/computer-vision") ok(sk === 0, `${url}: no picture on the division-page cards (${sk})`); else ok(sk >= 24, `${url}: drawn layout previews in the gallery`); }
     }
     const links = await p.evaluate(() => [...document.querySelectorAll("a[href^='/ai-demos/']")].map((a) => a.getAttribute("href")));
     for (const s of Object.values(SLUGS)) ok(links.some((h) => h.includes(s)), `card link for ${s}`);
