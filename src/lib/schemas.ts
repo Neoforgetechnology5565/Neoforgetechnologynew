@@ -1,3 +1,6 @@
+import { isCountry } from "./countries";
+import { CURRENCIES, serviceInfo } from "./inquiry-options";
+import { checkPhone } from "./phone";
 import { z } from "zod";
 import { DIVISIONS, PROJECT_TYPES } from "./divisions";
 import { isVideoLink } from "./video";
@@ -166,15 +169,34 @@ export const inquirySchema = z.object({
   name: z.string().min(1).max(120).transform(stripTags),
   email: z.string().email().max(200),
   company: text(160).default(""),
-  projectType: z.enum(PROJECT_TYPES),
+  /** The service the visitor needs (see inquiry-options). projectType is derived from it when not sent. */
+  service: text(100).default(""),
+  projectType: z.enum(PROJECT_TYPES).optional(),
   division: z.enum(["", ...DIVISIONS.map((d) => d.slug)] as [string, ...string[]]).default(""),
+  country: z.string().refine(isCountry, "Choose a country"),
+  /** ISO code of the dial code the number was entered with, and the number itself (validated against that country's numbering plan) */
+  phoneCountry: z.string().refine(isCountry).optional(),
+  phone: text(30).default(""),
   budget: text(80).default(""),
+  currency: z.enum(CURRENCIES).default("USD"),
   timeline: text(80).default(""),
+  preferredContact: z.enum(["email", "phone", "whatsapp", "video"]).default("email"),
+  /** quote = the visitor asked for a customised quotation */
+  intent: z.enum(["project", "quote"]).default("project"),
+  tz: z.string().max(60).regex(/^[A-Za-z]+(\/[A-Za-z_+-]+)*$/).optional(),
   message: z.string().min(10).max(5000).transform(stripTags),
   files: z.array(mediaSchema).max(3).default([]),
   website: z.string().max(200).optional(), // honeypot
+  /** When the form was shown (ms). A submission within 2.5 s of that is treated as a bot. */
+  startedAt: z.number().int().optional(),
   /** Sent only when the visitor accepted statistics: links this message to their visit record. */
   vid: z.string().regex(/^[a-zA-Z0-9_-]{8,64}$/).optional(),
+}).superRefine((v, ctx) => {
+  if (v.phone && !checkPhone(v.phone, v.phoneCountry || v.country)) ctx.addIssue({ code: "custom", path: ["phone"], message: "Enter a valid phone number for the selected country" });
+  if ((v.preferredContact === "phone" || v.preferredContact === "whatsapp") && !v.phone) ctx.addIssue({ code: "custom", path: ["phone"], message: "Add a phone number so we can use your preferred contact method" });
+}).transform((v) => {
+  const ph = v.phone ? checkPhone(v.phone, v.phoneCountry || v.country) : null, svc = serviceInfo(v.service);
+  return { ...v, phone: ph?.display ?? "", phoneE164: ph?.e164 ?? "", projectType: v.projectType ?? ((svc?.projectType ?? "Other") as (typeof PROJECT_TYPES)[number]), division: v.division || svc?.division || "" };
 });
 
 export const chatStartSchema = z.object({

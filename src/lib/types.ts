@@ -167,6 +167,8 @@ export interface Inquiry {
   timeline: string;
   message: string;
   files: MediaRef[];
+  /** International inquiry fields (older inquiries do not have them) */
+  service?: string; country?: string; phone?: string; phoneE164?: string; currency?: string; preferredContact?: string; intent?: "project" | "quote"; tz?: string;
   status: "unread" | "read";
   createdAt: number;
   /** Approximate, IP-derived context of the visit that led to this inquiry (only when the visitor accepted statistics). */

@@ -1,4 +1,5 @@
 "use client";
+import { COUNTRY_NAME } from "@/lib/countries";
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/components/admin/api";
 import { PageTitle, useToast } from "@/components/admin/ui";
@@ -58,7 +59,7 @@ export default function Inbox() {
               <div className="flex gap-3 text-sm"><button className="hover:text-forge" onClick={() => setStatus(cur, cur.status === "read" ? "unread" : "read")}>Mark {cur.status === "read" ? "unread" : "read"}</button><button className="text-red-400" onClick={() => remove(cur)}>Delete</button></div>
             </div>
             <dl className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
-              {([["Company", cur.company], ["Project type", cur.projectType], ["Division", cur.division], ["Budget", cur.budget], ["Timeline", cur.timeline], ["Received", formatDateTime(cur.createdAt)], ["Auto-reply", cur.autoReply ? `Sent ${formatDateTime(cur.autoReply.at)}${cur.autoReply.ai ? " (AI-written)" : " (standard text)"}` : ""], ["Status", cur.status]] as const).map(([k, v]) => v ? <div key={k}><dt className="label">{k}</dt><dd>{v}</dd></div> : null)}
+              {([["Request", cur.intent === "quote" ? "Customised quotation" : ""], ["Company", cur.company], ["Country", cur.country ? (COUNTRY_NAME[cur.country] || cur.country) : ""], ["Phone", cur.phone ? `${cur.phone}` : ""], ["Preferred contact", cur.preferredContact || ""], ["Visitor timezone", cur.tz || ""], ["Service", cur.service || ""], ["Project type", cur.projectType], ["Division", cur.division], ["Budget", cur.budget ? cur.budget + (cur.currency ? ` (${cur.currency})` : "") : ""], ["Timeline", cur.timeline], ["Received", formatDateTime(cur.createdAt)], ["Auto-reply", cur.autoReply ? `Sent ${formatDateTime(cur.autoReply.at)}${cur.autoReply.ai ? " (AI-written)" : " (standard text)"}` : ""], ["Status", cur.status]] as const).map(([k, v]) => v ? <div key={k}><dt className="label">{k}</dt><dd>{v}</dd></div> : null)}
             </dl>
             <p className="label mt-6">Message</p>
             {cur.visitor && <p className="mb-3 border border-paper/15 bg-paper/5 p-2.5 text-xs text-paper/70" data-testid="inq-visitor">Visit context (approximate, from visitors who accepted statistics): {placeName({ country: cur.visitor.country, regionName: cur.visitor.regionName, city: cur.visitor.city })} · came from {cur.visitor.source} · landed on {cur.visitor.landing || "—"} · {cur.visitor.pages} page{cur.visitor.pages === 1 ? "" : "s"} over {cur.visitor.visits} visit{cur.visitor.visits === 1 ? "" : "s"} · {cur.visitor.daysToContact === 0 ? "contacted on the first day" : `contacted ${cur.visitor.daysToContact} days after the first visit`}</p>}

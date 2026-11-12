@@ -56,14 +56,14 @@ const shell = (title: string, rows: [string, string][], body: string, cta: { hre
   <a href="${cta.href}" style="display:inline-block;background:#34821d;color:#fff;padding:10px 20px;border-radius:999px;text-decoration:none;font-size:14px">${esc(cta.label)}</a>
 </div>`;
 
-export async function notifyInquiry(i: { name: string; email: string; company: string; projectType: string; division: string; budget: string; timeline: string; message: string; files: { url: string; name?: string }[] }) {
+export async function notifyInquiry(i: { name: string; email: string; company: string; projectType: string; division: string; budget: string; timeline: string; message: string; files: { url: string; name?: string }[]; service?: string; country?: string; phone?: string; currency?: string; preferredContact?: string; intent?: string; tz?: string }) {
   const admin = `${siteUrl()}/admin/inbox`;
   const files = i.files.map((f) => `<a href="${esc(f.url)}">${esc(f.name || "attachment")}</a>`).join("<br>");
   return sendMail({
-    subject: `New inquiry: ${i.projectType} — ${i.name}`,
+    subject: `${i.intent === "quote" ? "Quotation request" : "New inquiry"}: ${i.service || i.projectType} — ${i.name}${i.country ? ` (${i.country})` : ""}`,
     replyTo: i.email, // replying goes straight to the visitor
-    text: `New website inquiry\n\nName: ${i.name}\nEmail: ${i.email}\nCompany: ${i.company}\nType: ${i.projectType}\nBudget: ${i.budget}\nTimeline: ${i.timeline}\n\n${clip(i.message)}\n\n${i.files.map((f) => f.url).join("\n")}\n\nOpen in admin: ${admin}`,
-    html: shell("New website inquiry", [["Name", esc(i.name)], ["Email", `<a href="mailto:${esc(i.email)}">${esc(i.email)}</a>`], ["Company", esc(i.company)], ["Project type", esc(i.projectType)], ["Division", esc(i.division)], ["Budget", esc(i.budget)], ["Timeline", esc(i.timeline)], ["Files", files]], esc(clip(i.message)), { href: admin, label: "Open in admin" }),
+    text: `New website inquiry\n\nName: ${i.name}\nEmail: ${i.email}\nCompany: ${i.company}\nCountry: ${i.country || ""}\nPhone: ${i.phone || ""}\nService: ${i.service || i.projectType}\nBudget: ${i.budget}${i.currency ? ` (${i.currency})` : ""}\nTimeline: ${i.timeline}\nPreferred contact: ${i.preferredContact || "email"}${i.tz ? `\nVisitor timezone: ${i.tz}` : ""}\n\n${clip(i.message)}\n\n${i.files.map((f) => f.url).join("\n")}\n\nOpen in admin: ${admin}`,
+    html: shell("New website inquiry", [["Name", esc(i.name)], ["Email", `<a href="mailto:${esc(i.email)}">${esc(i.email)}</a>`], ["Company", esc(i.company)], ["Country", esc(i.country || "")], ["Phone", esc(i.phone || "")], ["Service", esc(i.service || i.projectType)], ["Request", esc(i.intent === "quote" ? "Customised quotation" : "Project inquiry")], ["Preferred contact", esc(i.preferredContact || "email")], ["Visitor timezone", esc(i.tz || "")], ["Project type", esc(i.projectType)], ["Division", esc(i.division)], ["Budget", esc(i.budget + (i.currency && i.budget ? ` (${i.currency})` : ""))], ["Timeline", esc(i.timeline)], ["Files", files]], esc(clip(i.message)), { href: admin, label: "Open in admin" }),
   });
 }
 

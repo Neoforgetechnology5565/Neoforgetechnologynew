@@ -112,7 +112,7 @@ export async function emailChatConfirmation(chatId: string): Promise<void> {
 }
 
 /** Emails the visitor an acknowledgement of their enquiry (AI-written when available). At most one per address per day. Never throws. */
-export async function autoReplyToInquiry(id: string, i: { name: string; email: string; company: string; projectType: string; division: string; budget: string; timeline: string; message: string }): Promise<void> {
+export async function autoReplyToInquiry(id: string, i: { name: string; email: string; company: string; projectType: string; division: string; budget: string; timeline: string; message: string; service?: string; country?: string }): Promise<void> {
   try {
     const settings = await getContactSettings();
     if (!settings.aiEmailReply || !mailConfigured() || !i.email) return;

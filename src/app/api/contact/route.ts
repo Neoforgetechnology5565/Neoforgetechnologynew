@@ -19,8 +19,9 @@ export async function POST(req: NextRequest) {
     if (!origin || new URL(origin).host !== host) return NextResponse.json({ error: "Bad origin" }, { status: 403 });
     if (!rateLimit(`contact:${clientIp(req)}`, 5, 60 * 60_000)) return NextResponse.json({ error: "Too many submissions. Please try again later." }, { status: 429 });
 
-    const { website, vid, ...data } = inquirySchema.parse(await req.json());
+    const { website, vid, startedAt, ...data } = inquirySchema.parse(await req.json());
     if (website) return NextResponse.json({ ok: true }); // honeypot: silently accept
+    if (startedAt && Date.now() - startedAt < 2500) return NextResponse.json({ ok: true }); // submitted faster than a person can type: silently accept
 
     const pushToken = randomBytes(24).toString("hex");
     const ref = await adminDb().collection(C.inquiries).add({ ...data, status: "unread", createdAt: Date.now(), pushToken });

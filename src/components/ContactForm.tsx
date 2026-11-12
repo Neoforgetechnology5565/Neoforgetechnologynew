@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { DIVISIONS, PROJECT_TYPES } from "@/lib/divisions";
+import { COUNTRIES, DIAL, PRIORITY_COUNTRIES } from "@/lib/countries";
+import { BUDGETS, CONTACT_METHODS, CURRENCIES, SERVICE_OPTIONS, TIMELINES } from "@/lib/inquiry-options";
 import type { MediaRef } from "@/lib/types";
 import { analyticsAllowed } from "@/lib/consent";
 import { enablePush, pushSupported } from "@/lib/push-client";
@@ -9,15 +10,20 @@ import FileDrop from "./FileDrop";
 
 const F = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-blue-600 focus:outline-none";
 const L = "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500";
-const BUDGETS = ["Under $5k", "$5k – $15k", "$15k – $50k", "$50k – $150k", "$150k+", "Not sure yet"];
-const TIMELINES = ["ASAP", "1–3 months", "3–6 months", "6+ months", "Flexible"];
+const ORDERED = [...PRIORITY_COUNTRIES.map((c) => COUNTRIES.find((x) => x[0] === c)!), ...COUNTRIES.filter((x) => !PRIORITY_COUNTRIES.includes(x[0]))];
+const FIELD_LABEL: Record<string, string> = { name: "name", email: "a valid business email", country: "country", phone: "phone number", message: "project description (at least 10 characters)", service: "service" };
 
 /** Only when the visitor accepted statistics: lets us see which visit led to this message. */
 function visitorLink(): { vid?: string } {
   try { const v = analyticsAllowed() && navigator.doNotTrack !== "1" ? localStorage.getItem("nf_vid") : null; return v ? { vid: v } : {}; } catch { return {}; }
 }
 
-export default function ContactForm({ initialDivision = "", defaultMessage = "" }: { initialDivision?: string; defaultMessage?: string }) {
+export default function ContactForm({ initialDivision = "", defaultMessage = "", initialIntent = "project" }: { initialDivision?: string; defaultMessage?: string; initialIntent?: "project" | "quote" }) {
+  const [country, setCountry] = useState("");
+  const [phoneCountry, setPhoneCountry] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [startedAt] = useState(() => Date.now());
+  const initialService = SERVICE_OPTIONS.find((o) => o.division && o.division === initialDivision)?.value ?? "";
   const [files, setFiles] = useState<MediaRef[]>([]);
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
   const [error, setError] = useState("");
@@ -39,10 +45,19 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "" 
     setState("sending");
     const f = new FormData(e.currentTarget);
     const payload = Object.fromEntries(f.entries());
-    const res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, files, ...visitorLink() }) });
+    let tz: string | undefined; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { /* optional */ }
+    setFieldErrors({});
+    let res: Response;
+    try { res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, phoneCountry: phoneCountry || country || undefined, tz, startedAt, files, ...visitorLink() }) }); }
+    catch { setError("We couldn't reach the server. Check your connection and try again — your details are still in the form."); setState("idle"); return; }
     if (res.ok) { const j = await res.json().catch(() => ({})); if (j.id && j.token) setSent({ id: j.id, token: j.token }); setState("done"); return; }
     const j = await res.json().catch(() => ({}));
-    setError(j.issues ? "Please check the highlighted fields — name, a valid email, and a description of at least 10 characters are required." : j.error || "Something went wrong. Please try again.");
+    if (Array.isArray(j.issues)) {
+      const fe: Record<string, string> = {};
+      for (const it of j.issues as { path?: (string | number)[]; message?: string }[]) { const k = String(it.path?.[0] ?? ""); if (k && !fe[k]) fe[k] = k === "phone" && it.message ? it.message : `Please check the ${FIELD_LABEL[k] || k}.`; }
+      setFieldErrors(fe);
+      setError(`Please fix: ${Object.keys(fe).map((k) => FIELD_LABEL[k] || k).join(", ")}.`);
+    } else setError(j.error || "Something went wrong. Please try again.");
     setState("idle");
   }
 
@@ -60,29 +75,49 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "" 
 
   return (
     <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2" noValidate={false}>
-      <div><label className={L} htmlFor="name">Name *</label><input id="name" name="name" required maxLength={120} className={F} autoComplete="name" /></div>
-      <div><label className={L} htmlFor="email">Email *</label><input id="email" name="email" type="email" required className={F} autoComplete="email" /></div>
+      <div className="sm:col-span-2 flex flex-wrap gap-4 text-sm text-stone-700" role="radiogroup" aria-label="What would you like?">
+        <label className="flex items-center gap-2"><input type="radio" name="intent" value="project" defaultChecked={initialIntent === "project"} /> Discuss a project</label>
+        <label className="flex items-center gap-2"><input type="radio" name="intent" value="quote" defaultChecked={initialIntent === "quote"} /> Request a customised quotation (USD by default)</label>
+      </div>
+      <div><label className={L} htmlFor="name">Full name *</label><input id="name" name="name" required maxLength={120} className={F} autoComplete="name" />{fieldErrors.name && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.name}</p>}</div>
+      <div><label className={L} htmlFor="email">Business email *</label><input id="email" name="email" type="email" required className={F} autoComplete="email" />{fieldErrors.email && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.email}</p>}</div>
       <div><label className={L} htmlFor="company">Company</label><input id="company" name="company" maxLength={160} className={F} autoComplete="organization" /></div>
       <div>
-        <label className={L} htmlFor="projectType">Project type *</label>
-        <select id="projectType" name="projectType" required className={F} defaultValue="">
-          <option value="" disabled>Select…</option>
-          {PROJECT_TYPES.map((t) => <option key={t}>{t}</option>)}
-        </select>
+        <label className={L} htmlFor="country">Country *</label>
+        <select id="country" name="country" required className={F} value={country} onChange={(e) => { setCountry(e.target.value); setPhoneCountry(e.target.value); }} autoComplete="country">
+          <option value="" disabled>Select your country…</option>
+          {ORDERED.map(([c, n]) => <option key={c} value={c}>{n}</option>)}
+        </select>{fieldErrors.country && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.country}</p>}
       </div>
       <div className="sm:col-span-2">
-        <label className={L} htmlFor="division">Technology division</label>
-        <select id="division" name="division" className={F} defaultValue={initialDivision}>
-          <option value="">Not sure</option>
-          {DIVISIONS.map((d) => <option key={d.slug} value={d.slug}>{d.name}</option>)}
-        </select>
+        <label className={L} htmlFor="phone">Phone (with country code)</label>
+        <div className="flex gap-2">
+          <select aria-label="Country dial code" className={`${F} !w-36 shrink-0`} value={phoneCountry} onChange={(e) => setPhoneCountry(e.target.value)}>
+            <option value="">Code…</option>
+            {ORDERED.map(([c, , d]) => <option key={c} value={c}>{c} +{d}</option>)}
+          </select>
+          <input id="phone" name="phone" type="tel" inputMode="tel" maxLength={30} className={F} autoComplete="tel-national" placeholder={phoneCountry ? `+${DIAL[phoneCountry]} …` : "Choose a code, or type +<country code> …"} />
+        </div>{fieldErrors.phone && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.phone}</p>}
+        <p className="mt-1 text-xs text-stone-500">Optional unless you prefer a call or WhatsApp. Checked against the selected country&apos;s numbering plan.</p>
       </div>
-      <div><label className={L} htmlFor="budget">Budget</label><select id="budget" name="budget" className={F} defaultValue=""><option value="">Prefer to discuss</option>{BUDGETS.map((b) => <option key={b}>{b}</option>)}</select></div>
-      <div><label className={L} htmlFor="timeline">Timeline</label><select id="timeline" name="timeline" className={F} defaultValue=""><option value="">Flexible</option>{TIMELINES.map((b) => <option key={b}>{b}</option>)}</select></div>
-      <div className="sm:col-span-2"><label className={L} htmlFor="message">Project description *</label><textarea id="message" name="message" required minLength={10} maxLength={5000} rows={6} defaultValue={defaultMessage} className={F} placeholder="What are you trying to build or automate? What systems are involved?" /></div>
+      <div className="sm:col-span-2">
+        <label className={L} htmlFor="service">Service required *</label>
+        <select id="service" name="service" required className={F} defaultValue={initialService}>
+          <option value="" disabled>Select…</option>
+          {SERVICE_OPTIONS.map((o) => <option key={o.value}>{o.value}</option>)}
+        </select>{fieldErrors.service && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.service}</p>}
+      </div>
+      <div className="grid grid-cols-[1fr_6rem] gap-2">
+        <div><label className={L} htmlFor="budget">Estimated budget</label><select id="budget" name="budget" className={F} defaultValue=""><option value="">Prefer to discuss</option>{BUDGETS.map((b) => <option key={b}>{b}</option>)}</select></div>
+        <div><label className={L} htmlFor="currency">Currency</label><select id="currency" name="currency" className={F} defaultValue="USD">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></div>
+      </div>
+      <div><label className={L} htmlFor="timeline">Expected timeline</label><select id="timeline" name="timeline" className={F} defaultValue=""><option value="">Flexible</option>{TIMELINES.map((b) => <option key={b}>{b}</option>)}</select></div>
+      <div className="sm:col-span-2"><label className={L} htmlFor="preferredContact">Preferred communication method</label><select id="preferredContact" name="preferredContact" className={F} defaultValue="email">{CONTACT_METHODS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select></div>
+      <div className="sm:col-span-2"><label className={L} htmlFor="message">Project description *</label><textarea id="message" name="message" required minLength={10} maxLength={5000} rows={6} defaultValue={defaultMessage} className={F} placeholder="What are you trying to build or automate? What systems are involved?" />{fieldErrors.message && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.message}</p>}</div>
       <div className="sm:col-span-2">
         <FileDrop light label="Attachments (optional)" accept=".jpg,.jpeg,.png,.webp,.pdf" multiple max={3} endpoint="/api/upload-sign" value={files} onChange={setFiles} hint="JPG, PNG, WEBP or PDF · up to 15 MB each" />
       </div>
+      <input type="hidden" name="division" value={initialDivision} />
       <div className="hidden" aria-hidden><label>Website<input name="website" tabIndex={-1} autoComplete="off" /></label></div>
       <div className="sm:col-span-2">
         {error && <p role="alert" className="mb-3 text-sm text-red-600">{error}</p>}
