@@ -17,6 +17,8 @@
     "test:analytics": "tsx src/lib/analytics/analytics.test.ts",
     "test:analytics:ui": "node scripts/test-analytics-dashboard.mjs && node scripts/test-analytics-tracker.mjs && node scripts/test-analytics-security.mjs",
     "test:inquiry": "tsx src/lib/inquiry.test.ts",
+    "test:meetings": "tsx src/lib/meetings.test.ts && tsx src/lib/meeting-service.test.ts",
+    "test:international:ui": "node scripts/test-international-ui.mjs",
     "test:seo": "tsx src/lib/landing-pages.test.ts",
     "test:seo:ui": "node scripts/test-seo-pages.mjs",
     "test:reviews": "tsx src/lib/schemas.reviews.test.ts",

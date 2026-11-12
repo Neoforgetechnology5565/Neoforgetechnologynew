@@ -1,4 +1,5 @@
 import "server-only";
+import { MEETING_DEFAULTS, type MeetingSettings } from "./meetings";
 import { unstable_cache, revalidatePath, revalidateTag } from "next/cache";
 import { adminDb, isFirebaseConfigured } from "./firebase-admin";
 import { ABOUT_DEFAULTS, BRANDING_DEFAULTS, CONTACT_DEFAULTS, HOME_DEFAULTS, LEGAL_DEFAULTS } from "./defaults";
@@ -20,6 +21,8 @@ export const C = {
   posts: "posts",
   content: "content",
   inquiries: "inquiries",
+  meetings: "meetings",
+  meetingSlots: "meeting_slots",
   chats: "chats",
   presence: "presence",
   meta: "meta",
@@ -214,10 +217,11 @@ export const getAbout = cached("content-about", () => readContent<AboutContent>(
 export const getBranding = cached("content-branding", () => readContent<Branding>("branding", BRANDING_DEFAULTS));
 export const getContactSettings = cached("content-contact", () => readContent<ContactSettings>("contact", CONTACT_DEFAULTS));
 
+export const getMeetingSettings = cached("content-meetings", async () => ({ ...MEETING_DEFAULTS, ...(await readContent<Partial<MeetingSettings>>("meetings", MEETING_DEFAULTS)) }));
 export const getLegal = cached("content-legal", () => readContent<LegalContent>("legal", LEGAL_DEFAULTS));
 
-export async function adminGetContent(key: "home" | "about" | "contact" | "branding" | "legal") {
-  const defaults = { home: HOME_DEFAULTS, about: ABOUT_DEFAULTS, contact: CONTACT_DEFAULTS, branding: BRANDING_DEFAULTS, legal: LEGAL_DEFAULTS }[key];
+export async function adminGetContent(key: "home" | "about" | "contact" | "branding" | "legal" | "meetings") {
+  const defaults = { home: HOME_DEFAULTS, about: ABOUT_DEFAULTS, contact: CONTACT_DEFAULTS, branding: BRANDING_DEFAULTS, legal: LEGAL_DEFAULTS, meetings: MEETING_DEFAULTS }[key];
   return readContent(key, defaults as object);
 }
 

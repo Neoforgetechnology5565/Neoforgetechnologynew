@@ -1,3 +1,4 @@
+import { validZone } from "./meetings";
 import { isCountry } from "./countries";
 import { CURRENCIES, serviceInfo } from "./inquiry-options";
 import { checkPhone } from "./phone";
@@ -162,7 +163,16 @@ export const brandingSchema = z.object({
 const legalText = z.string().max(40000).transform((s) => s.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, ""));
 export const legalSchema = z.object({ privacy: legalText, terms: legalText, updated: z.string().trim().max(60).transform(stripTags) });
 
-export const contentSchemas = { home: homeSchema, about: aboutSchema, contact: contactSettingsSchema, branding: brandingSchema, legal: legalSchema } as const;
+export const meetingSettingsSchema = z.object({
+  enabled: z.boolean(),
+  tz: z.string().max(60).refine(validZone, "Unknown time zone (use an IANA name such as Europe/London)"),
+  startHour: z.number().int().min(0).max(23), endHour: z.number().int().min(1).max(24),
+  days: z.array(z.number().int().min(0).max(6)).max(7),
+  durationMin: z.union([z.literal(30), z.literal(45), z.literal(60)]),
+  horizonDays: z.number().int().min(1).max(60), leadHours: z.number().int().min(0).max(240),
+  bookingUrl: httpUrl,
+}).refine((v) => v.endHour > v.startHour, { message: "End hour must be after the start hour", path: ["endHour"] });
+export const contentSchemas = { home: homeSchema, about: aboutSchema, contact: contactSettingsSchema, branding: brandingSchema, legal: legalSchema, meetings: meetingSettingsSchema } as const;
 export type ContentKey = keyof typeof contentSchemas;
 
 export const inquirySchema = z.object({
@@ -214,3 +224,21 @@ export const trackSchema = z.object({
   vid: z.string().min(8).max(64).regex(/^[a-zA-Z0-9_-]+$/),
   project: z.string().max(200).optional(),
 });
+
+export const meetingRequestSchema = z.object({
+  name: z.string().min(1).max(120).transform(stripTags),
+  email: z.string().email().max(200),
+  company: text(160).default(""),
+  country: z.string().refine(isCountry, "Choose a country"),
+  phoneCountry: z.string().refine(isCountry).optional(),
+  phone: text(30).default(""),
+  /** The visitor's IANA time zone (detected in the browser, editable) */
+  tz: z.string().max(60).refine(validZone, "Unknown time zone"),
+  /** Slot start as UTC milliseconds, one of the offered slots */
+  start: z.number().int(),
+  purpose: z.enum(["Project discovery call", "Request a quotation", "Technical consultation", "Demo walkthrough", "Other"]),
+  notes: text(1500).default(""),
+  website: z.string().max(200).optional(),
+  startedAt: z.number().int().optional(),
+}).superRefine((v, ctx) => { if (v.phone && !checkPhone(v.phone, v.phoneCountry || v.country)) ctx.addIssue({ code: "custom", path: ["phone"], message: "Enter a valid phone number for the selected country" }); })
+  .transform((v) => ({ ...v, phone: v.phone ? checkPhone(v.phone, v.phoneCountry || v.country)!.display : "" }));

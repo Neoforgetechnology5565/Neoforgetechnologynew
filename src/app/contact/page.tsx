@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ContactForm from "@/components/ContactForm";
+import MeetingScheduler from "@/components/MeetingScheduler";
 import { getContactSettings } from "@/lib/db";
 import { isDivisionSlug } from "@/lib/divisions";
 
@@ -33,6 +34,13 @@ export default async function Contact({ searchParams }: { searchParams: Promise<
         </dl>
         <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8"><ContactForm initialDivision={division && isDivisionSlug(division) ? division : ""} /></div>
       </div>
+      <section className="border-t border-stone-200 bg-stone-50 py-14" id="meeting" aria-labelledby="meeting-h">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <h2 id="meeting-h" className="font-display text-2xl font-semibold text-stone-900">Request a call</h2>
+          <p className="mt-2 text-sm text-stone-600">Pick a time in your own time zone. We show each time in your zone and ours, so there is no conversion to do. A request is not a booking: we confirm every call by email.</p>
+          <div className="mt-6 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm"><MeetingScheduler /></div>
+        </div>
+      </section>
     </>
   );
 }
