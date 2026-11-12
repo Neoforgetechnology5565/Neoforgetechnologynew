@@ -1,4 +1,5 @@
 import { SERVICES } from "@/lib/services";
+import { LANDING_PAGES } from "@/lib/landing-pages";
 import { DEMOS } from "@/lib/demos";
 import { CV_DEMOS } from "@/lib/cv-demos";
 import { ERP_DEMOS } from "@/lib/erp-demos";
@@ -14,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [projects, cats, posts] = await Promise.all([getPublishedProjects(), getCategories(), getPublishedPosts()]);
   return [
     ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing", "/demos"].map((p) => ({ url: `${base}${p}` })),
+    ...LANDING_PAGES.map((p) => ({ url: `${base}/${p.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
     ...DEMOS.map((d) => ({ url: `${base}/demos/${d.slug}` })),
     ...ERP_DEMOS.map((d) => ({ url: `${base}/erp-demos/${d.slug}` })),
     ...SUITE.map((d) => ({ url: `${base}/cad-bim-suite/${d.slug}` })),

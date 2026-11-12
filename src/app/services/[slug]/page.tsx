@@ -10,6 +10,8 @@ import { breadcrumbLd, faqLd, serviceLandingLd } from "@/lib/jsonld";
 import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { SERVICE_MAP, SERVICES } from "@/lib/services";
 import { EXTRAS, PROCESS_TITLES } from "@/lib/services-extra";
+import { LANDING_MAP } from "@/lib/landing-pages";
+import { HUB_FOR_SERVICE } from "@/lib/services-hub";
 
 type Params = { params: Promise<{ slug: string }> };
 
@@ -33,6 +35,7 @@ export default async function ServicePage({ params }: Params) {
   const articles = posts.filter((p) => p.division === s.division).slice(0, 3);
   const others = SERVICES.filter((x) => x.slug !== s.slug && x.division === s.division);
   const x = EXTRAS[s.slug];
+  const hub = LANDING_MAP[HUB_FOR_SERVICE[s.slug]];
   const faqs = s.faqs.map((f, i) => ({ id: `${s.slug}-${i}`, question: f.q, answer: f.a, order: i, enabled: true }));
 
   return (
@@ -42,6 +45,7 @@ export default async function ServicePage({ params }: Params) {
         <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
           <p className="text-sm text-slate-400"><Link href="/" className="hover:text-blue-400">Home</Link> / <Link href="/services" className="hover:text-blue-400">Services</Link> / {s.name}</p>
           <p className="mt-6 text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">{d.name}</p>
+          {hub && <p className="mt-2 text-sm text-slate-300">Part of <Link href={`/${hub.slug}`} className="font-medium text-blue-400 hover:underline">{hub.name}</Link> · <Link href="/services" className="font-medium text-blue-400 hover:underline">All services</Link></p>}
           <h1 className="mt-4 max-w-3xl font-display text-4xl font-semibold leading-tight sm:text-5xl">{s.h1}</h1>
           <p className="mt-6 max-w-2xl text-lg text-slate-300">{s.intro}</p>
           <div className="mt-8 flex flex-wrap gap-4">

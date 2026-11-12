@@ -8,6 +8,7 @@ import ProjectCard from "@/components/ProjectCard";
 import { DivisionGlyph, HeroVisual } from "@/components/Visuals";
 import { img } from "@/lib/cloudinary";
 import Testimonials from "@/components/Testimonials";
+import { HUB_ITEMS } from "@/lib/services-hub";
 import { getCategories, getFaqs, getFeaturedProjects, getHome, getReviews } from "@/lib/db";
 import { DIVISIONS, TECH_GROUPS, WHY_US } from "@/lib/divisions";
 
@@ -96,6 +97,15 @@ export default async function Home() {
           </div>
         </section>
       )}
+
+      {/* Services: the path to the eight service pages */}
+      <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8" aria-label="Software development services">
+        <SectionHead eyebrow="Services" title="Software development services">AI, computer vision, CAD/BIM and business systems. Each service has its own page.</SectionHead>
+        <ul className="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {HUB_ITEMS.map((p) => <li key={p.slug}><Link href={`/${p.slug}`} className="block h-full rounded-xl border border-stone-200 bg-white p-4 hover:border-blue-400"><span className="font-medium text-stone-900">{p.name}</span><span className="mt-1 block text-sm text-stone-600">{p.short}</span></Link></li>)}
+        </ul>
+        <p className="mt-6 text-sm"><Link href="/services" className="font-semibold text-blue-700 hover:underline">All services →</Link></p>
+      </section>
 
       {/* About blurb */}
       <section className="bg-stone-100 py-24">

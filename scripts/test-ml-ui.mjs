@@ -22,14 +22,13 @@ const dl = async (loc) => { const [d] = await Promise.all([p.waitForEvent("downl
 const loaded = async (sel = "img") => p.waitForFunction((s) => { const i = document.querySelector(s); return i?.complete && i.naturalWidth > 50; }, sel, { timeout: 30000 });
 console.log(`ml ui tests (${MODE}) →`, BASE);
 
-await t("portfolio and CV catalogue show 21 real cover images", async () => {
+await t("portfolio cards for CV and CRM/ERP use the same drawn layout previews as the CAD/BIM cards (no cover images)", async () => {
   for (const url of ["/portfolio/computer-vision", "/portfolio"]) {
     await p.goto(`${BASE}${url}`, { waitUntil: "load" }); await p.getByRole("button", { name: "Decline" }).click({ timeout: 1000 }).catch(() => 0);
     if (url === "/portfolio") { await p.getByRole("button", { name: /Computer Vision/i }).first().click({ timeout: 3000 }).catch(() => 0); }
     await p.waitForTimeout(600);
-    const info = await p.evaluate(async () => { const imgs = [...document.querySelectorAll("[data-testid=cover]")]; imgs.forEach((i) => { i.loading = "eager"; }); await Promise.all(imgs.map((i) => (i.complete ? 0 : Promise.race([new Promise((r) => { i.onload = i.onerror = r; }), new Promise((r) => setTimeout(r, 15000))])))); return imgs.map((i) => ({ src: i.getAttribute("src"), ok: i.naturalWidth >= 1000 })); });
-    const covers = new Set(info.map((i) => i.src)); ok(covers.size >= 21 && info.every((i) => i.ok), `${url}: ${covers.size} distinct covers, ${info.filter((i) => !i.ok).length} broken`);
-    ok([...covers].every((s) => /\/covers\/cv-\d\d\.jpg$/.test(s)), "cover paths");
+    ok((await p.locator("[data-testid=cover]").count()) === 0, `${url}: cover images are gone`);
+    const sketches = await p.locator("svg[aria-label^='Layout sketch']").count(); ok(sketches >= 21, `${url}: ${sketches} layout previews`);
   }
   const links = await p.evaluate(() => [...document.querySelectorAll("a[href^='/ai-demos/']")].map((a) => a.getAttribute("href")));
   for (const s of Object.values(SLUGS)) ok(links.some((h) => h.includes(s)), `card link for ${s}`);
