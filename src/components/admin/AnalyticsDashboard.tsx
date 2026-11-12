@@ -4,9 +4,10 @@ import { api } from "@/components/admin/api";
 import { Card, PageTitle, useToast } from "@/components/admin/ui";
 import type { Report, Row, VisitorSummary } from "@/lib/analytics/aggregate";
 import type { Live } from "@/lib/analytics/live";
+import AlertsPanel from "./AlertsPanel";
 
-type Tab = "overview" | "locations" | "sources" | "pages" | "clicks" | "navigation" | "visitors" | "contacts";
-const TABS: [Tab, string][] = [["overview", "Overview"], ["locations", "Locations"], ["sources", "Sources & devices"], ["pages", "Pages & interest"], ["clicks", "Clicks"], ["navigation", "Navigation"], ["visitors", "Visitors"], ["contacts", "Contacts"]];
+type Tab = "overview" | "locations" | "sources" | "pages" | "clicks" | "navigation" | "visitors" | "contacts" | "alerts";
+const TABS: [Tab, string][] = [["overview", "Overview"], ["locations", "Locations"], ["sources", "Sources & devices"], ["pages", "Pages & interest"], ["clicks", "Clicks"], ["navigation", "Navigation"], ["visitors", "Visitors"], ["contacts", "Contacts"], ["alerts", "Alerts"]];
 interface Detail extends VisitorSummary { journey: { p: string; t: number }[]; clickLog: { p: string; l: string; t: number }[]; language: string; ipTimezone: string }
 const when = (t: number) => (t ? new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—");
 const n0 = (n: number) => n.toLocaleString();
@@ -114,6 +115,7 @@ export default function AnalyticsDashboard() {
             <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm" data-testid="visitors-table"><thead className="text-paper/50"><tr><th className="py-1 pr-3">Last visit</th><th className="pr-3">First visit</th><th className="pr-3">Location (approx.)</th><th className="pr-3">Source</th><th className="pr-3">Device</th><th className="pr-3 text-right">Pages</th><th className="pr-3 text-right">Visits</th><th className="pr-3 text-right">Clicks</th><th>Contacted</th></tr></thead>
               <tbody>{shown.map((v) => <tr key={v.id} className="cursor-pointer border-t border-paper/10 hover:bg-paper/5" tabIndex={0} onClick={() => open(v.id)} onKeyDown={(e) => e.key === "Enter" && open(v.id)} data-testid={`visitor-${v.id}`}><td className="py-1.5 pr-3 whitespace-nowrap">{when(v.lastSeen)}</td><td className="pr-3 whitespace-nowrap text-paper/60">{when(v.firstSeen)}</td><td className="pr-3">{v.place}</td><td className="pr-3">{v.source}</td><td className="pr-3 text-paper/70">{v.device || "—"}{v.browser ? ` · ${v.browser}` : ""}</td><td className="pr-3 text-right font-mono">{v.pages}</td><td className="pr-3 text-right font-mono">{v.visits}</td><td className="pr-3 text-right font-mono">{v.clicks}</td><td>{v.converted ? <span className="bg-green-500/20 px-1.5 py-0.5 text-xs text-green-300">Yes</span> : <span className="text-paper/40">—</span>}</td></tr>)}</tbody></table></div>)}
         </Card>}
+        {tab === "alerts" && <AlertsPanel />}
         {tab === "contacts" && <div className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-2"><Panel title="Enquiries by traffic channel" note={`${r.conversions.total} in this period`} testid="cv-channels"><Bars rows={r.conversions.channels} empty="No linked enquiries yet." /></Panel><Panel title="Enquiries by country (approximate)" testid="cv-countries"><Bars rows={r.conversions.countries} empty="No linked enquiries yet." /></Panel></div>
           <Card><h2 className="font-semibold">Visitors who contacted us</h2><p className="mb-3 mt-0.5 text-xs text-paper/50">Only visitors who accepted statistics before sending a message can be linked. The message itself is in Inquiries.</p>

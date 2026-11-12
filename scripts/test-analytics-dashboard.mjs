@@ -14,12 +14,13 @@ const b = await chromium.launch(); let pass = 0, fail = 0;
 const t = async (name, fn) => { try { await fn(); pass++; console.log("  ✓ " + name); } catch (e) { fail++; console.log("  ✗ " + name + "\n     " + String(e.message).split("\n")[0]); } };
 const ok = (c, m) => { if (!c) throw new Error(m); };
 const page = await (await b.newContext({ viewport: { width: 1500, height: 1000 } })).newPage(), id = (x) => page.getByTestId(x), errors = []; page.on("pageerror", (e) => errors.push(String(e)));
-const calls = [], erased = []; let liveN = 0;
+const calls = [], erased = [], alertPuts = []; let liveN = 0, alertState = { settings: { enabled: false, email: false, push: true, minGapMinutes: 10, newVisitorsOnly: false }, lastAlertAt: null, pending: 0, emailConfigured: true, emailTo: "owner@example.com", pushConfigured: false, devices: 0 };
 const LIVE = [{ online: 3, pages: [{ path: "/", n: 2 }, { path: "/services/revit-plugin-development", n: 1 }], countries: [{ code: "US", name: "United States", n: 2 }, { code: "XX", name: "Unknown", n: 1 }], updatedAt: Date.now() }, { online: 0, pages: [], countries: [], updatedAt: Date.now() }];
 await page.route("**/__t/page", (r) => r.fulfill({ contentType: "text/html", body: `<!doctype html><html><head><meta charset=utf-8>${css.map((c) => `<link rel=stylesheet href="${c}">`).join("")}</head><body class="bg-ink-950 text-paper p-6"><div id="root"></div><script src="/__t/bundle.js"></script></body></html>` }));
 await page.route("**/__t/bundle.js", (r) => r.fulfill({ contentType: "application/javascript", body: js }));
 await page.route("**/api/admin/analytics**", (route) => {
   const r = route.request(), u = new URL(r.url()), parts = u.pathname.split("/").filter(Boolean), json = (b, status = 200) => route.fulfill({ status, contentType: "application/json", body: JSON.stringify(b) }); calls.push(`${r.method()} ${u.pathname}${u.search}`);
+  if (parts[3] === "alerts") { if (parts[4] === "test") return json({ email: "sent", push: "not configured (VAPID keys missing)" }); if (r.method() === "PUT") { const b = r.postDataJSON(); alertPuts.push(b); alertState = { ...alertState, settings: b, lastAlertAt: Date.now() - 3600000, pending: 4 }; } return json(alertState); }
   if (parts[3] === "live") return json(LIVE[Math.min(liveN++, 1)]);
   if (parts.length === 3) return json(fx.reports[u.searchParams.get("days") || "30"]);
   if (parts[3] === "visitors" && parts.length === 4) return json({ items: u.searchParams.get("filter") === "contacted" ? fx.contacted : fx.visitors });
@@ -40,6 +41,13 @@ await t("online now: count, pages being viewed and countries, refreshed automati
   ok(/\/services\/revit-plugin-development/.test(await id("live-pages").innerText()) && /United States/.test(await id("live-countries").innerText()) && /Unknown/.test(await id("live-countries").innerText()), "pages and countries");
   ok(/last 90 seconds/.test(await id("live").innerText()), "explains the window");
   await page.waitForFunction(() => document.querySelector("[data-testid=live-count]")?.textContent === "0", null, { timeout: 15000 }); ok(await id("live-empty").isVisible(), "empty state when nobody is online");
+});
+await t("alerts: set up email alerts, save, send a test, and see honest status for push", async () => {
+  await id("tab-alerts").click(); await id("alerts").waitFor(); ok(/Sent to owner@example\.com/.test(await id("al-email-status").innerText()), "email recipient shown"); ok(/Push is not set up yet/.test(await id("al-push-status").innerText()) && /VAPID/.test(await id("al-push-status").innerText()), "push explains what is missing"); ok(await id("al-device-on").count() === 0, "no device button until push is configured");
+  ok(await id("al-save").isDisabled() && /No alert has been sent yet/.test(await id("al-last").innerText()), "save disabled until a change");
+  await id("al-enabled").check(); await id("al-email").check(); await id("al-push").uncheck(); await id("al-gap").selectOption("30"); await id("al-new").check(); ok(await id("al-test").isDisabled(), "test needs the changes saved first"); await id("al-save").click(); await page.waitForFunction(() => /Alert settings saved/.test(document.body.innerText), null, { timeout: 5000 });
+  ok(JSON.stringify(alertPuts[0]) === JSON.stringify({ enabled: true, email: true, push: false, minGapMinutes: 30, newVisitorsOnly: true }), JSON.stringify(alertPuts[0])); ok(/4 visits since/.test(await id("al-last").innerText()), await id("al-last").innerText());
+  await id("al-test").click(); await id("al-test-result").waitFor(); const r = await id("al-test-result").innerText(); ok(/email: sent/.test(r) && /push: not configured/.test(r), r); ok(/accepted statistics/.test(await id("alerts").innerText()) && /Home Screen/.test(await id("alerts").innerText()), "limits explained");
 });
 await t("locations: approximate wording, countries, states/regions, cities, time zones, and Unknown", async () => {
   await id("tab-locations").click(); ok(/Approximate/.test(await id("approx-note").innerText()) && /Unknown/.test(await id("approx-note").innerText()) && /GPS/.test(await id("approx-note").innerText()), await id("approx-note").innerText());

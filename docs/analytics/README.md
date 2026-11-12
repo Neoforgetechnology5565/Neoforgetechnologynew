@@ -38,3 +38,14 @@ The default privacy text (`lib/legal-defaults.ts`) and the privacy notice descri
 
 ## Tests
 `npm run test:analytics` (parsing, location headers, source classification, the tracking code against an in-memory store, privacy checks) and `npm run test:analytics:ui` (dashboard on a realistic dataset, the tracker in a real browser, access control; needs a running production build).
+
+## Visitor alerts (get notified when someone arrives)
+**Admin → Analytics → Alerts.** When a visit starts, the server can email you and/or push a notification to your phone or computer. It is sent by the server, so it works when you are logged out, offline, or have the admin closed.
+
+- **Email** uses the SMTP settings the site already uses for enquiries (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, optional `NOTIFY_TO`). It works on every device.
+- **Push** needs VAPID keys (generate them in Admin → Maintenance; set `NEXT_PUBLIC_VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY`; redeploy), then **Enable on this device** on each phone/computer. iPhones only deliver web push to sites added to the Home Screen.
+- **Throttle:** at most one alert per 1 min – 4 h (default 10 min). Visits in between are counted and reported in the next alert ("+3 more visits since the last alert"). Optional "first-time visitors only".
+- **Content:** title, approximate place, where they came from, the page they opened, device type. Nothing that identifies a person.
+- **Limit:** alerts come from the same consent-based statistics, so visitors who declined or send Do-Not-Track do not trigger them.
+- **Test:** "Send a test alert" sends through the channels you switched on and reports what happened (for example "email: not configured").
+- Storage: settings in `content/visitorAlerts`, your push devices in `content/adminPush` (up to 5; expired ones are removed automatically).

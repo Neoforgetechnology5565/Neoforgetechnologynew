@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { buildReport, summarizeVisitor } from "./aggregate";
+import { DEFAULT_ALERTS, decide, message, runAlert, type AlertMessage, type VisitInfo } from "./alerts";
 import { summarizeLive } from "./live";
 import { geoFromHeaders, placeName, regionName, countryName } from "./geo";
 import { classifyPath, mapKey, pathKey, unPathKey } from "./pages";
@@ -130,6 +131,27 @@ assert.deepEqual(r.conversions.channels.map((x) => [x.label, x.n]), [["search", 
 // online now: only heartbeats from the last 90 seconds count
 { const N = 1_000_000, l = summarizeLive([{ at: N - 10_000, path: "/", country: "US" }, { at: N - 20_000, path: "/", country: "GB" }, { at: N - 30_000, path: "/services", country: "US" }, { at: N - 89_000, path: "/pricing", country: "XX" }, { at: N - 91_000, path: "/old", country: "US" }, { path: "/nope" }], N);
   assert.equal(l.online, 4); assert.deepEqual(l.pages[0], { path: "/", n: 2 }); assert.ok(!l.pages.some((p) => p.path === "/old")); assert.deepEqual(l.countries.map((c) => [c.name, c.n]), [["United States", 2], ["United Kingdom", 1], ["Unknown", 1]]); assert.equal(summarizeLive([], N).online, 0); }
+// visitor alerts
+{
+  const V: VisitInfo = { newVisitor: true, place: "Lagos, Lagos, Nigeria", source: "Google", channel: "search", landing: "/services/x", device: "mobile" }, on = { ...DEFAULT_ALERTS, enabled: true }, N = 10_000_000;
+  assert.equal(decide(DEFAULT_ALERTS, V, N).send, false, "off by default"); assert.equal(decide({ ...on, push: false, email: false }, V, N).send, false, "no channel");
+  assert.equal(decide(on, V, N).send, true); assert.deepEqual(decide({ ...on, lastAlertAt: N - 5 * 60_000 }, V, N), { send: false, pending: 1 }, "inside the gap"); assert.equal(decide({ ...on, lastAlertAt: N - 11 * 60_000, pending: 3 }, V, N).send, true);
+  assert.deepEqual(decide({ ...on, newVisitorsOnly: true }, { ...V, newVisitor: false }, N), { send: false, pending: 0 }, "returning visitors are ignored, not counted"); assert.equal(decide({ ...on, newVisitorsOnly: true }, V, N).send, true);
+  const m = message(V, 0); assert.equal(m.title, "New visitor on your website"); assert.ok(/Lagos, Lagos, Nigeria \(approximate\)/.test(m.body) && /Google/.test(m.body) && /\/services\/x/.test(m.body)); assert.equal(m.url, "/admin/analytics"); assert.ok(/\+2 more visits/.test(message(V, 2).body)); assert.ok(/Location unknown/.test(message({ ...V, place: "Unknown" }, 0).body)); assert.equal(message({ ...V, newVisitor: false }, 0).title, "Visitor on your website");
+  const adb = fakeDb(), sent: [string, AlertMessage][] = [], senders = { email: async (x: AlertMessage) => { sent.push(["email", x]); }, push: async (x: AlertMessage) => { sent.push(["push", x]); } };
+  assert.equal(await runAlert(adb, senders, V, N), "skipped"); assert.equal(sent.length, 0, "disabled by default");
+  await adb.collection("content").doc("visitorAlerts").set({ enabled: true, email: true, push: true, minGapMinutes: 10, newVisitorsOnly: false });
+  assert.equal(await runAlert(adb, senders, V, N), "sent"); assert.deepEqual(sent.map((x) => x[0]).sort(), ["email", "push"]);
+  assert.equal(await runAlert(adb, senders, V, N + 60_000), "skipped"); assert.equal(await runAlert(adb, senders, V, N + 120_000), "skipped"); assert.equal(sent.length, 2, "throttled");
+  assert.equal(await runAlert(adb, senders, V, N + 11 * 60_000), "sent"); assert.ok(/\+2 more visits/.test(sent.at(-1)![1].body), "the next alert reports the visits it skipped"); assert.equal((await adb.collection("content").doc("visitorAlerts").get()).data()!.pending, 0);
+  const bad = { email: async () => { throw new Error("smtp down"); }, push: async () => { sent.push(["push", message(V, 0)]); } }; await adb.collection("content").doc("visitorAlerts").set({ lastAlertAt: 0 }, { merge: true });
+  assert.equal(await runAlert(adb, bad, V, N + 30 * 60_000), "sent", "one channel failing does not stop the other"); assert.equal(await runAlert({ collection: () => { throw new Error("db down"); } } as never, senders, V, N), "skipped", "a database error is swallowed");
+  // processTrack calls onVisit once per new visit only
+  const tdb = fakeDb(), visits: VisitInfo[] = [], track = (b: unknown, h: ReturnType<typeof hdr>, now: number, onVisit?: (v: VisitInfo) => void) => processTrack({ db: tdb, inc, headers: h, body: b, ua: UA.chromeWin, selfHosts: SELF, now, onVisit: onVisit ?? ((v) => { visits.push(v); }) });
+  await track({ path: "/services/revit-plugin-development", vid: "alertvis-1111", sid: "s-1111", ref: "https://www.google.com" }, LAH, T0); await track({ path: "/pricing", vid: "alertvis-1111", sid: "s-1111" }, LAH, T0 + MIN); await track({ path: "/", vid: "alertvis-1111", sid: "s-2222" }, LAH, T0 + 40 * MIN);
+  assert.equal(visits.length, 2, "a visit alert, not a page-view alert"); assert.deepEqual(visits[0], { newVisitor: true, place: "Los Angeles, California, United States", source: "Google", channel: "search", landing: "/services/revit-plugin-development", device: "desktop" }); assert.equal(visits[1].newVisitor, false);
+  await track({ path: "/", vid: "alertvis-2222", sid: "s-3333" }, LAH, T0 + 50 * MIN, () => { throw new Error("alert failed"); }); assert.ok(tdb.all.get("analytics_visitors")!.has("alertvis-2222"), "tracking still succeeds when the alert callback throws");
+}
 /* ---------- erase and retention ---------- */
 await deleteVisitor(db, C); assert.equal(db.all.get("analytics_visitors")!.has(C), false);
 await processTrack({ db, inc, headers: LAH, body: { path: "/", vid: "visitor-oldoldol" }, ua: UA.chromeWin, selfHosts: SELF, now: T0 - 200 * DAY });

@@ -1,5 +1,7 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
+import { runAlert } from "@/lib/analytics/alerts";
+import { alertSenders } from "@/lib/analytics/alerts-server";
 import { processTrack, type Db } from "@/lib/analytics/process";
 import { adminDb, isFirebaseConfigured } from "@/lib/firebase-admin";
 import { clientIp, rateLimit } from "@/lib/ratelimit";
@@ -19,7 +21,8 @@ export async function POST(req: NextRequest) {
   if (!rateLimit(`track:${clientIp(req)}`, 150, 60_000)) return ok;
   try {
     const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "";
-    await processTrack({ db: adminDb() as unknown as Db, inc: (n) => FieldValue.increment(n), headers: req.headers, body: await req.json(), ua, selfHosts: [host] });
+    const db = adminDb() as unknown as Db;
+    await processTrack({ db, inc: (n) => FieldValue.increment(n), headers: req.headers, body: await req.json(), ua, selfHosts: [host], onVisit: (v) => { after(() => runAlert(db, alertSenders, v)); } });
   } catch {
     /* analytics must never surface errors */
   }

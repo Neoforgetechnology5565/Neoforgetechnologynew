@@ -1,6 +1,7 @@
 /** Applies tracking events to storage. `Db` is the small part of Firestore we use, so the same code runs against an in-memory store in tests. */
 import { COL, VISITOR_RETENTION_DAYS } from "./consts";
-import { geoFromHeaders, type HeaderLike } from "./geo";
+import type { VisitInfo } from "./alerts";
+import { geoFromHeaders, placeName, type HeaderLike } from "./geo";
 import { isoDay, planClicks, planConversion, planView, type Counters, type Visitor } from "./plan";
 import { trackBody } from "./schema";
 import { classifySource } from "./source";
@@ -20,7 +21,7 @@ export function withIncrements(c: Counters, inc: Inc): Record<string, unknown> {
 }
 const incFields = (f: Record<string, number>, inc: Inc) => Object.fromEntries(Object.entries(f).map(([k, v]) => [k, inc(v)]));
 
-export interface TrackInput { db: Db; inc: Inc; headers: HeaderLike; body: unknown; ua: string; selfHosts: string[]; now?: number }
+export interface TrackInput { db: Db; inc: Inc; headers: HeaderLike; body: unknown; ua: string; selfHosts: string[]; now?: number; /** Called once per new visit, after the data is written; errors are swallowed. */ onVisit?: (v: VisitInfo) => void | Promise<void> }
 export async function processTrack(o: TrackInput): Promise<"view" | "clicks" | "ignored"> {
   const parsed = trackBody.safeParse(o.body); if (!parsed.success) return "ignored";
   const now = o.now ?? Date.now(), day = isoDay(now), b = parsed.data, db = o.db;
@@ -32,10 +33,12 @@ export async function processTrack(o: TrackInput): Promise<"view" | "clicks" | "
     if (existing) await vref.set({ ...p.visitorSet, ...incFields(p.visitorInc, o.inc) }, { merge: true });
     return "clicks";
   }
-  const p = planView({ body: b, geo: geoFromHeaders(o.headers), ua: parseUa(o.ua), source: classifySource({ referrer: b.ref, utmSource: b.utm?.s, utmMedium: b.utm?.m, utmCampaign: b.utm?.c }, o.selfHosts), now, existing });
+  const geo = geoFromHeaders(o.headers), ua = parseUa(o.ua), source = classifySource({ referrer: b.ref, utmSource: b.utm?.s, utmMedium: b.utm?.m, utmCampaign: b.utm?.c }, o.selfHosts);
+  const p = planView({ body: b, geo, ua, source, now, existing });
   await db.collection(COL.daily).doc(day).set(withIncrements(p.daily, o.inc), { merge: true });
   await vref.set({ ...p.visitorSet, ...incFields(p.visitorInc, o.inc) }, { merge: true });
   await db.collection(COL.totals).doc("all").set(withIncrements(p.totals, o.inc), { merge: true });
+  if (p.newSession && o.onVisit) { try { await o.onVisit({ newVisitor: p.isNewVisitor, place: placeName(geo), source: source.name, channel: source.channel, landing: b.path.split(/[?#]/)[0].slice(0, 120), device: ua.device }); } catch { /* alerts never affect tracking */ } }
   return "view";
 }
 
