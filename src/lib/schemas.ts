@@ -111,7 +111,11 @@ export const reviewSchema = z.object({
   sourceUrl: httpUrl.default(""),
   order: z.number().int().default(0),
   enabled: z.boolean().default(true),
-});
+  kind: z.enum(["sample", "verified"]).default("verified"),
+  permission: z.boolean().default(false),
+  evidence: text(300).default(""),
+}).transform((r) => r.kind === "sample" ? { ...r, rating: 0, source: "", sourceUrl: "", permission: false, evidence: "" } : r)
+  .refine((r) => r.kind !== "verified" || (r.permission && (r.sourceUrl || r.evidence)), { message: "A verified review needs the client's permission and either a link to the original or a note of where the proof is kept.", path: ["permission"] });
 
 export const homeSchema = z.object({
   heroEyebrow: shortText,

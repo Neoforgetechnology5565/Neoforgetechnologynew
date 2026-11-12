@@ -4,10 +4,12 @@ import { adminDb, isFirebaseConfigured } from "./firebase-admin";
 import { ABOUT_DEFAULTS, BRANDING_DEFAULTS, CONTACT_DEFAULTS, HOME_DEFAULTS, LEGAL_DEFAULTS } from "./defaults";
 import type { AboutContent, Branding, Category, Post, ContactSettings, Faq, HomeContent, LegalContent, Project, Review } from "./types";
 import type { DivisionSlug } from "./divisions";
+import { SAMPLE_TESTIMONIALS } from "./sample-testimonials";
 
 const toReview = (id: string, d: FirebaseFirestore.DocumentData): Review => ({
   id, name: d.name ?? "", role: d.role ?? "", quote: d.quote ?? "", rating: Number(d.rating) || 0,
   source: d.source ?? "", sourceUrl: d.sourceUrl ?? "", order: d.order ?? 0, enabled: d.enabled !== false,
+  kind: d.kind === "sample" ? "sample" : "verified", permission: d.permission === true, evidence: d.evidence ?? "",
 });
 
 export const C = {
@@ -170,9 +172,32 @@ export async function adminListReviews(): Promise<Review[]> {
   const snap = await adminDb().collection(C.reviews).get();
   return snap.docs.map((d) => toReview(d.id, d.data())).sort(byOrder);
 }
+/** Genuine reviews only: samples never reach the verified section, the star markup or any rating. */
 export const getReviews = cached("reviews", () =>
-  safe(async () => (await adminListReviews()).filter((r) => r.enabled), [] as Review[]),
+  safe(async () => (await adminListReviews()).filter((r) => r.enabled && r.kind === "verified"), [] as Review[]),
 );
+
+const SAMPLES_MARKER = "sampleTestimonials";
+export async function samplesSeeded(): Promise<boolean> {
+  return (await adminDb().collection(C.content).doc(SAMPLES_MARKER).get()).exists;
+}
+/** Illustrative testimonials: the built-in 20 until an admin imports them, then whatever is enabled in Admin → Reviews. */
+export const getSampleTestimonials = cached("sample-testimonials", () =>
+  safe(async () => {
+    if (!(await samplesSeeded())) return SAMPLE_TESTIMONIALS;
+    return (await adminListReviews()).filter((r) => r.enabled && r.kind === "sample").map((r) => ({ id: r.id, name: r.name, role: r.role, quote: r.quote, order: r.order }));
+  }, SAMPLE_TESTIMONIALS),
+);
+export async function seedSampleTestimonials(): Promise<number> {
+  const db = adminDb();
+  if (await samplesSeeded()) return 0;
+  const batch = db.batch();
+  for (const t of SAMPLE_TESTIMONIALS) batch.set(db.collection(C.reviews).doc(t.id), { name: t.name, role: t.role, quote: t.quote, rating: 0, source: "", sourceUrl: "", order: t.order, enabled: true, kind: "sample", permission: false, evidence: "" });
+  batch.set(db.collection(C.content).doc(SAMPLES_MARKER), { seeded: true, at: Date.now() });
+  await batch.commit();
+  invalidate();
+  return SAMPLE_TESTIMONIALS.length;
+}
 
 export const getFaqs = cached("faqs", () =>
   safe(async () => (await adminListFaqs()).filter((f) => f.enabled), [] as Faq[]),

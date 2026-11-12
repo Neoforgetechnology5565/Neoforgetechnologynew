@@ -96,6 +96,12 @@ export interface Review {
   sourceUrl: string;
   order: number;
   enabled: boolean;
+  /** "sample" = illustrative testimonial (own disclosure, no platform or stars); "verified" = a genuine client review with permission and evidence. */
+  kind: "sample" | "verified";
+  /** Verified only: the client agreed to publication. */
+  permission: boolean;
+  /** Verified only: where the proof is kept; admin record, never shown publicly. */
+  evidence: string;
 }
 
 export interface HomeContent {

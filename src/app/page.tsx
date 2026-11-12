@@ -8,7 +8,8 @@ import ProjectCard from "@/components/ProjectCard";
 import { DivisionGlyph, HeroVisual } from "@/components/Visuals";
 import { img } from "@/lib/cloudinary";
 import Testimonials from "@/components/Testimonials";
-import { getCategories, getFaqs, getFeaturedProjects, getHome, getReviews } from "@/lib/db";
+import SampleTestimonials from "@/components/SampleTestimonials";
+import { getCategories, getFaqs, getFeaturedProjects, getHome, getReviews, getSampleTestimonials } from "@/lib/db";
 import { DIVISIONS, TECH_GROUPS, WHY_US } from "@/lib/divisions";
 
 export const metadata: Metadata = {
@@ -17,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 export default async function Home() {
-  const [home, faqs, cats, reviews] = await Promise.all([getHome(), getFaqs(), getCategories(), getReviews()]);
+  const [home, faqs, cats, reviews, samples] = await Promise.all([getHome(), getFaqs(), getCategories(), getReviews(), getSampleTestimonials()]);
   const featured = await getFeaturedProjects(home.featuredProjectIds);
   const slides: HeroSlide[] = featured.filter((p) => p.cover).slice(0, 6).map((p) => ({ url: img(p.cover, { w: 1280 }), title: p.title }));
   const subs = (slug: string) => cats.filter((c) => c.division === slug && c.enabled).sort((a, b) => a.order - b.order);
@@ -133,7 +134,8 @@ export default async function Home() {
           <div className="mt-8"><FaqList faqs={faqs} /></div>
         </section>
       )}
-      <Testimonials reviews={reviews} />
+      <Testimonials reviews={reviews} title="Verified client reviews" />
+      <SampleTestimonials items={samples} />
       <CtaBand title="Let's build something that works in production." sub="Send a short brief. We'll come back with scope, approach and an honest view of risk." />
     </>
   );
