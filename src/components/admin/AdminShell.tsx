@@ -7,7 +7,7 @@ interface Counts { unreadInquiries: number; unreadChats: number; online: number;
 
 const NAV = [
   ["/admin", "Dashboard"], ["/admin/projects", "Projects"], ["/admin/blog", "Blog"], ["/admin/categories", "Categories"], ["/admin/content", "Site content"], ["/admin/branding", "Branding"],
-  ["/admin/faqs", "FAQs"], ["/admin/reviews", "Reviews"], ["/admin/inbox", "Inquiries"], ["/admin/chats", "Live chat"], ["/admin/analytics", "Analytics"], ["/admin/maintenance", "Maintenance"],
+  ["/admin/faqs", "FAQs"], ["/admin/reviews", "Reviews"], ["/admin/inbox", "Inquiries"], ["/admin/chats", "Live chat"], ["/admin/analytics", "Analytics"], ["/admin/walkthroughs", "Demo Walkthrough"], ["/admin/maintenance", "Maintenance"],
 ];
 
 export default function AdminShell({ email, children }: { email: string; children: React.ReactNode }) {
