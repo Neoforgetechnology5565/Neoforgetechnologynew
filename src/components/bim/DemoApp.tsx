@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AnalysisModel, Issue } from "@/lib/bim/demos/types";
 import type { Plan3dModel } from "@/lib/bim/pipeline-types";
 import { SUITE_DISCLAIMER, SUITE_MAP } from "@/lib/bim/suite";
+import type { DemoKey } from "@/lib/bim/suite-keys";
 import type { Branding } from "@/lib/types";
 import DemoShell from "@/components/demos/DemoShell";
 import { api, saved, type ArtifactRec, type Auth, type FileRec, type JobRec, type ProjectRec, type SampleRec } from "./api";
@@ -21,7 +22,7 @@ const isPlan = (m: Model | null): m is Plan3dModel => !!m && m.kind === "plan3d"
 const TAB_LABEL: Record<ResultTab, string> = { "3d": "3D model", plan2d: "2D plan", draw2d: "2D drawing", mesh3d: "3D view", cloud: "Point cloud", analysis: "Analysis" };
 
 export default function DemoApp({ branding, slug }: { branding: Branding; slug: string }) {
-  const d = SUITE_MAP[slug]; const cfg = UI[d.key] as UiCfg; const demo = d.key;
+  const d = SUITE_MAP[slug]; const cfg = UI[d.key as DemoKey] as UiCfg; const demo = d.key as DemoKey;
   const [auth, setAuth] = useState<Auth | null>(null); const [project, setProject] = useState<ProjectRec | null>(null); const [model, setModel] = useState<Model | null>(null); const [step, setStep] = useState<Step>("source"); const [tab, setTab] = useState<ResultTab>(cfg.tabs[0]); const [busy, setBusy] = useState(""); const [toast, setToast] = useState<{ m: string; bad: boolean } | null>(null);
   const [samples, setSamples] = useState<SampleRec[]>([]); const [history, setHistory] = useState<Awaited<ReturnType<typeof api.list>>["projects"]>([]); const authRef = useRef<Auth | null>(null); authRef.current = auth; const [job, setJob] = useState<JobRec | null>(null);
   const [focus, setFocus] = useState<{ id: string; n: number } | null>(null); const [focus2d, setFocus2d] = useState<{ x: number; y: number } | null>(null); const [selIssue, setSelIssue] = useState<string | null>(null);

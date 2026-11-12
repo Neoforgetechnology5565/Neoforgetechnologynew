@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import CollabApp from "@/components/bim/CollabApp";
 import DemoApp from "@/components/bim/DemoApp";
+import GeomApp from "@/components/geomsimp/GeomApp";
 import Plan3dApp from "@/components/bim/Plan3dApp";
 import { UI } from "@/components/bim/demo-ui";
 import { SUITE_MAP } from "@/lib/bim/suite";
@@ -14,6 +15,7 @@ export default async function App({ params }: Params) {
   const branding = await getBranding();
   if (slug === "plan-to-3d-building-model") return <Plan3dApp branding={branding} />;
   if (slug === "bim-project-review-issues") return <CollabApp branding={branding} />;
-  if (UI[d.key]) return <DemoApp branding={branding} slug={slug} />;
+  if (slug === "architectural-geometry-simplification") return <GeomApp branding={branding} />;
+  if (d.key !== "geometry" && UI[d.key]) return <DemoApp branding={branding} slug={slug} />;
   notFound();
 }

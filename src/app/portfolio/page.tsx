@@ -12,7 +12,7 @@ import { DEMOS } from "@/lib/demos";
 import { SUITE } from "@/lib/bim/suite";
 import type { PreviewKind } from "@/components/DemoPreview";
 
-const SUITE_PREVIEW: Record<string, PreviewKind> = { plan3d: "model", "cad-analysis": "plan", "bim-viewer": "model", "point-cloud": "cloud", interop: "split", floorplan: "plan", structural: "plan", mep: "model", "bim-qc": "document", qto: "calc", collab: "kanban" };
+const SUITE_PREVIEW: Record<string, PreviewKind> = { plan3d: "model", "cad-analysis": "plan", "bim-viewer": "model", "point-cloud": "cloud", interop: "split", floorplan: "plan", structural: "plan", mep: "model", "bim-qc": "document", qto: "calc", collab: "kanban", geometry: "model" };
 
 export const metadata: Metadata = {
   title: "Portfolio",
