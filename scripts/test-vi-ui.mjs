@@ -39,14 +39,12 @@ const canvasPoint = async (fx, fy) => { await tid("overlay").evaluate((el) => el
 console.log(`vi ui tests (${MODE}) →`, BASE);
 
 if (!only.length) {
-  await t("portfolio and CV catalogue show the three new covers and live-demo links", async () => {
+  await t("portfolio and CV catalogue use drawn layout previews and link to the live demos", async () => {
     for (const url of ["/portfolio/computer-vision", "/portfolio"]) {
       await p.goto(`${BASE}${url}`, { waitUntil: "load" }); await p.getByRole("button", { name: "Decline" }).click({ timeout: 1000 }).catch(() => 0);
       if (url === "/portfolio") await p.getByRole("button", { name: /Computer Vision/i }).first().click({ timeout: 3000 }).catch(() => 0);
       await p.waitForTimeout(600);
-      const info = await p.evaluate(async () => { const imgs = [...document.querySelectorAll("[data-testid=cover]")]; imgs.forEach((i) => { i.loading = "eager"; }); await Promise.all(imgs.map((i) => (i.complete ? 0 : Promise.race([new Promise((r) => { i.onload = r; i.onerror = r; }), new Promise((r) => setTimeout(r, 8000))])))); return imgs.map((i) => ({ src: i.src, ok: i.complete && i.naturalWidth > 100 })); });
-      const covers = new Set(info.map((i) => i.src)); for (const n of ["22", "23", "24"]) ok([...covers].some((s) => s.endsWith(`/cv-${n}.jpg`)), `${url}: cover ${n}`); ok(info.every((i) => i.ok), `${url}: broken cover images`);
-      ok(covers.size >= 24, `${url}: ${covers.size} distinct covers`);
+      ok((await p.locator("[data-testid=cover]").count()) === 0, `${url}: no cover images`); ok((await p.locator("svg[aria-label^='Layout sketch']").count()) >= 24, `${url}: drawn layout previews for the 24 CV demos`);
     }
     const links = await p.evaluate(() => [...document.querySelectorAll("a[href^='/ai-demos/']")].map((a) => a.getAttribute("href")));
     for (const s of Object.values(SLUGS)) ok(links.some((h) => h.includes(s)), `card link for ${s}`);

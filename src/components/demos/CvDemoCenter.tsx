@@ -22,7 +22,7 @@ export default function CvDemoCenter({ children }: { children?: React.ReactNode 
         <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {CV_DEMOS.map((d) => (
             <li key={d.slug} className="flex flex-col rounded-2xl border border-stone-200 bg-white p-6">
-              {d.cover ? /* eslint-disable-next-line @next/next/no-img-element */ <img src={d.cover} alt="" loading="lazy" width={800} height={450} className="mb-4 aspect-[16/9] w-full rounded-lg border border-stone-200 object-cover" data-testid="cover" /> : <DemoPreview kind={previewFor("computer-vision", d.slug)} className="mb-4" />}
+              <DemoPreview kind={previewFor("computer-vision", d.slug)} className="mb-4" />
               <div className="flex items-center justify-between"><span className="font-display text-2xl font-semibold text-blue-600">{d.no}</span>
                 <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${d.status === "live" ? "bg-blue-50 text-blue-700" : "bg-stone-100 text-stone-500"}`}>{d.status === "live" ? "Interactive demo ready" : "In development"}</span></div>
               <h2 className="mt-3 font-display text-xl font-semibold text-stone-900">{d.title}</h2>
