@@ -1,0 +1,205 @@
+{
+  "status": "DRAFTS ONLY - not verified customer feedback. Do not publish as real reviews until each customer has approved the wording and confirmed rating and source. Add a sourceUrl when verified, then enable in Admin > Reviews.",
+  "reviews": [
+    {
+      "name": "Daniel M.",
+      "role": "Operations Manager, Retail Company",
+      "quote": "The team did an excellent job developing our computer vision solution. They understood the project requirements, communicated clearly, and delivered a well-structured system for monitoring and analyzing customer movement.",
+      "rating": 5,
+      "source": "Fiverr",
+      "sourceUrl": "",
+      "order": 1,
+      "enabled": false
+    },
+    {
+      "name": "Sophia B.",
+      "role": "Startup Founder",
+      "quote": "I was impressed with the team's technical knowledge and approach to software development. They understood what we wanted to achieve and provided a practical solution with a clean and professional interface.",
+      "rating": 5,
+      "source": "Upwork",
+      "sourceUrl": "",
+      "order": 2,
+      "enabled": false
+    },
+    {
+      "name": "Oliver T.",
+      "role": "Engineering Consultant",
+      "quote": "The 3D reconstruction project required careful technical work, and the team demonstrated a good understanding of photogrammetry, geometry processing, and the overall development workflow.",
+      "rating": 5,
+      "source": "Remote Work",
+      "sourceUrl": "",
+      "order": 3,
+      "enabled": false
+    },
+    {
+      "name": "Amelia C.",
+      "role": "Business Owner",
+      "quote": "We needed a custom business management solution, and the team helped us organize the requirements into a clear development process. The communication and technical approach were professional.",
+      "rating": 5,
+      "source": "Local Market",
+      "sourceUrl": "",
+      "order": 4,
+      "enabled": false
+    },
+    {
+      "name": "Ethan W.",
+      "role": "Technology Project Manager",
+      "quote": "The video analytics solution was developed with a strong understanding of object detection and tracking. I appreciated the attention given to the technical requirements and functionality.",
+      "rating": 5,
+      "source": "Fiverr",
+      "sourceUrl": "",
+      "order": 5,
+      "enabled": false
+    },
+    {
+      "name": "Isabella R.",
+      "role": "Marketing Director",
+      "quote": "The website development process was smooth, and the final presentation was clean and professional. The team paid attention to the design, structure, and overall user experience.",
+      "rating": 5,
+      "source": "Facebook",
+      "sourceUrl": "",
+      "order": 6,
+      "enabled": false
+    },
+    {
+      "name": "Lucas A.",
+      "role": "E-commerce Consultant",
+      "quote": "The product recommendation project was approached with a clear understanding of our requirements. The team demonstrated good knowledge of software architecture and intelligent product discovery.",
+      "rating": 5,
+      "source": "Instagram",
+      "sourceUrl": "",
+      "order": 7,
+      "enabled": false
+    },
+    {
+      "name": "Chloe P.",
+      "role": "HR Manager",
+      "quote": "The employee management platform provided a structured approach to managing staff information and administrative workflows. The interface was organized and easy to understand.",
+      "rating": 5,
+      "source": "This Website",
+      "sourceUrl": "",
+      "order": 8,
+      "enabled": false
+    },
+    {
+      "name": "Noah D.",
+      "role": "Software Startup Founder",
+      "quote": "Communication was straightforward throughout the project. The team understood our machine learning requirements and approached the development with a good balance of technical knowledge and practical thinking.",
+      "rating": 5,
+      "source": "Upwork",
+      "sourceUrl": "",
+      "order": 9,
+      "enabled": false
+    },
+    {
+      "name": "Grace H.",
+      "role": "Architectural Designer",
+      "quote": "The CAD and BIM development work was handled professionally. The team understood the importance of technical accuracy and delivered an approach that aligned with our design workflow.",
+      "rating": 5,
+      "source": "Fiverr",
+      "sourceUrl": "",
+      "order": 10,
+      "enabled": false
+    },
+    {
+      "name": "Alexander K.",
+      "role": "Security Systems Consultant",
+      "quote": "The CCTV analytics project covered the important requirements around people detection, monitoring, and video analysis. The team showed a good understanding of computer vision applications.",
+      "rating": 5,
+      "source": "Remote Work",
+      "sourceUrl": "",
+      "order": 11,
+      "enabled": false
+    },
+    {
+      "name": "Victoria L.",
+      "role": "Healthcare Technology Consultant",
+      "quote": "The medical imaging application demonstrated a thoughtful approach to image processing and segmentation workflows. I particularly appreciated the attention given to technical limitations and responsible presentation.",
+      "rating": 5,
+      "source": "Local Market",
+      "sourceUrl": "",
+      "order": 12,
+      "enabled": false
+    },
+    {
+      "name": "Benjamin S.",
+      "role": "Agricultural Business Owner",
+      "quote": "The agricultural monitoring concept showed how AI and computer vision can be applied to livestock detection and farm monitoring. The project direction was practical and relevant.",
+      "rating": 5,
+      "source": "Facebook",
+      "sourceUrl": "",
+      "order": 13,
+      "enabled": false
+    },
+    {
+      "name": "Natalie F.",
+      "role": "Finance Manager",
+      "quote": "The ERP solution was structured around our financial management requirements. The approach to organizing transactions, records, and reporting was clear and professional.",
+      "rating": 5,
+      "source": "This Website",
+      "sourceUrl": "",
+      "order": 14,
+      "enabled": false
+    },
+    {
+      "name": "Ryan C.",
+      "role": "Product Development Manager",
+      "quote": "The team understood our application requirements and provided a clear technical direction. Their approach to the project was organized, and communication remained professional.",
+      "rating": 5,
+      "source": "Upwork",
+      "sourceUrl": "",
+      "order": 15,
+      "enabled": false
+    },
+    {
+      "name": "Hannah J.",
+      "role": "Digital Operations Specialist",
+      "quote": "The automation workflow was designed to reduce repetitive tasks and improve how information moves between different business processes. The overall development approach was very good.",
+      "rating": 5,
+      "source": "Instagram",
+      "sourceUrl": "",
+      "order": 16,
+      "enabled": false
+    },
+    {
+      "name": "Samuel P.",
+      "role": "3D Visualization Specialist",
+      "quote": "The team demonstrated a strong understanding of 3D workflows, modeling requirements, and reconstruction techniques. The communication throughout the development process was helpful.",
+      "rating": 5,
+      "source": "Fiverr",
+      "sourceUrl": "",
+      "order": 17,
+      "enabled": false
+    },
+    {
+      "name": "Emily G.",
+      "role": "Business Consultant",
+      "quote": "The CRM development approach was well organized and focused on customer records, sales opportunities, and follow-up processes. The solution provided a useful structure for our business needs.",
+      "rating": 5,
+      "source": "Remote Work",
+      "sourceUrl": "",
+      "order": 18,
+      "enabled": false
+    },
+    {
+      "name": "David R.",
+      "role": "Industrial Technology Consultant",
+      "quote": "The computer vision development work addressed our industrial monitoring requirements with a practical technical approach. The team showed good knowledge of AI-based detection and analysis.",
+      "rating": 5,
+      "source": "Local Market",
+      "sourceUrl": "",
+      "order": 19,
+      "enabled": false
+    },
+    {
+      "name": "Olivia N.",
+      "role": "Company Director",
+      "quote": "The overall software development experience was professional. The team took time to understand the requirements and presented a structured approach to delivering the requested solution.",
+      "rating": 5,
+      "source": "This Website",
+      "sourceUrl": "",
+      "order": 20,
+      "enabled": false
+    }
+  ]
+}
