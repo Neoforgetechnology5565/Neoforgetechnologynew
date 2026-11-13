@@ -14,12 +14,12 @@ import VideoLinksField from "./VideoLinksField";
 interface Form {
   title: string; slug: string; division: string; categoryId: string; summary: string; description: string;
   cover: MediaRef[]; gallery: MediaRef[]; documents: MediaRef[]; files: MediaRef[]; video: MediaRef[]; videoLinks: string[];
-  technologies: string; features: string; challenge: string; solution: string; results: string; pipeline: string;
+  technologies: string; features: string; kind: string; industry: string; objective: string; challenge: string; solution: string; results: string; pipeline: string;
   featured: boolean; status: "draft" | "published"; order: number;
 }
 const blank: Form = {
   title: "", slug: "", division: "computer-vision", categoryId: "", summary: "", description: "", cover: [], gallery: [], documents: [], files: [], video: [], videoLinks: [],
-  technologies: "", features: "", challenge: "", solution: "", results: "", pipeline: "", featured: false, status: "draft", order: 0,
+  technologies: "", features: "", kind: "", industry: "", objective: "", challenge: "", solution: "", results: "", pipeline: "", featured: false, status: "draft", order: 0,
 };
 
 export default function ProjectEditor({ id: initialId }: { id?: string }) {
@@ -74,7 +74,7 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
   useEffect(() => {
     api<{ items: Category[] }>("/api/admin/categories").then((r) => setCats(r.items)).catch(toast.err);
     if (initialId) api<{ item: Project }>(`/api/admin/projects/${initialId}`).then(({ item: p }) => {
-      setF({ title: p.title, slug: p.slug, division: p.division, categoryId: p.categoryId, summary: p.summary, description: p.description, cover: p.cover ? [p.cover] : [], gallery: p.gallery, documents: p.documents, files: p.files, video: p.video ? [p.video] : [], videoLinks: p.videoLinks, technologies: p.technologies.join("\n"), features: p.features.join("\n"), challenge: p.challenge, solution: p.solution, results: p.results, pipeline: p.pipeline.join(", "), featured: p.featured, status: p.status, order: p.order });
+      setF({ title: p.title, slug: p.slug, division: p.division, categoryId: p.categoryId, summary: p.summary, description: p.description, cover: p.cover ? [p.cover] : [], gallery: p.gallery, documents: p.documents, files: p.files, video: p.video ? [p.video] : [], videoLinks: p.videoLinks, technologies: p.technologies.join("\n"), features: p.features.join("\n"), kind: p.kind ?? "", industry: p.industry ?? "", objective: p.objective ?? "", challenge: p.challenge, solution: p.solution, results: p.results, pipeline: p.pipeline.join(", "), featured: p.featured, status: p.status, order: p.order });
       setLoading(false);
     }).catch((e) => { toast.err(e); setLoading(false); });
   }, [initialId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -84,7 +84,7 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
     const body = {
       title: f.title, slug: f.slug || undefined, division: f.division, categoryId: f.categoryId, summary: f.summary, description: f.description,
       cover: f.cover[0] ?? null, gallery: f.gallery, documents: f.documents, files: f.files, video: f.video[0] ?? null, videoUrl: "", videoLinks: f.videoLinks,
-      technologies: lines(f.technologies), features: lines(f.features), challenge: f.challenge, solution: f.solution, results: f.results,
+      technologies: lines(f.technologies), features: lines(f.features), kind: f.kind, industry: f.industry, objective: f.objective, challenge: f.challenge, solution: f.solution, results: f.results,
       pipeline: f.pipeline.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 6),
       featured: f.featured, status: status ?? f.status, order: f.order,
     };
@@ -142,9 +142,14 @@ export default function ProjectEditor({ id: initialId }: { id?: string }) {
           </Card>
 
           <Card className="grid gap-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="What is this?" hint="Shown to visitors. Leave empty if unsure: nothing is claimed."><select className="field" value={f.kind} onChange={(e) => set("kind", e.target.value)}><option value="">Not labelled</option><option value="client">Completed client project</option><option value="demo">Internal demonstration</option><option value="prototype">Conceptual prototype</option></select></Field>
+              <Field label="Industry"><input className="field" value={f.industry} onChange={(e) => set("industry", e.target.value)} placeholder="e.g. Construction, Retail, Healthcare" /></Field>
+            </div>
+            <Field label="Objective"><textarea className="field" rows={3} value={f.objective} onChange={(e) => set("objective", e.target.value)} /></Field>
             <Field label="Challenge"><textarea className="field" rows={4} value={f.challenge} onChange={(e) => set("challenge", e.target.value)} /></Field>
             <Field label="Solution"><textarea className="field" rows={4} value={f.solution} onChange={(e) => set("solution", e.target.value)} /></Field>
-            <Field label="Results" hint="Only include outcomes you can stand behind"><textarea className="field" rows={3} value={f.results} onChange={(e) => set("results", e.target.value)} /></Field>
+            <Field label="Results" hint="Only outcomes you can verify. For demonstrations and prototypes describe what it shows, not client results."><textarea className="field" rows={3} value={f.results} onChange={(e) => set("results", e.target.value)} /></Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Features" hint="One per line"><textarea className="field" rows={6} value={f.features} onChange={(e) => set("features", e.target.value)} /></Field>
               <Field label="Technology stack" hint="One per line"><textarea className="field" rows={6} value={f.technologies} onChange={(e) => set("technologies", e.target.value)} /></Field>

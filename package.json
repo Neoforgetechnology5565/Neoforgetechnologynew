@@ -20,6 +20,7 @@
     "test:meetings": "tsx src/lib/meetings.test.ts && tsx src/lib/meeting-service.test.ts",
     "test:international:ui": "node scripts/test-international-ui.mjs",
     "test:intl-analytics": "tsx src/lib/analytics/intl.test.ts && node scripts/test-intl-dashboard.mjs",
+    "test:project-view": "tsx --require ./scripts/stub-server-only.cjs src/lib/project-view.test.tsx",
     "test:seo": "tsx src/lib/landing-pages.test.ts",
     "test:seo:ui": "node scripts/test-seo-pages.mjs",
     "test:reviews": "tsx src/lib/schemas.reviews.test.ts",

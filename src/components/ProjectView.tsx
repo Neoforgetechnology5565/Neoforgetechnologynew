@@ -18,6 +18,12 @@ import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import type { Project } from "@/lib/types";
 import { formatBytes } from "@/lib/utils";
 
+const KIND_LABEL = { client: "Completed client project", demo: "Internal demonstration", prototype: "Conceptual prototype" } as const;
+const RELATED: Record<string, [string, string][]> = {
+  "computer-vision": [["/computer-vision-development", "Computer vision development"], ["/ai-development", "AI software development"], ["/cctv-analytics", "CCTV analytics"], ["/anpr-software", "ANPR software"], ["/medical-imaging-ai", "Medical imaging AI"]],
+  "cad-bim": [["/cad-bim-development", "CAD and BIM development"], ["/3d-reconstruction", "3D reconstruction"]],
+  "crm-hrm-erp": [["/crm-erp-development", "CRM and ERP development"]],
+};
 export function projectMetadata(p: Project): Metadata {
   const desc = p.summary || p.description.slice(0, 160);
   return {
@@ -50,6 +56,7 @@ export default async function ProjectView({ p }: { p: Project }) {
           </div>
           <h1 className="mt-5 max-w-4xl font-display text-4xl font-semibold leading-tight sm:text-5xl">{p.title}</h1>
           {p.summary && <p className="mt-5 max-w-2xl text-lg text-slate-300">{p.summary}</p>}
+          {(p.kind || p.industry) && <p className="mt-4 flex flex-wrap gap-2 text-xs" data-testid="project-kind">{p.kind && <span className="rounded-full border border-slate-600 px-3 py-1 text-slate-200">{KIND_LABEL[p.kind]}</span>}{p.industry && <span className="rounded-full border border-slate-600 px-3 py-1 text-slate-200">{p.industry}</span>}</p>}
         </div>
       </section>
       {p.cover && (
@@ -71,6 +78,8 @@ export default async function ProjectView({ p }: { p: Project }) {
         )}
 
         <section aria-label="Solution flow"><Pipeline steps={steps} /></section>
+
+        {p.objective && <section className="rounded-2xl border border-stone-200 p-7 sm:p-8"><Label>Objective</Label><div className="mt-4"><Prose text={p.objective} /></div></section>}
 
         {(p.challenge || p.solution) && (
           <section className="grid gap-6 md:grid-cols-2">
@@ -101,7 +110,7 @@ export default async function ProjectView({ p }: { p: Project }) {
           </section>
         )}
 
-        {p.results && <section className="rounded-2xl bg-blue-50 p-7 sm:p-10"><Label>Results</Label><div className="mt-4"><Prose text={p.results} /></div></section>}
+        {p.results && <section className="rounded-2xl bg-blue-50 p-7 sm:p-10"><Label>{p.kind === "client" ? "Verified outcomes" : "Results"}</Label><div className="mt-4"><Prose text={p.results} /></div>{(p.kind === "demo" || p.kind === "prototype") && <p className="mt-4 text-sm text-stone-600" data-testid="not-client-note">{p.kind === "demo" ? "This is an internal demonstration. Figures come from demonstration or test data, not from a client deployment." : "This is a conceptual prototype. It shows an approach and has not been deployed for a client."}</p>}</section>}
 
         {(p.documents.length > 0 || p.files.length > 0) && (
           <section>
@@ -126,6 +135,10 @@ export default async function ProjectView({ p }: { p: Project }) {
           </section>
         )}
       </div>
+      <section className="mx-auto max-w-7xl px-4 pb-4 sm:px-6 lg:px-8" aria-label="Related services">
+        <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">Related services</p>
+        <ul className="mt-2 flex flex-wrap gap-2 text-sm">{(RELATED[p.division] ?? []).map(([h, n]) => <li key={h}><Link href={h} className="rounded-full border border-stone-300 px-3 py-1.5 text-stone-800 hover:border-blue-600">{n}</Link></li>)}<li><Link href={`/contact?division=${p.division}&intent=quote#inquiry`} className="rounded-full bg-blue-600 px-3 py-1.5 font-semibold text-white hover:bg-blue-700">Request a quotation for something similar</Link></li></ul>
+      </section>
       <CtaBand division={p.division} />
     </>
   );

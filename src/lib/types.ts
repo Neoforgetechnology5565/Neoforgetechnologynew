@@ -42,6 +42,10 @@ export interface Project {
   video: MediaRef | null;
   technologies: string[];
   features: string[];
+  /** What the work is: a completed client project, an internal demonstration, or a conceptual prototype. Empty = not labelled yet (nothing is claimed). */
+  kind?: "" | "client" | "demo" | "prototype";
+  industry?: string;
+  objective?: string;
   challenge: string;
   solution: string;
   results: string;
