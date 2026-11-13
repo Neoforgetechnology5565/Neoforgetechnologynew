@@ -16,7 +16,7 @@ const FACTORS: [string, string][] = [
   ["Deployment and support", "Cloud, on-premise or edge hardware, and whether you want ongoing maintenance after delivery."],
 ];
 const STEPS: [string, string][] = [
-  ["Tell us the problem", "Describe the workflow, the data and the systems involved in the inquiry form, or request a call in your own time zone."],
+  ["Tell us the problem", "Describe the workflow, the data and the systems involved in the inquiry form."],
   ["We review and ask questions", "We check feasibility and clarify anything that changes the effort."],
   ["You receive a written quotation", "A defined scope, what is included and what is not, so you can compare it with your budget."],
 ];
@@ -50,7 +50,6 @@ export default function Pricing() {
           <p className="mt-4 max-w-2xl text-slate-300">Indicative budget ranges for our three divisions. Every project is then scoped and quoted individually, in US dollars, after we understand what you need.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/contact?intent=quote#inquiry" className="rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-blue-400">Request a customised quotation</Link>
-            <Link href="/contact#meeting" className="rounded-full border border-slate-600 px-6 py-3 text-sm font-semibold text-white hover:border-blue-400">Request a call</Link>
                       </div>
         </div>
       </section>

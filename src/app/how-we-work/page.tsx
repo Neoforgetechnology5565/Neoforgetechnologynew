@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CtaBand, SectionHead } from "@/components/Blocks";
-import { getMeetingSettings } from "@/lib/db";
 import JsonLd from "@/components/JsonLd";
 import { breadcrumbLd } from "@/lib/jsonld";
 
@@ -14,7 +13,7 @@ export const metadata: Metadata = {
 const BLOCKS: { id: string; eyebrow: string; title: string; items: [string, string][] }[] = [
   { id: "communication", eyebrow: "Communication", title: "Email first, calls when they help", items: [
     ["Written by default", "Scope, decisions and changes are confirmed in writing so everyone has the same record."],
-    ["Calls on request", "You can request a video or phone call in your own time zone from the contact page. A request is confirmed by a person; it is not booked automatically."],
+    ["Calls on request", "You can choose a video or phone call as your preferred contact method in the inquiry form, and we will arrange a time with you by email."],
     ["Your channel", "The inquiry form asks how you prefer to be contacted: email, video call, phone or WhatsApp."],
   ] },
   { id: "onboarding", eyebrow: "Onboarding", title: "From first message to agreed scope", items: [
@@ -34,8 +33,7 @@ const BLOCKS: { id: string; eyebrow: string; title: string; items: [string, stri
   ] },
 ];
 
-export default async function HowWeWork() {
-  const m = await getMeetingSettings();
+export default function HowWeWork() {
   return (
     <>
       <JsonLd data={breadcrumbLd([{ name: "Home", path: "/" }, { name: "How we work", path: "/how-we-work" }])} />
@@ -43,18 +41,13 @@ export default async function HowWeWork() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">Working with us</p>
           <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">How we work with international clients</h1>
-          <p className="mt-4 max-w-2xl text-slate-300">Clear communication, a written scope, staged delivery and honest support. We work remotely and schedule calls in your time zone.</p>
+          <p className="mt-4 max-w-2xl text-slate-300">Clear communication, a written scope, staged delivery and honest support. We work remotely and arrange calls by email at a time that suits your time zone.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/contact?intent=quote#inquiry" className="rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-blue-400">Send an inquiry</Link>
-            <Link href="/contact#meeting" className="rounded-full border border-slate-600 px-6 py-3 text-sm font-semibold text-white hover:border-blue-400">Request a call</Link>
           </div>
         </div>
       </section>
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <SectionHead eyebrow="Time zones" title="Meetings in your time zone" />
-        <p className="mt-4 max-w-3xl text-sm leading-relaxed text-stone-700">Our availability for calls is {String(m.startHour).padStart(2, "0")}:00–{String(m.endHour).padStart(2, "0")}:00 {m.tz}, on the days shown when you request a call. The scheduler detects your zone, lets you change it, and shows every time in both your zone and ours, so there is nothing to convert. Calls last {m.durationMin} minutes.</p>
-      </section>
-      {BLOCKS.map((b, i) => (
+          {BLOCKS.map((b, i) => (
         <section key={b.id} id={b.id} className={i % 2 === 0 ? "bg-stone-50" : ""}>
           <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
             <SectionHead eyebrow={b.eyebrow} title={b.title} />
@@ -64,7 +57,7 @@ export default async function HowWeWork() {
           </div>
         </section>
       ))}
-      <CtaBand title="Start with an inquiry or a call" sub="Tell us about the project, or request a time that suits your time zone." />
+      <CtaBand title="Start with an inquiry" sub="Tell us about the project, or tell us your preferred contact method." />
     </>
   );
 }
