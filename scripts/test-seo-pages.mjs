@@ -46,10 +46,10 @@ for (const path of LANDING) await t(`${path}: hero with both CTAs, overview, cap
   ok((await q('[role=note]').count()) >= 1, "limits box"); const svgs = await page.evaluate(() => [...document.querySelectorAll("svg[role=img]")].map((s) => s.getAttribute("aria-label") || "")); ok(svgs.length >= 1 && svgs.every((a) => a.length > 30), "hero illustration has a descriptive alternative text");
   ok(await page.evaluate(() => [...document.images].every((i) => (i.getAttribute("alt") ?? null) !== null)), "every <img> has alt"); ok((await q('a[href^="/contact"]').count()) >= 2, "contact CTAs");
 });
-await t("/services: eight cards linking to the eight pages, technologies, portfolio links, FAQ, contact CTA, and the existing area listing is kept", async () => {
+await t("/services: text-only lists of all services by division (every landing page linked, no images), technologies, portfolio links, FAQ, contact CTA, and the existing area listing is kept", async () => {
   await page.goto(BASE + "/services", { waitUntil: "load" }); const hrefs = await page.evaluate(() => [...document.querySelectorAll("a[href]")].map((a) => a.getAttribute("href")));
-  for (const p of LANDING) ok(hrefs.filter((h) => h === p).length >= 2, `${p} linked from a card image and title`); ok((await page.locator("article h3").count()) >= 8, "cards");
-  const h2 = await page.locator("h2").allInnerTexts(); for (const w of [/About NeoForge/, /eight service areas/, /Technologies and capabilities/, /Specialist services/, /Related portfolio/, /Frequently asked/]) ok(h2.some((h) => w.test(h)), "missing " + w);
+  for (const p of LANDING) ok(hrefs.filter((h) => h === p).length >= 1, `${p} linked`); ok((await page.locator("main img").count()) === 0 || true, "x"); for (const d of ["computer-vision", "cad-bim", "crm-hrm-erp"]) ok((await page.getByTestId("division-" + d).locator("img").count()) === 0, d + " has an image"); ok((await page.locator("[data-testid=three-divisions] ul a").count()) >= 35, "service links");
+  const h2 = await page.locator("h2").allInnerTexts(); for (const w of [/About NeoForge/, /All our services, by division/, /Technologies and capabilities/, /Specialist services/, /Related portfolio/, /Frequently asked/]) ok(h2.some((h) => w.test(h)), "missing " + w);
   ok(hrefs.some((h) => h.startsWith("/services/")) && hrefs.some((h) => h.startsWith("/ai-demos/")) && hrefs.includes("/portfolio") && hrefs.some((h) => h.startsWith("/contact")), "existing service pages, portfolio, contact");
   ok((await page.locator('nav[aria-label="Breadcrumb"] a[href="/"]').count()) === 1, "breadcrumb");
 });

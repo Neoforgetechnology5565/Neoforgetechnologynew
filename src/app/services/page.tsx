@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Chips, CtaBand, SectionHead } from "@/components/Blocks";
 import JsonLd from "@/components/JsonLd";
-import LandingArt from "@/components/landing/LandingArt";
 import { getCategories } from "@/lib/db";
 import { DIVISIONS } from "@/lib/divisions";
 import { DIVISION_SERVICES } from "@/lib/division-services";
@@ -56,34 +55,9 @@ export default async function Services() {
         <p className="mt-4 leading-relaxed text-stone-700">Our approach is simple: define the decision the software must support, test on your real data early, report accuracy and limits honestly, and keep a person in charge wherever mistakes are costly. The portfolio shows working demonstrations on sample data, labelled as such.</p>
       </section>
 
-      <section className="bg-stone-50 py-16" aria-label="Service areas">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <SectionHead eyebrow="What we build" title="Our eight service areas">Each service has its own page with what it covers, the technologies we use, how a project runs and what to expect.</SectionHead>
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {HUB_ITEMS.map((p) => (
-              <article key={p.slug} className="flex flex-col overflow-hidden rounded-2xl border border-stone-200 bg-white">
-                <Link href={`/${p.slug}`} className="block" tabIndex={-1} aria-hidden="true"><LandingArt kind={p.art} alt={p.artAlt} /></Link>
-                <div className="flex flex-1 flex-col p-5">
-                  <h3 className="font-display text-lg font-semibold text-stone-900"><Link href={`/${p.slug}`} className="hover:text-blue-700">{p.name}</Link></h3>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-stone-700">{p.short}</p>
-                  <div className="mt-3"><Chips items={p.capabilities.slice(0, 3).map((c) => c.title)} /></div>
-                  <Link href={`/${p.slug}`} className="mt-4 text-sm font-semibold text-blue-700 hover:underline">Learn more about {p.name.toLowerCase()} →</Link>
-                </div>
-              </article>))}
-          </div>
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <SectionHead eyebrow="Technologies" title="Technologies and capabilities" />
-        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[["AI and vision", ["Python", "PyTorch", "TensorFlow", "OpenCV", "ONNX Runtime", "scikit-learn"]], ["Video and 3D", ["RTSP and FFmpeg", "YOLO-family detectors", "COLMAP", "Open3D", "Three.js"]], ["CAD and BIM", ["Revit API", "AutoCAD .NET API", "IFC", "Autodesk Platform Services"]], ["Business systems", ["TypeScript and Next.js", "Node.js", "PostgreSQL", "REST APIs and webhooks"]]].map(([g, items]) => <div key={g as string}><h3 className="text-sm font-semibold uppercase tracking-wider text-blue-700">{g as string}</h3><div className="mt-3"><Chips items={items as string[]} /></div></div>)}
-        </div>
-      </section>
-
-      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-labelledby="three-divisions" data-testid="three-divisions">
-        <SectionHead eyebrow="Three divisions" title="What we build, by division"><span id="three-divisions" className="sr-only">Services by division</span></SectionHead>
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <section className="bg-stone-50 py-14" aria-labelledby="three-divisions" data-testid="three-divisions">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><SectionHead eyebrow="What we build" title="All our services, by division">Every service we offer, listed under its division. Each links to the page that covers it.</SectionHead></div>
+        <div className="mx-auto mt-8 grid max-w-7xl gap-6 px-4 sm:px-6 lg:grid-cols-3 lg:px-8">
           {DIVISION_SERVICES.map((d) => (
             <article key={d.slug} className="flex flex-col rounded-2xl border border-stone-200 bg-white p-7" data-testid={`division-${d.slug}`}>
               <h3 className="font-display text-xl font-semibold text-stone-900"><Link href={d.landing} className="hover:text-blue-700">{d.name}</Link></h3>
@@ -91,6 +65,13 @@ export default async function Services() {
               <p className="mt-5 flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm font-semibold"><Link href={d.landing} className="text-blue-700 hover:underline">Explore {d.short}</Link><Link href={`/pricing#${d.slug === "computer-vision" ? "computer-vision-ai" : d.slug}`} className="text-blue-700 hover:underline">Pricing</Link></p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <SectionHead eyebrow="Technologies" title="Technologies and capabilities" />
+        <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {[["AI and vision", ["Python", "PyTorch", "TensorFlow", "OpenCV", "ONNX Runtime", "scikit-learn"]], ["Video and 3D", ["RTSP and FFmpeg", "YOLO-family detectors", "COLMAP", "Open3D", "Three.js"]], ["CAD and BIM", ["Revit API", "AutoCAD .NET API", "IFC", "Autodesk Platform Services"]], ["Business systems", ["TypeScript and Next.js", "Node.js", "PostgreSQL", "REST APIs and webhooks"]]].map(([g, items]) => <div key={g as string}><h3 className="text-sm font-semibold uppercase tracking-wider text-blue-700">{g as string}</h3><div className="mt-3"><Chips items={items as string[]} /></div></div>)}
         </div>
       </section>
 
