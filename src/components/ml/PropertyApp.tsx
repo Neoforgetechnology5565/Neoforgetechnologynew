@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Branding } from "@/lib/types";
 import { BTN, CARD, Dropzone, ErrorBox, H3, MlShell, SamplePicker, StatusChip, useMl, useRun } from "./common";
 
@@ -24,14 +24,25 @@ export default function PropertyApp({ branding, serviceUrl }: { branding: Brandi
   const { busy, error, result, source, run } = useRun<Res>(api, "/api/property/analyze", /\.(jpe?g|png|webp)$|^image\//i, health?.limits.max_image_mb ?? 15);
   const [thr, setThr] = useState(0.35);
   const svc = service; // with no server configured everything runs in the browser
+  // Browser mode: fetch and initialise the models up front, with a progress bar, so the first analysis neither looks frozen nor fails silently
+  const [load, setLoad] = useState<{ stage: string; percent: number; error: string }>({ stage: "", percent: serviceUrl ? 100 : 0, error: "" });
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (serviceUrl) return;
+    let live = true; setLoad({ stage: "Starting", percent: 0, error: "" });
+    import("@/lib/ml/browser/property").then((m) => m.preload((p) => live && setLoad({ ...p, error: "" }))).catch((e) => live && setLoad((l) => ({ ...l, error: e instanceof Error ? e.message : "The models could not be loaded in this browser." })));
+    return () => { live = false; };
+  }, [serviceUrl, attempt]);
   const clipMissing = svc === "online" && health && !health.available.property_clip;
-  const ready = svc === "online" && !clipMissing;
+  const ready = svc === "online" && !clipMissing && load.percent >= 100 && !load.error;
   const maxScore = result ? Math.max(...result.classification.scores.map((s) => s.probability)) : 0;
   return (
-    <MlShell branding={branding} title="PropertyVision AI" project={source?.name ?? "No photo selected"} service={svc}
-      notice="Experimental demonstration by Neo Forge Technology. Runs in your browser by default (the photo never leaves your device; the first analysis downloads about 100 MB of model files), or on the Python service when one is configured. A pretrained CLIP model picks the most likely of four property types; a pretrained YOLOX detector finds the everyday objects it was trained on (COCO's 80 classes: it has no tree, fence, roof or crack class); a small Python scoring engine combines their real outputs into a 0–100 score. The score is not validated, is not a valuation or inspection, and generic object detection cannot prove that a property is distressed."
+    <MlShell branding={branding} title="PropertyVision AI" project={source?.name ?? "No photo selected"} service={!serviceUrl && svc === "online" && !ready ? "unknown" : svc}
+      notice="Experimental demonstration by Neo Forge Technology. Runs in your browser by default (the photo never leaves your device; the models, about 120 MB, are downloaded once and then cached), or on the Python service when one is configured. A pretrained CLIP model picks the most likely of four property types; a pretrained YOLOX detector finds the everyday objects it was trained on (COCO's 80 classes: it has no tree, fence, roof or crack class); a small Python scoring engine combines their real outputs into a 0–100 score. The score is not validated, is not a valuation or inspection, and generic object detection cannot prove that a property is distressed."
       footer="Working: CLIP zero-shot classification, YOLOX object detection with boxes and confidences, rule-based condition scoring with observed evidence kept separate from assumptions. Not implemented: model training, damage or crack detection, valuation, history across sessions. Sample photographs are real; their sources and licences are shown with each.">
       <ErrorBox msg={error} />
+      {!serviceUrl && load.percent < 100 && !load.error && <div className={CARD} role="status" data-testid="model-loading"><p className="text-sm text-slate-200">{load.stage}… {load.percent}% <span className="text-slate-400">(first visit only: about 120 MB of AI model files, then cached in your browser)</span></p><div className="mt-2 h-2 overflow-hidden rounded bg-slate-800"><div className="h-full bg-blue-500 transition-all" style={{ width: `${load.percent}%` }} /></div></div>}
+      {!serviceUrl && load.error && <div className={CARD} role="alert" data-testid="model-error"><p className="text-sm text-red-300">{load.error}</p><p className="mt-1 text-xs text-slate-400">The AI models run in your browser and need a modern browser (Chrome, Edge, Firefox or Safari), about 1 GB of free memory and a connection for the first download.</p><button className={`${BTN} mt-2`} onClick={() => setAttempt((a) => a + 1)}>Try again</button></div>}
       {clipMissing && <div className={CARD} role="alert" data-testid="clip-missing"><p className="text-sm text-slate-200">The Python service is connected but the CLIP weights are not installed on it. Run <code>python scripts/fetch_clip.py</code> in <code>services/ml-lab</code> and restart it.</p></div>}
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <section className={CARD} aria-label="Photo source">

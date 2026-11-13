@@ -2,12 +2,12 @@
 
 Route: `/ai-demos/ai-property-vision/app` (short path `/property-vision-demo`). It is listed as demo 25 in the Computer Vision portfolio.
 
-**It runs inside the website.** Like demos 12–21 and 22–24, with no server configured the whole demo runs in the visitor's browser (ONNX Runtime Web): the photo never leaves the device and nothing needs to be deployed besides the site. The first analysis downloads about 100 MB of model files (CLIP int8 95 MB, YOLOX-tiny 20 MB), which the browser then caches. If `ML_API_URL` is set, the same page uses the Python FastAPI service instead (`services/ml-lab/app/property.py`; CLIP fp32 + YOLOX-S) for the same three modules.
+**It runs inside the website.** Like demos 12–21 and 22–24, with no server configured the whole demo runs in the visitor's browser (ONNX Runtime Web): the photo never leaves the device and nothing needs to be deployed besides the site. When the page opens it downloads about 120 MB of model files once (CLIP int8 95 MB, YOLOX-S 36 MB) with a progress bar, then the browser caches them; analyses start only when the models are ready. If `ML_API_URL` is set, the same page uses the Python FastAPI service instead (`services/ml-lab/app/property.py`; CLIP fp32 + YOLOX-S) for the same three modules.
 
 | | In the browser (default) | Python service (optional) |
 |---|---|---|
 | Classification | CLIP ViT-B/32 **int8-quantised** (`public/ml/models/clip_vit_b32_visual_int8.onnx`, 95 MB; embedding cosine 0.99 to the full model on the samples, probabilities within a few points) | CLIP ViT-B/32 fp32 (351 MB, downloaded by `fetch_clip.py`) |
-| Detection | YOLOX-tiny, 416 px (finds fewer small objects) | YOLOX-S, 640 px |
+| Detection | YOLOX-S, 640 px (`public/ml/models/yolox_s.onnx`) | YOLOX-S, 640 px |
 | Scoring | `src/lib/ml/property-score.ts` | `services/ml-lab/app/property.py`; same rules, tested to give the same numbers |
 | Code | `src/lib/ml/browser/property.ts`, `src/components/ml/PropertyApp.tsx` | `services/ml-lab/app/main.py` (`/api/property/*`) |
 
@@ -58,5 +58,8 @@ Docker: `docker build -f services/ml-lab/Dockerfile -t neoforge-ml .` downloads 
 
 ## Tests (all real models, nothing mocked)
 - `cd services/ml-lab && pytest tests/test_property.py`: 17 tests: CLIP on real photographs, YOLO boxes and thresholds, the analyze pipeline, upload and bad input, and every scoring rule with controlled inputs.
-- `npm run test:property:ui` runs 18 browser checks in either mode. `MODE=browser` (site started without `ML_API_URL`): CLIP int8 and YOLOX-tiny run in the page, the score is checked to equal 60 + the displayed factors, and the class and probability are compared with the service. `MODE=server` (site started with `ML_API_URL`): the UI values must equal the service's for the same image. Both modes cover upload, threshold, rejection of bad files and phone width.
+- `npm run test:property:ui` runs 18 browser checks in either mode. `MODE=browser` (site started without `ML_API_URL`): CLIP int8 and YOLOX-S run in the page, the score is checked to equal 60 + the displayed factors, and the class and probability are compared with the service. `MODE=server` (site started with `ML_API_URL`): the UI values must equal the service's for the same image. Both modes cover upload, threshold, rejection of bad files and phone width.
 - `npx tsx src/lib/ml/property-score.test.ts`: the TypeScript scoring engine on the same controlled cases as the Python tests.
+
+## Measured in the browser (headless Chromium, phone viewport, CPU throttled 4× and a 25 Mbit/s connection)
+Models ready after the progress bar completes (first visit); first analysis about 8 s (classification 1.4 s, detection 5.7 s); next analyses about 7 s; no console errors. On a normal computer both are much faster.

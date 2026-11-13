@@ -32,13 +32,14 @@ export async function classify(f: FormData) {
 
 /* ───────── detection ───────── */
 export interface Det { box: [number, number, number, number]; label: string; class_index: number; score: number }
-const SIZE = 416;
-const grid = (() => { const g: number[] = [], st: number[] = []; for (const s of [8, 16, 32]) { const n = SIZE / s; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { g.push(x, y); st.push(s); } } return { g: new Float32Array(g), st: new Float32Array(st) }; })();
+const GRIDS = new Map<number, { g: Float32Array; st: Float32Array }>();
+const gridFor = (SIZE: number) => { const hit = GRIDS.get(SIZE); if (hit) return hit; const made = (() => { const g: number[] = [], st: number[] = []; for (const s of [8, 16, 32]) { const n = SIZE / s; for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { g.push(x, y); st.push(s); } } return { g: new Float32Array(g), st: new Float32Array(st) }; })(); GRIDS.set(SIZE, made); return made; };
 function nmsIdx(b: number[][], s: number[], thr: number) { const order = s.map((_, i) => i).sort((x, y) => s[y] - s[x]), keep: number[] = []; while (order.length) { const i = order.shift()!; keep.push(i); const a = b[i], aa = (a[2] - a[0]) * (a[3] - a[1]); for (let k = order.length - 1; k >= 0; k--) { const q = b[order[k]], w = Math.max(0, Math.min(a[2], q[2]) - Math.max(a[0], q[0])), h = Math.max(0, Math.min(a[3], q[3]) - Math.max(a[1], q[1])), it = w * h; if (it / (aa + (q[2] - q[0]) * (q[3] - q[1]) - it + 1e-9) > thr) order.splice(k, 1); } } return keep; }
-export async function detectCanvas(src: CanvasImageSource, w: number, h: number, thr = 0.3, onlyPerson = false, nms = 0.45): Promise<Det[]> {
+export async function detectCanvas(src: CanvasImageSource, w: number, h: number, thr = 0.3, onlyPerson = false, nms = 0.45, opt: { url?: string; size?: number } = {}): Promise<Det[]> {
+  const SIZE = opt.size ?? 416, grid = gridFor(SIZE), url = opt.url ?? models.yolox;
   const r = Math.min(SIZE / h, SIZE / w), nw = Math.round(w * r), nh = Math.round(h * r), c = mk(SIZE, SIZE), g = ctx2(c); g.fillStyle = "rgb(114,114,114)"; g.fillRect(0, 0, SIZE, SIZE); g.drawImage(src, 0, 0, w, h, 0, 0, nw, nh);
   const px = g.getImageData(0, 0, SIZE, SIZE).data, plane = SIZE * SIZE, inp = new Float32Array(3 * plane); for (let i = 0; i < plane; i++) { inp[i] = px[i * 4 + 2]; inp[plane + i] = px[i * 4 + 1]; inp[2 * plane + i] = px[i * 4]; }
-  const { out, s } = await run(models.yolox, { [await inputName(models.yolox)]: { data: inp, dims: [1, 3, SIZE, SIZE] } }), o = out[s.outputNames[0]].data as Float32Array, n = o.length / 85;
+  const { out, s } = await run(url, { [await inputName(url)]: { data: inp, dims: [1, 3, SIZE, SIZE] } }), o = out[s.outputNames[0]].data as Float32Array, n = o.length / 85;
   const cand: { box: number[]; score: number; c: number }[] = [];
   for (let i = 0; i < n; i++) {
     const b = i * 85, obj = o[b + 4]; if (obj < thr) continue; let ci = 0, cs = o[b + 5]; if (!onlyPerson) for (let k = 1; k < 80; k++) if (o[b + 5 + k] > cs) { cs = o[b + 5 + k]; ci = k; } const sc = obj * cs; if (sc < thr) continue;

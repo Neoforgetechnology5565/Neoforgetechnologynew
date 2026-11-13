@@ -1,9 +1,10 @@
 "use client";
 /** PropertyVision AI in the browser: pretrained CLIP ViT-B/32 (int8 ONNX) classification, YOLOX detection and the scoring engine. Nothing leaves the page. */
 import { CLASS_LABEL, CLASSES, scoreProperty } from "../property-score";
-import { ctx2, err, mk, numOf, run, scaled, toUrl, inputName, type Cvs } from "./core";
+import { ctx2, err, mk, numOf, run, scaled, session, toUrl, inputName, type Cvs } from "./core";
 import { detectCanvas, drawDet, imageInput } from "./vision";
 
+const YOLO_URL = "/ml/models/yolox_s.onnx", YOLO_SIZE = 640;
 const CLIP_URL = "/ml/models/clip_vit_b32_visual_int8.onnx", PROMPTS_URL = "/ml/models/clip_property_prompts.json";
 const MEAN = [0.48145466, 0.4578275, 0.40821073], STD = [0.26862954, 0.26130258, 0.27577711];
 let text: { classes: string[]; embeddings: number[][] } | null = null;
@@ -37,7 +38,7 @@ export async function analyze(f: FormData) {
   const thr = numOf(f, "threshold", 0.35); if (thr < 0.05 || thr > 0.95) err(400, "threshold must be between 0.05 and 0.95.");
   const { img, name } = await imageInput(f, "property"), t0 = performance.now();
   const cls = await clipClassify(img), t1 = performance.now();
-  const dets = await detectCanvas(img, img.width, img.height, thr), t2 = performance.now();
+  const dets = await detectCanvas(img, img.width, img.height, thr, false, 0.45, { url: YOLO_URL, size: YOLO_SIZE }), t2 = performance.now();
   const meas = measurements(img), score = scoreProperty(cls, dets, meas), t3 = performance.now(), counts: Record<string, number> = {};
   for (const d of dets) counts[d.label] = (counts[d.label] ?? 0) + 1;
   const r = (a: number, b: number) => Math.round(b - a) / 1000;
@@ -47,10 +48,24 @@ export async function analyze(f: FormData) {
     seconds: { classification: r(t0, t1), detection: r(t1, t2), scoring: r(t2, t3), total: r(t0, t3) },
     models: {
       classification: { name: "OpenAI CLIP ViT-B/32 (zero-shot, int8-quantised)", source: "OpenAI CLIP weights, ONNX export by Jina AI clip-as-service, dynamically quantised to int8 for the browser; runs in your browser (ONNX Runtime Web)", licence: "MIT (CLIP), Apache-2.0 (export)" },
-      detection: { name: "YOLOX-tiny (COCO, 80 classes)", source: "Megvii YOLOX 0.1.1rc0 release, unmodified ONNX; runs in your browser (ONNX Runtime Web)", licence: "Apache-2.0" },
+      detection: { name: "YOLOX-S (COCO, 80 classes)", source: "Megvii YOLOX 0.1.1rc0 release, unmodified ONNX; runs in your browser (ONNX Runtime Web)", licence: "Apache-2.0" },
       scoring: { name: "Neo Forge rule-based scoring engine (experimental)", source: "src/lib/ml/property-score.ts", licence: "Original code" },
     },
     note: "Experimental demonstration. CLIP is a general-purpose model asked to choose between four descriptions; YOLOX only knows COCO's 80 object classes (no trees, fences, roofs or cracks); the score is a hand-written rule set. None of this is a valuation or an inspection.",
   };
 }
 void CLASSES; void mk;
+
+/** Downloads (browser-cached) and initialises the three model files with progress, so the first analysis does not look frozen. */
+export async function preload(onProgress: (p: { stage: string; percent: number }) => void): Promise<void> {
+  const files = [[CLIP_URL, "image classifier (CLIP)"], [YOLO_URL, "object detector (YOLOX)"], [PROMPTS_URL, "class descriptions"]] as const;
+  const sizes = await Promise.all(files.map(async ([u]) => Number((await fetch(u, { method: "HEAD" })).headers.get("content-length")) || 0)), total = sizes.reduce((a, b) => a + b, 0) || 1;
+  let done = 0;
+  for (const [i, [u, name]] of files.entries()) {
+    const r = await fetch(u); if (!r.ok || !r.body) err(503, `Could not download the ${name} (${r.status}).`);
+    const rd = r.body!.getReader(); let got = 0;
+    for (;;) { const { done: d, value } = await rd.read(); if (d) break; got += value.length; onProgress({ stage: `Downloading the ${name}`, percent: Math.min(90, Math.round(((done + got) / total) * 90)) }); }
+    done += sizes[i] || got;
+  }
+  onProgress({ stage: "Preparing the models", percent: 92 }); await session(CLIP_URL); onProgress({ stage: "Preparing the models", percent: 97 }); await session(YOLO_URL); await prompts(); onProgress({ stage: "Ready", percent: 100 });
+}
