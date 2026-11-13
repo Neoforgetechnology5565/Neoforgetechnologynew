@@ -49,7 +49,7 @@ export default async function Portfolio() {
           <section key={d.slug} id={d.slug} className={`scroll-mt-16 ${i % 2 ? "bg-stone-50" : ""}`}>
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
-                <div><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Division {d.code}</p><h2 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">{d.name}</h2></div>
+                <div><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">Division {d.code}</p><h2 className="mt-2 font-display text-3xl font-semibold sm:text-4xl">{d.name}</h2></div>
                 <Link href={`/portfolio/${d.slug}`} className="text-sm font-medium text-stone-700 hover:text-blue-600">Open full portfolio →</Link>
               </div>
               {subs.length > 0 && <div className="mt-4 flex flex-wrap gap-2">{subs.map((s) => <Link key={s.id} href={`/${d.slug}/${s.slug}`} className="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-600 hover:bg-blue-50 hover:text-blue-700">{s.name}</Link>)}</div>}

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default async function Contact({ searchParams }: { searchParams: Promise<{ division?: string; intent?: string }> }) {
   const [{ division, intent }, c] = await Promise.all([searchParams, getContactSettings()]);
   const links = [["LinkedIn", c.linkedin], ["GitHub", c.github], ["X", c.x], ["YouTube", c.youtube]].filter(([, u]) => u);
-  const dt = "text-xs font-semibold uppercase tracking-wider text-stone-400";
+  const dt = "text-xs font-semibold uppercase tracking-wider text-stone-500";
   return (
     <>
       <section className="bg-slate-950 py-16 text-white">
@@ -24,14 +24,14 @@ export default async function Contact({ searchParams }: { searchParams: Promise<
         </div>
       </section>
       <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[.8fr_1.2fr] lg:px-8">
-        <dl className="space-y-6 text-sm">
+        <div><dl className="space-y-6 text-sm">
           {c.email && <div><dt className={dt}>Email</dt><dd className="mt-1"><a className="text-stone-900 hover:text-blue-600" href={`mailto:${c.email}`}>{c.email}</a></dd></div>}
           {c.phone && <div><dt className={dt}>Phone</dt><dd className="mt-1 text-stone-900">{c.phone}</dd></div>}
           {c.whatsapp && <div><dt className={dt}>WhatsApp</dt><dd className="mt-1"><a className="text-stone-900 hover:text-blue-600" target="_blank" rel="noopener noreferrer" href={`https://wa.me/${c.whatsapp}`}>Message us on WhatsApp</a></dd></div>}
           {c.location && <div><dt className={dt}>Location</dt><dd className="mt-1 text-stone-900">{c.location}</dd></div>}
           {links.length > 0 && <div><dt className={dt}>Elsewhere</dt><dd className="mt-1 flex flex-wrap gap-x-4">{links.map(([n, u]) => <a key={n} href={u} target="_blank" rel="noopener noreferrer" className="text-stone-900 hover:text-blue-600">{n}</a>)}</dd></div>}
-          {!c.email && !c.phone && !c.whatsapp && <p className="text-stone-500">Use the form and we&apos;ll reply by email.</p>}
         </dl>
+        {!c.email && !c.phone && !c.whatsapp && <p className="text-sm text-stone-500">Use the form and we&apos;ll reply by email.</p>}</div>
         <div id="inquiry" className="scroll-mt-24 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8"><ContactForm initialDivision={division && isDivisionSlug(division) ? division : ""} initialIntent={intent === "quote" ? "quote" : "project"} /></div>
       </div>
       <section className="border-t border-stone-200 bg-stone-50 py-14" id="meeting" aria-labelledby="meeting-h">

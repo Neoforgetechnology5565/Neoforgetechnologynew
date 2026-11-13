@@ -56,7 +56,7 @@ export default function FileDrop({ label, accept, multiple, kind, endpoint, fold
         className={`cursor-pointer rounded-lg border border-dashed px-4 py-5 text-center text-sm transition-colors ${border} ${over ? "bg-forge/10" : ""}`}
       >
         <p className={light ? "text-stone-600" : "text-paper/70"}>Tap to choose or drag &amp; drop{multiple ? " files" : " a file"}</p>
-        {hint && <p className={`mt-1 text-xs ${light ? "text-stone-400" : "text-paper/40"}`}>{hint}</p>}
+        {hint && <p className={`mt-1 text-xs ${light ? "text-stone-500" : "text-paper/40"}`}>{hint}</p>}
         <input ref={input} type="file" hidden accept={accept} multiple={multiple} onChange={(e) => { if (e.target.files) handle(e.target.files); e.target.value = ""; }} />
       </div>
       {busy.map((b) => (

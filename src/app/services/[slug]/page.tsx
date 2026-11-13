@@ -86,7 +86,7 @@ export default async function ServicePage({ params }: Params) {
       </section>
 
       {articles.length > 0 && (
-        <section className="bg-stone-50 py-16"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">From the blog</p><div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{articles.map((p) => <PostCard key={p.id} p={p} />)}</div></div></section>
+        <section className="bg-stone-50 py-16"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">From the blog</p><div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{articles.map((p) => <PostCard key={p.id} p={p} />)}</div></div></section>
       )}
 
       {others.length > 0 && (

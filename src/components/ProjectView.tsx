@@ -36,7 +36,7 @@ export function projectMetadata(p: Project): Metadata {
 }
 
 const Prose = ({ text }: { text: string }) => <div className="space-y-4 leading-relaxed text-stone-600">{text.split(/\n{2,}/).map((t, i) => <p key={i} className="whitespace-pre-line">{t}</p>)}</div>;
-const Label = ({ children }: { children: React.ReactNode }) => <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">{children}</p>;
+const Label = ({ children }: { children: React.ReactNode }) => <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">{children}</p>;
 
 export default async function ProjectView({ p }: { p: Project }) {
   const d = DIVISION_MAP[p.division];

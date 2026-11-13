@@ -53,7 +53,7 @@ export default async function SubcategoryPage({ params }: Params) {
         )}
         {r.siblings.length > 0 && (
           <div className="mt-16 border-t border-stone-200 pt-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">More in {d.short}</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">More in {d.short}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {r.siblings.map((s) => <Link key={s.id} href={`/${division}/${s.slug}`} className="rounded-full border border-stone-300 px-4 py-1.5 text-sm font-medium text-stone-700 hover:border-blue-600 hover:text-blue-600">{s.name}</Link>)}
             </div>

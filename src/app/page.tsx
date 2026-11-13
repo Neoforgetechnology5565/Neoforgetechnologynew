@@ -62,7 +62,7 @@ export default async function Home() {
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <div className="flex flex-wrap items-end justify-between gap-4">
                 <div className="max-w-2xl">
-                  <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${dark ? "text-blue-400" : "text-blue-600"}`}>Division {d.code}</p>
+                  <p className={`text-xs font-semibold uppercase tracking-[0.3em] ${dark ? "text-blue-400" : "text-blue-700"}`}>Division {d.code}</p>
                   <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">{d.name}</h2>
                   <p className={`mt-4 ${dark ? "text-slate-300" : "text-stone-500"}`}>{d.intro}</p>
                 </div>
@@ -110,10 +110,10 @@ export default async function Home() {
       {/* About blurb */}
       <section className="bg-stone-100 py-24">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
-          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">About the company</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">About the company</p>
           <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Neo Forge Technology</h2>
           <p className="mt-6 text-lg leading-relaxed text-stone-600">A software engineering company working across artificial intelligence, enterprise software and engineering technology — building systems that run in production, not demonstrations.</p>
-          <Link href="/about" className="mt-6 inline-block text-sm font-semibold text-blue-600 hover:text-blue-700">Learn more about us →</Link>
+          <Link href="/about" className="mt-6 inline-block text-sm font-semibold text-blue-700 hover:text-blue-800">Learn more about us →</Link>
         </div>
       </section>
 

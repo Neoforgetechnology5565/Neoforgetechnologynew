@@ -24,6 +24,8 @@
     "test:pricing:ui": "node scripts/test-pricing-ui.mjs",
     "test:marketing": "tsx src/lib/marketing.test.ts",
     "seo:audit": "node scripts/seo-audit.mjs",
+    "test:ads": "tsx src/lib/ads-plan.test.ts",
+    "docs:ads": "tsx scripts/make-ads-doc.ts",
     "test:seo": "tsx src/lib/landing-pages.test.ts",
     "test:seo:ui": "node scripts/test-seo-pages.mjs",
     "test:reviews": "tsx src/lib/schemas.reviews.test.ts",

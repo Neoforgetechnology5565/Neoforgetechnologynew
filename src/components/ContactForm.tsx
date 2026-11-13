@@ -65,7 +65,7 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "",
   if (state === "done")
     return (
       <div className="rounded-2xl bg-blue-50 p-8" role="status">
-        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Received</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">Received</p>
         <h3 className="mt-2 font-display text-2xl font-semibold text-stone-900">Thanks — your inquiry is in.</h3>
         <p className="mt-2 text-stone-600">An engineer will review the details and reply by email. We&apos;ve also sent a confirmation to the address you gave.</p>
         {sent && pushSupported() && typeof Notification !== "undefined" && Notification.permission !== "denied" && notify === "idle" && <button type="button" onClick={turnOnNotifications} className="mt-4 rounded-full border border-blue-600 px-5 py-2 text-sm font-semibold text-blue-700 hover:bg-white">🔔 Notify me on this device when you reply</button>}

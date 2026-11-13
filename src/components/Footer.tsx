@@ -36,7 +36,7 @@ export default function Footer({ contact, categories, branding }: { contact: Con
           ))}
         </div>
         <nav aria-label="Popular services" className="mt-10 border-t border-slate-800 pt-6"><p className="text-xs font-semibold uppercase tracking-[0.15em] text-slate-400">Services</p><ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-slate-400">{LANDING_PAGES.map((p) => <li key={p.slug}><Link href={`/${p.slug}`} className="hover:text-blue-400">{p.name}</Link></li>)}<li><Link href="/services" className="font-medium text-blue-400 hover:underline">All services</Link></li></ul></nav>
-        <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-8 text-xs text-slate-500 sm:flex-row">
+        <div className="mt-8 flex flex-col items-center justify-between gap-3 border-t border-slate-800 pt-8 text-xs text-slate-400 sm:flex-row">
           <p>© {new Date().getFullYear()} Neo Forge Technology. All rights reserved.</p>
           <nav className="flex flex-wrap justify-center gap-x-5 gap-y-1" aria-label="Footer">
             <Link href="/services" className="hover:text-blue-400">Services</Link>

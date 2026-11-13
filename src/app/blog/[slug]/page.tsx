@@ -82,7 +82,7 @@ export default async function Article({ params }: Params) {
         </div>
       </article>
       {related.length > 0 && (
-        <section className="bg-stone-50 py-16"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Keep reading</p><h2 className="mt-3 font-display text-3xl font-semibold">Related articles</h2><div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{related.map((r) => <PostCard key={r.id} p={r} />)}</div></div></section>
+        <section className="bg-stone-50 py-16"><div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8"><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">Keep reading</p><h2 className="mt-3 font-display text-3xl font-semibold">Related articles</h2><div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">{related.map((r) => <PostCard key={r.id} p={r} />)}</div></div></section>
       )}
       <CtaBand division={p.division || undefined} />
     </>
