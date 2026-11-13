@@ -42,6 +42,7 @@ export default function Footer({ contact, categories, branding }: { contact: Con
             <Link href="/services" className="hover:text-blue-400">Services</Link>
             <Link href="/portfolio" className="hover:text-blue-400">Portfolio</Link>
             <Link href="/pricing" className="hover:text-blue-400">Pricing</Link>
+            <Link href="/how-we-work" className="hover:text-blue-400">How we work</Link>
                         <Link href="/blog" className="hover:text-blue-400">Blog</Link>
             <Link href="/technology" className="hover:text-blue-400">Technology</Link>
             <Link href="/live-chat" className="hover:text-blue-400">Live Chat</Link>

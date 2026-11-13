@@ -1,0 +1,34 @@
+// Renders the real admin analytics dashboard's International tab with a report built by the real counters code (admin API mocked: no admin login in the test environment).
+// Usage: BASE=http://localhost:3011 node scripts/test-intl-dashboard.mjs
+import { build } from "esbuild";
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+import path from "node:path";
+const { chromium } = createRequire(process.env.PW_PATH || "/opt/node-tools/node_modules/")("playwright");
+const BASE = process.env.BASE || "http://localhost:3011", root = path.resolve(import.meta.dirname, "..");
+const report = JSON.parse(execFileSync("npx", ["tsx", "scripts/make-intl-fixture.ts"], { cwd: root, encoding: "utf8", maxBuffer: 1 << 26 }));
+const js = (await build({ entryPoints: [path.join(root, "scripts/admin-harness-entry.tsx")], bundle: true, write: false, format: "iife", jsx: "automatic", platform: "browser", target: "es2020", logLevel: "error", alias: { "@": path.join(root, "src") }, define: { "process.env.NODE_ENV": '"production"' }, tsconfig: path.join(root, "tsconfig.json") })).outputFiles[0].text;
+const home = await (await fetch(BASE + "/")).text(), css = [...new Set([...home.matchAll(/\/_next\/static\/css\/[^"']+\.css/g)].map((m) => m[0]))];
+let pass = 0, fail = 0; const t = async (n, f) => { try { await f(); pass++; console.log("  ✓ " + n); } catch (e) { fail++; console.log("  ✗ " + n + "\n     " + String(e.message).split("\n")[0]); } };
+const ok = (c, m) => { if (!c) throw new Error(m); };
+const b = await chromium.launch(), page = await (await b.newContext({ viewport: { width: 1500, height: 1000 } })).newPage(), errors = []; page.on("pageerror", (e) => errors.push(String(e)));
+await page.route("**/__t/page", (r) => r.fulfill({ contentType: "text/html", body: `<!doctype html><html><head><meta charset=utf-8>${css.map((c) => `<link rel=stylesheet href="${c}">`).join("")}</head><body class="bg-ink-950 text-paper p-6"><div id="root"></div><script src="/__t/bundle.js"></script></body></html>` }));
+await page.route("**/__t/bundle.js", (r) => r.fulfill({ contentType: "application/javascript", body: js }));
+await page.route("**/api/admin/analytics**", (route) => { const u = new URL(route.request().url()), parts = u.pathname.split("/").filter(Boolean), json = (x) => route.fulfill({ contentType: "application/json", body: JSON.stringify(x) });
+  if (parts[3] === "live") return json({ online: 0, pages: [], countries: [], updatedAt: Date.now() }); if (parts[3] === "alerts") return json({ settings: { enabled: false, email: false, push: false, minGapMinutes: 10, newVisitorsOnly: false }, lastAlertAt: null, pending: 0, emailConfigured: false, emailTo: "" }); if (parts.length === 3) return json(report); return json({ items: [] }); });
+await page.goto(BASE + "/__t/page", { waitUntil: "load" }); await page.evaluate(() => window.__mountAnalytics());
+const id = (x) => page.getByTestId(x); await id("tab-international").waitFor(); await id("tab-international").click();
+const num = async (k) => (await id(k).innerText()).split("\n").map((x) => x.trim()).filter(Boolean)[1];
+console.log("International tab");
+await t("explains where the numbers come from and that nothing identifying is shown", async () => { const x = await id("intl-note").innerText(); ok(/forms themselves/.test(x) && /No names, emails, phone numbers or IP addresses/.test(x), x); });
+await t("KPIs: 6 inquiries, 5 countries, 3 quotation requests (50%), 3 meeting requests", async () => { ok((await num("ik-inq")) === "6", await num("ik-inq")); ok((await num("ik-countries")) === "5", await num("ik-countries")); ok((await num("ik-quote")) === "3", await num("ik-quote")); ok(/50% of inquiries/.test(await id("ik-quote").innerText()), "quote share"); ok((await num("ik-meet")) === "3", "meetings"); });
+await t("response time: median 6 h, 100% within 24 h, 2 answered and 1 waiting", async () => { ok((await num("ik-resp")) === "6 h", await num("ik-resp")); ok(/2 answered · 1 waiting/.test(await id("ik-resp").innerText()), "counts"); ok((await num("ik-24")) === "100%", await num("ik-24")); });
+await t("top country share is stated honestly (Germany 2 of 6 = 33%)", async () => { ok(/top country: 33% of inquiries/.test(await id("ik-countries").innerText()), await id("ik-countries").innerText()); });
+await t("countries panel lists Germany first with 2", async () => { const x = await id("intl-countries").innerText(); ok(/Germany[\s\S]*2/.test(x) && x.indexOf("Germany") < x.indexOf("Nigeria"), x); });
+await t("services requested panel shows the ANPR service with 2", async () => { ok(/ANPR \/ licence plate recognition[\s\S]*2/.test(await id("intl-services").innerText()), await id("intl-services").innerText()); });
+await t("meeting countries, request types, contact methods and currencies are shown", async () => { ok(/United Kingdom/.test(await id("intl-meet-countries").innerText()), "meet"); ok(/Customised quotation/.test(await id("intl-intents").innerText()) && /Project inquiry/.test(await id("intl-intents").innerText()), "intents"); ok(/Video call/.test(await id("intl-methods").innerText()) && /WhatsApp/.test(await id("intl-methods").innerText()), "methods"); ok(/GBP/.test(await id("intl-currencies").innerText()), "currency"); });
+await t("services viewed and countries visiting come from the visit statistics", async () => { ok(/computer-vision-development/i.test(await id("intl-viewed").innerText()), "viewed"); ok(/United States/.test(await id("intl-visits").innerText()), "visits"); });
+await t("contact button clicks lists the quotation button and not unrelated links", async () => { const x = await id("intl-clicks").innerText(); ok(/Request a customised quotation/.test(x) && !/Home/.test(x), x); });
+await t("new visitors share: 75% (9 of 12)", async () => { ok((await num("ik-new")) === "75%", await num("ik-new")); });
+await t("no page errors", async () => ok(errors.length === 0, errors.join("; ")));
+await b.close(); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

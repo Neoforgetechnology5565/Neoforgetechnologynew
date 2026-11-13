@@ -1,4 +1,8 @@
 import { after, NextResponse, type NextRequest } from "next/server";
+import { planMeetingStats, recordStats } from "@/lib/analytics/intl";
+import type { Db } from "@/lib/analytics/process";
+import { FieldValue } from "firebase-admin/firestore";
+import { adminDb } from "@/lib/firebase-admin";
 import { errorResponse } from "@/lib/auth";
 import { getMeetingSettings } from "@/lib/db";
 import { isFirebaseConfigured } from "@/lib/firebase-admin";
@@ -32,6 +36,7 @@ export async function POST(req: NextRequest) {
     if (website || (startedAt && Date.now() - startedAt < 2000)) return NextResponse.json({ ok: true, fake: true });
     const s = await getMeetingSettings();
     const r = await requestMeeting(firestoreStore(), s, input, Date.now());
+    try { await recordStats(adminDb() as unknown as Db, (n) => FieldValue.increment(n), planMeetingStats({ country: input.country, purpose: input.purpose })); } catch { /* statistics must never affect a request */ }
     after(async () => {
       await notifyMeeting({ ...input, country: COUNTRY_NAME[input.country] || input.country, durationMin: r.durationMin }, s.tz);
       await emailVisitor({ to: input.email, subject: "We received your meeting request — not confirmed yet", heading: "Meeting request received",

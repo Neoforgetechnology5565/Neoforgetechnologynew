@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { after, NextResponse, type NextRequest } from "next/server";
 import { FieldValue } from "firebase-admin/firestore";
+import { planInquiryStats, recordStats } from "@/lib/analytics/intl";
 import { recordConversion, type Db } from "@/lib/analytics/process";
 import { errorResponse } from "@/lib/auth";
 import { autoReplyToInquiry } from "@/lib/auto-reply";
@@ -28,6 +29,7 @@ export async function POST(req: NextRequest) {
     if (vid) { // visitor accepted statistics: link this inquiry to their visit; never blocks or fails the inquiry
       try { const visitor = await recordConversion(adminDb() as unknown as Db, (n) => FieldValue.increment(n), { vid, inquiryId: ref.id }); if (visitor) await ref.update({ visitor }); } catch { /* analytics must never affect an inquiry */ }
     }
+    try { await recordStats(adminDb() as unknown as Db, (n) => FieldValue.increment(n), planInquiryStats({ country: data.country, service: data.service, intent: data.intent, preferredContact: data.preferredContact, currency: data.currency })); } catch { /* statistics must never affect an inquiry */ }
     after(async () => { // emails go out after the response is sent; they never block or fail the visitor
       await notifyInquiry(data);
       await autoReplyToInquiry(ref.id, data);

@@ -14,7 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const [projects, cats, posts] = await Promise.all([getPublishedProjects(), getCategories(), getPublishedPosts()]);
   return [
-    ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing", "/demos"].map((p) => ({ url: `${base}${p}` })),
+    ...["", "/portfolio", "/about", "/contact", "/technology", "/live-chat", "/blog", "/privacy", "/terms", "/services", "/pricing", "/how-we-work", "/demos"].map((p) => ({ url: `${base}${p}` })),
     ...LANDING_PAGES.map((p) => ({ url: `${base}/${p.slug}`, changeFrequency: "monthly" as const, priority: 0.9 })),
     ...DEMOS.map((d) => ({ url: `${base}/demos/${d.slug}` })),
     ...ERP_DEMOS.map((d) => ({ url: `${base}/erp-demos/${d.slug}` })),

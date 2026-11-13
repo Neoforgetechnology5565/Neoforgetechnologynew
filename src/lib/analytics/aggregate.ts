@@ -1,4 +1,5 @@
 /** Builds the admin dashboard's report from daily counter documents. Pure. */
+import { serviceLabel } from "./intl";
 import { countryName, regionName } from "./geo";
 import { unPathKey } from "./pages";
 
@@ -16,6 +17,10 @@ export interface Report {
   services: Row[]; projects: Row[]; demos: Row[]; blogs: Row[];
   clicks: { path: string; label: string; kind: string; n: number }[];
   conversions: { total: number; channels: Row[]; countries: Row[] };
+  /** Built from the inquiry and meeting forms themselves (country the person chose), so it does not depend on the statistics consent. */
+  /** Added by the API route (needs the inquiries collection): first-reply times for inquiries received in the period */
+  response?: { answered: number; unanswered: number; medianHours: number | null; within24hPct: number | null };
+  international: { inquiries: number; meetings: number; countries: Row[]; meetingCountries: Row[]; services: Row[]; intents: Row[]; methods: Row[]; currencies: Row[]; meetingPurposes: Row[]; distinctCountries: number };
 }
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : 0);
 const map = (v: unknown): M => (v && typeof v === "object" ? (v as M) : {});
@@ -24,10 +29,10 @@ const rows = (m: M, label: (k: string) => string, n = 12): Row[] => Object.entri
 const spaces = (s: string) => s.replace(/_/g, " ");
 
 export function buildReport(days: { day: string; data: Record<string, unknown> | undefined }[], totals: Record<string, unknown> | undefined, titles: Titles): Report {
-  const acc: Record<string, M> = {}, get = (k: string) => (acc[k] ??= {}), sum = { views: 0, visits: 0, sessions: 0, newVisitors: 0, clicks: 0, inquiries: 0 };
+  const intl = { inquiries: 0, meetings: 0 }, acc: Record<string, M> = {}, get = (k: string) => (acc[k] ??= {}), sum = { views: 0, visits: 0, sessions: 0, newVisitors: 0, clicks: 0, inquiries: 0 };
   const series = days.map(({ day, data }) => {
-    const d = data ?? {}; sum.views += num(d.views); sum.visits += num(d.visits); sum.sessions += num(d.sessions); sum.newVisitors += num(d.newVisitors); sum.clicks += num(d.clickEvents); sum.inquiries += num(d.inquiries);
-    for (const k of ["pages", "countries", "visitsByCountry", "regions", "cities", "timezones", "devices", "browsers", "os", "channels", "sources", "referrers", "campaigns", "entries", "flows", "services", "projects", "demos", "blogs", "clicks", "inquiryChannels", "inquiryCountries"]) add(get(k), map(d[k]));
+    const d = data ?? {}; sum.views += num(d.views); sum.visits += num(d.visits); sum.sessions += num(d.sessions); sum.newVisitors += num(d.newVisitors); sum.clicks += num(d.clickEvents); sum.inquiries += num(d.inquiries); intl.inquiries += num(d.intlInquiries); intl.meetings += num(d.meetingRequests);
+    for (const k of ["pages", "countries", "visitsByCountry", "regions", "cities", "timezones", "devices", "browsers", "os", "channels", "sources", "referrers", "campaigns", "entries", "flows", "services", "projects", "demos", "blogs", "clicks", "inquiryChannels", "inquiryCountries", "intlCountries", "intlServices", "intlIntents", "intlMethods", "intlCurrencies", "meetingCountries", "meetingPurposes"]) add(get(k), map(d[k]));
     return { day, views: num(d.views), visits: num(d.sessions) || num(d.visits), inquiries: num(d.inquiries) };
   });
   const visits = sum.sessions || sum.visits, a = (k: string) => get(k);
@@ -48,6 +53,7 @@ export function buildReport(days: { day: string; data: Record<string, unknown> |
     devices: rows(a("devices"), (k) => k[0].toUpperCase() + k.slice(1)), browsers: rows(a("browsers"), spaces), os: rows(a("os"), spaces),
     pages: rows(a("pages"), unPathKey, 15), entries: rows(a("entries"), unPathKey, 10), flows,
     services: rows(a("services"), (k) => titles.service(k)), projects: rows(a("projects"), (k) => titles.project(k)), demos: rows(a("demos"), (k) => titles.demo(k.replace("~", "/"))), blogs: rows(a("blogs"), (k) => k.replace(/-/g, " ")),
+    international: { inquiries: intl.inquiries, meetings: intl.meetings, countries: rows(a("intlCountries"), country, 25), meetingCountries: rows(a("meetingCountries"), country, 25), services: rows(a("intlServices"), serviceLabel, 15), intents: rows(a("intlIntents"), (k) => (k === "quote" ? "Customised quotation" : "Project inquiry")), methods: rows(a("intlMethods"), (k) => ({ email: "Email", phone: "Phone call", whatsapp: "WhatsApp", video: "Video call" } as Record<string, string>)[k] ?? k), currencies: rows(a("intlCurrencies"), (k) => k), meetingPurposes: rows(a("meetingPurposes"), spaces), distinctCountries: Object.keys(a("intlCountries")).filter((k) => k !== "XX" && a("intlCountries")[k] > 0).length },
     clicks, conversions: { total: sum.inquiries, channels: rows(a("inquiryChannels"), (k) => k), countries: rows(a("inquiryCountries"), country) },
   };
 }

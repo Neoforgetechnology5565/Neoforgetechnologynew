@@ -6,8 +6,8 @@ import type { Report, Row, VisitorSummary } from "@/lib/analytics/aggregate";
 import type { Live } from "@/lib/analytics/live";
 import AlertsPanel from "./AlertsPanel";
 
-type Tab = "overview" | "locations" | "sources" | "pages" | "clicks" | "navigation" | "visitors" | "contacts" | "alerts";
-const TABS: [Tab, string][] = [["overview", "Overview"], ["locations", "Locations"], ["sources", "Sources & devices"], ["pages", "Pages & interest"], ["clicks", "Clicks"], ["navigation", "Navigation"], ["visitors", "Visitors"], ["contacts", "Contacts"], ["alerts", "Alerts"]];
+type Tab = "overview" | "international" | "locations" | "sources" | "pages" | "clicks" | "navigation" | "visitors" | "contacts" | "alerts";
+const TABS: [Tab, string][] = [["overview", "Overview"], ["international", "International"], ["locations", "Locations"], ["sources", "Sources & devices"], ["pages", "Pages & interest"], ["clicks", "Clicks"], ["navigation", "Navigation"], ["visitors", "Visitors"], ["contacts", "Contacts"], ["alerts", "Alerts"]];
 interface Detail extends VisitorSummary { journey: { p: string; t: number }[]; clickLog: { p: string; l: string; t: number }[]; language: string; ipTimezone: string }
 const when = (t: number) => (t ? new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "—");
 const n0 = (n: number) => n.toLocaleString();
@@ -82,6 +82,30 @@ export default function AnalyticsDashboard() {
             <div className="mt-2 flex justify-between font-mono text-[10px] text-paper/40"><span>{r.series[0]?.day}</span><span>{r.series.at(-1)?.day}</span></div></Card>
           <div className="grid gap-4 lg:grid-cols-3"><Panel title="Where visitors come from" note="Traffic channel, per visit"><Bars rows={r.channels} testid="ov-channels" /></Panel><Panel title="Top countries (approximate)" note="Visits"><Bars rows={r.countries.slice(0, 8)} testid="ov-countries" /></Panel><Panel title="Popular pages" note="Page views"><Bars rows={r.pages.slice(0, 8)} testid="ov-pages" /></Panel></div>
         </>}
+        {tab === "international" && (() => {
+          const i = r.international, topShare = i.inquiries && i.countries[0] ? Math.round((i.countries[0].n / i.inquiries) * 100) : null, quote = i.intents.find((x) => x.key === "quote")?.n ?? 0;
+          const newPct = r.kpis.visits ? Math.round((r.kpis.newVisitors / r.kpis.visits) * 100) : null;
+          return <>
+          <p role="note" className="border border-paper/15 bg-ink-900 p-3 text-sm text-paper/70" data-testid="intl-note">Inquiry and meeting figures come from the forms themselves (the country the person chose), so they include everyone who wrote to us. Visit figures count only visitors who accepted statistics and are approximate. No names, emails, phone numbers or IP addresses appear here.</p>
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4" data-testid="intl-kpis">
+            <Kpi id="ik-inq" label="Inquiries (forms)" value={n0(i.inquiries)} sub="all senders" /><Kpi id="ik-countries" label="Countries with inquiries" value={n0(i.distinctCountries)} sub={topShare === null ? "" : `top country: ${topShare}% of inquiries`} />
+            <Kpi id="ik-quote" label="Quotation requests" value={n0(quote)} sub={i.inquiries ? `${Math.round((quote / i.inquiries) * 100)}% of inquiries` : ""} /><Kpi id="ik-meet" label="Meeting requests" value={n0(i.meetings)} sub="requested, not necessarily confirmed" />
+            <Kpi id="ik-resp" label="Median first reply" value={r.response?.medianHours == null ? "—" : `${r.response.medianHours} h`} sub={r.response ? `${r.response.answered} answered · ${r.response.unanswered} waiting` : ""} /><Kpi id="ik-24" label="Replied within 24 h" value={r.response?.within24hPct == null ? "—" : `${r.response.within24hPct}%`} sub="of answered inquiries" />
+            <Kpi id="ik-new" label="New visitors" value={newPct === null ? "—" : `${newPct}%`} sub={`${n0(r.kpis.newVisitors)} new of ${n0(r.kpis.visits)} visits (statistics visitors)`} /><Kpi id="ik-rate" label="Inquiries per 100 visits" value={String(r.kpis.conversionPct)} sub="linked inquiries only" />
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Panel title="Countries that send inquiries" note="Country chosen in the inquiry form" testid="intl-countries"><Bars rows={i.countries} empty="No inquiries with a country yet." /></Panel>
+            <Panel title="Countries that request meetings" note="Country chosen in the meeting form" testid="intl-meet-countries"><Bars rows={i.meetingCountries} empty="No meeting requests yet." /></Panel>
+            <Panel title="Services people ask for" note="Service chosen in the inquiry form" testid="intl-services"><Bars rows={i.services} empty="No inquiries yet." /></Panel>
+            <Panel title="Services international visitors read" note="Service pages viewed (statistics visitors)" testid="intl-viewed"><Bars rows={r.services} empty="No service pages viewed yet." /></Panel>
+            <Panel title="Countries visiting" note="Visits (approximate)" testid="intl-visits"><Bars rows={r.countries.map((c) => ({ ...c }))} /></Panel>
+            <Panel title="Portfolio and demo interest" note="Projects and demos viewed" testid="intl-portfolio"><Bars rows={[...r.projects, ...r.demos].sort((a, b) => b.n - a.n).slice(0, 10)} empty="None yet." /></Panel>
+            <Panel title="Request type" testid="intl-intents"><Bars rows={i.intents} empty="None yet." /></Panel><Panel title="Preferred contact method" testid="intl-methods"><Bars rows={i.methods} empty="None yet." /></Panel>
+            <Panel title="Currency requested" testid="intl-currencies"><Bars rows={i.currencies} empty="None yet." /></Panel><Panel title="Meeting purposes" testid="intl-purposes"><Bars rows={i.meetingPurposes} empty="None yet." /></Panel>
+          </div>
+          <Card><h2 className="font-semibold">Contact button clicks</h2><p className="mb-3 mt-0.5 text-xs text-paper/50">Buttons and links whose label mentions contact, quote, call, WhatsApp or email.</p>
+            {(() => { const rows = r.clicks.filter((c) => /contact|quote|quotation|call|whatsapp|email|inquiry|enquiry/i.test(c.label)); return !rows.length ? <p className="text-sm text-paper/50" data-testid="intl-no-clicks">None recorded yet.</p> : <ul className="space-y-1 text-sm" data-testid="intl-clicks">{rows.map((c, k) => <li key={k} className="flex justify-between gap-3"><span className="truncate">{c.label} <span className="text-paper/40">on {c.path}</span></span><span>{c.n}</span></li>)}</ul>; })()}</Card>
+          </>; })()}
         {tab === "locations" && <>
           <p role="note" className="border border-paper/15 bg-ink-900 p-3 text-sm text-paper/70" data-testid="approx-note">{APPROX} Precise (GPS) location is never requested.</p>
           <div className="grid gap-4 lg:grid-cols-2">

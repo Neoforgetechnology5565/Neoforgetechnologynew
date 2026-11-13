@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   alternates: { canonical: "/contact" },
 };
 
-export default async function Contact({ searchParams }: { searchParams: Promise<{ division?: string }> }) {
-  const [{ division }, c] = await Promise.all([searchParams, getContactSettings()]);
+export default async function Contact({ searchParams }: { searchParams: Promise<{ division?: string; intent?: string }> }) {
+  const [{ division, intent }, c] = await Promise.all([searchParams, getContactSettings()]);
   const links = [["LinkedIn", c.linkedin], ["GitHub", c.github], ["X", c.x], ["YouTube", c.youtube]].filter(([, u]) => u);
   const dt = "text-xs font-semibold uppercase tracking-wider text-stone-400";
   return (
@@ -32,7 +32,7 @@ export default async function Contact({ searchParams }: { searchParams: Promise<
           {links.length > 0 && <div><dt className={dt}>Elsewhere</dt><dd className="mt-1 flex flex-wrap gap-x-4">{links.map(([n, u]) => <a key={n} href={u} target="_blank" rel="noopener noreferrer" className="text-stone-900 hover:text-blue-600">{n}</a>)}</dd></div>}
           {!c.email && !c.phone && !c.whatsapp && <p className="text-stone-500">Use the form and we&apos;ll reply by email.</p>}
         </dl>
-        <div className="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8"><ContactForm initialDivision={division && isDivisionSlug(division) ? division : ""} /></div>
+        <div id="inquiry" className="scroll-mt-24 rounded-2xl border border-stone-200 bg-white p-6 shadow-sm sm:p-8"><ContactForm initialDivision={division && isDivisionSlug(division) ? division : ""} initialIntent={intent === "quote" ? "quote" : "project"} /></div>
       </div>
       <section className="border-t border-stone-200 bg-stone-50 py-14" id="meeting" aria-labelledby="meeting-h">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
