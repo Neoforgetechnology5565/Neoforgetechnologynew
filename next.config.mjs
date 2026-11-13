@@ -40,6 +40,7 @@ const nextConfig = {
       { source: "/product-recommendation-demo", destination: "/ai-demos/ai-product-recommendation/app", permanent: false },
       { source: "/restaurant-employee-monitoring-demo", destination: "/ai-demos/ai-restaurant-employee-monitoring/app", permanent: false },
       { source: "/table-tennis-intelligence-demo", destination: "/ai-demos/ai-table-tennis-video-intelligence/app", permanent: false },
+      { source: "/property-vision-demo", destination: "/ai-demos/ai-property-vision/app", permanent: false },
       { source: "/basketball-intelligence-demo", destination: "/ai-demos/ai-basketball-video-intelligence/app", permanent: false },
     ];
   },

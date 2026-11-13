@@ -15,6 +15,7 @@ Needs `ffmpeg` for annotated video. YOLOX-S and BlazePose are read from `service
 ## Models and data
 | Item | Origin | Licence |
 |---|---|---|
+| `models/clip_vit_b32_visual.onnx` (downloaded by `scripts/fetch_clip.py`, not in git), `models/clip_property_prompts.npz` | OpenAI CLIP ViT-B/32 image encoder (ONNX export by Jina AI clip-as-service) and the embedded class descriptions for PropertyVision AI (demo 25) | MIT / Apache-2.0 |
 | `models/mobilenet_v2.onnx`, `mobilenet_v2_features.onnx` | Keras Applications MobileNetV2 ImageNet weights, converted with tf2onnx | Apache-2.0 |
 | `models/deeplab_v3.onnx` | MediaPipe `deeplab_v3` (PASCAL VOC 21 classes) TFLite, converted with tf2onnx | Apache-2.0 |
 | YOLOX-S, BlazePose ONNX | see `services/activity-monitor/README.md` | Apache-2.0 |

@@ -7,6 +7,9 @@ COPY services/ml-lab/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY services/ml-lab/app ./app
 COPY services/ml-lab/models ./models
+COPY services/ml-lab/scripts/fetch_clip.py ./scripts/fetch_clip.py
+# PropertyVision AI: download the pretrained CLIP image encoder (351 MB, not stored in git)
+RUN python scripts/fetch_clip.py
 COPY services/activity-monitor/models /srv/shared-models
 COPY public/ml/samples /srv/samples
 ENV ML_SHARED_MODELS_DIR=/srv/shared-models ML_SAMPLES_DIR=/srv/samples ML_WORK_DIR=/tmp/ml

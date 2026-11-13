@@ -11,3 +11,7 @@ firestore-debug.log
 
 # vehicle demo: copied from node_modules by scripts/copy-ort-wasm.mjs
 /public/vehicle/ort/
+
+# PropertyVision AI: large CLIP weights are downloaded by services/ml-lab/scripts/fetch_clip.py, never committed
+services/ml-lab/models/clip_vit_b32_visual.onnx
+services/ml-lab/models/.clip-cache/

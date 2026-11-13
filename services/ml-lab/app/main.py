@@ -22,6 +22,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 
 from . import forecast as fc
 from . import sensors as sn
+from . import property as prop
 from . import tabular
 from .config import Settings
 from .imaging import decode_image, jpeg, png, read_upload
@@ -51,6 +52,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         d, sd = s.models, s.shared_models
         st["cls"] = Classifier(d)
+        st["clip"] = prop.ClipClassifier(d) if (d / "clip_vit_b32_visual.onnx").is_file() and (d / "clip_property_prompts.npz").is_file() else None  # downloaded by scripts/fetch_clip.py
         st["det"] = Detector(sd / "yolox_s.onnx") if (sd / "yolox_s.onnx").is_file() else None
         st["seg"] = Segmenter(d)
         st["pose"] = Pose(sd / "blazepose_full.onnx") if (sd / "blazepose_full.onnx").is_file() else None
@@ -120,7 +122,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     # ---- meta -------------------------------------------------------------------------------------------------------
     @app.get("/api/health")
     def health():
-        return {"ok": True, "models": INFO, "available": {"classifier": True, "detector": st.get("det") is not None, "segmenter": True, "pose": st.get("pose") is not None, "ocr": True, "search_vectors": True, "catalogue": st.get("cat") is not None, "ffmpeg": bool(shutil.which("ffmpeg"))},
+        return {"ok": True, "models": INFO, "available": {"property_clip": st.get("clip") is not None, "classifier": True, "detector": st.get("det") is not None, "segmenter": True, "pose": st.get("pose") is not None, "ocr": True, "search_vectors": True, "catalogue": st.get("cat") is not None, "ffmpeg": bool(shutil.which("ffmpeg"))},
                 "limits": {"max_image_mb": s.max_image_mb, "max_megapixels": s.max_pixels / 1e6, "max_video_mb": s.max_video_mb, "max_video_seconds": s.max_video_seconds, "max_frames": s.max_frames, "max_csv_mb": s.max_csv_mb, "max_csv_rows": s.max_csv_rows}}
 
     @app.get("/api/samples")
@@ -172,6 +174,53 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             counts[d["label"]] = counts.get(d["label"], 0) + 1
         return {"filename": name, "width": img.shape[1], "height": img.shape[0], "detections": dets, "counts": counts, "threshold": threshold, "seconds": round(time.perf_counter() - t, 3), "model": INFO["detector"],
                 "annotated": b64(jpeg(draw_det(img, dets))), "note": "COCO's 80 classes only. Objects outside them are not detected; small, blurred or partly hidden objects are often missed."}
+
+
+    # ---- PropertyVision AI (demo 25) ----------------------------------------------------------------------------------------
+    PROP_NOTE = ("Experimental demonstration. CLIP is a general-purpose model asked to choose between four descriptions; YOLOX only knows COCO's 80 object classes "
+                 "(no trees, fences, roofs or cracks); the score is a hand-written rule set. None of this is a valuation or an inspection.")
+
+    def prop_detect(img: np.ndarray, thr: float) -> list[dict]:
+        return need("det")(img, thr)
+
+    @app.post("/api/property/classify")
+    async def property_classify(file: UploadFile | None = File(None), sample_id: str | None = Form(None)):
+        clip = need("clip")
+        img, name = await image_input(file, sample_id, "property")
+        t = time.perf_counter()
+        r = clip(img)
+        return {"filename": name, "width": img.shape[1], "height": img.shape[0], "classification": r, "seconds": round(time.perf_counter() - t, 3), "models": prop.info(st.get("det") is not None), "note": PROP_NOTE}
+
+    @app.post("/api/property/detect")
+    async def property_detect(file: UploadFile | None = File(None), sample_id: str | None = Form(None), threshold: float = Form(0.35)):
+        if not 0.05 <= threshold <= 0.95:
+            raise HTTPException(400, "threshold must be between 0.05 and 0.95.")
+        img, name = await image_input(file, sample_id, "property")
+        t = time.perf_counter()
+        dets = prop_detect(img, threshold)
+        counts: dict[str, int] = {}
+        for d in dets:
+            counts[d["label"]] = counts.get(d["label"], 0) + 1
+        return {"filename": name, "width": img.shape[1], "height": img.shape[0], "detections": dets, "counts": counts, "threshold": threshold, "seconds": round(time.perf_counter() - t, 3), "models": prop.info(True), "annotated": b64(jpeg(prop.draw(img, dets))), "note": PROP_NOTE}
+
+    @app.post("/api/property/analyze")
+    async def property_analyze(file: UploadFile | None = File(None), sample_id: str | None = Form(None), threshold: float = Form(0.35)):
+        """All three modules on one image: CLIP classification, YOLOX detection, then the scoring engine fed with their outputs."""
+        clip = need("clip")
+        det = need("det")
+        if not 0.05 <= threshold <= 0.95:
+            raise HTTPException(400, "threshold must be between 0.05 and 0.95.")
+        img, name = await image_input(file, sample_id, "property")
+        t0 = time.perf_counter()
+        cls = clip(img); t1 = time.perf_counter()
+        dets = det(img, threshold); t2 = time.perf_counter()
+        meas = prop.measurements(img)
+        sc = prop.score_property(cls, dets, meas); t3 = time.perf_counter()
+        counts: dict[str, int] = {}
+        for d in dets:
+            counts[d["label"]] = counts.get(d["label"], 0) + 1
+        return {"filename": name, "width": img.shape[1], "height": img.shape[0], "classification": cls, "detection": {"detections": dets, "counts": counts, "threshold": threshold, "annotated": b64(jpeg(prop.draw(img, dets)))},
+                "measurements": meas, "score": sc, "seconds": {"classification": round(t1 - t0, 3), "detection": round(t2 - t1, 3), "scoring": round(t3 - t2, 3), "total": round(t3 - t0, 3)}, "models": prop.info(True), "note": PROP_NOTE}
 
     def vid_input_path(job_dir: Path, data: bytes) -> Path:
         p = job_dir / "input.bin"
