@@ -6,6 +6,7 @@ import { BUDGET_DISCUSS, BUDGETS, CONTACT_METHODS, CURRENCIES, SERVICE_OPTIONS, 
 import type { MediaRef } from "@/lib/types";
 import { analyticsAllowed } from "@/lib/consent";
 import { enablePush, pushSupported } from "@/lib/push-client";
+import { pushEvent } from "@/lib/marketing";
 import FileDrop from "./FileDrop";
 
 const F = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-blue-600 focus:outline-none";
@@ -50,7 +51,7 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "",
     let res: Response;
     try { res = await fetch("/api/contact", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, phoneCountry: phoneCountry || country || undefined, tz, startedAt, files, ...visitorLink() }) }); }
     catch { setError("We couldn't reach the server. Check your connection and try again — your details are still in the form."); setState("idle"); return; }
-    if (res.ok) { const j = await res.json().catch(() => ({})); if (j.id && j.token) setSent({ id: j.id, token: j.token }); setState("done"); return; }
+    if (res.ok) { const j = await res.json().catch(() => ({})); if (j.id && j.token) { setSent({ id: j.id, token: j.token }); pushEvent("generate_lead", { form: "project_inquiry", intent: String(payload.intent || "project") }); } setState("done"); return; }
     const j = await res.json().catch(() => ({}));
     if (Array.isArray(j.issues)) {
       const fe: Record<string, string> = {};
@@ -74,7 +75,7 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "",
     );
 
   return (
-    <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2" noValidate={false}>
+    <form onSubmit={submit} className="grid gap-5 sm:grid-cols-2" noValidate={false} data-clarity-mask="True">
       <div className="sm:col-span-2 flex flex-wrap gap-4 text-sm text-stone-700" role="radiogroup" aria-label="What would you like?">
         <label className="flex items-center gap-2"><input type="radio" name="intent" value="project" defaultChecked={initialIntent === "project"} /> Discuss a project</label>
         <label className="flex items-center gap-2"><input type="radio" name="intent" value="quote" defaultChecked={initialIntent === "quote"} /> Request a customised quotation (USD by default)</label>

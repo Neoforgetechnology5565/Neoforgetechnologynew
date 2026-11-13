@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CtaBand, SectionHead } from "@/components/Blocks";
+import { PRICING, PRICING_DISCLAIMER, RANGES, type Tier } from "@/lib/pricing";
 
 export const metadata: Metadata = {
-  title: "Pricing",
-  description: "How Neo Forge Technology prices custom software: every project is scoped and quoted individually. What affects the cost and how to get a quote.",
+  title: { absolute: "Software Development Pricing in USD | NeoForge Technologies" },
+  description: "Indicative USD budget ranges for computer vision and AI, CAD/BIM and CRM/HRM/ERP software projects, with what each range suits and how to request a quote.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -45,14 +46,44 @@ export default function Pricing() {
       <section className="bg-slate-950 py-16 text-white sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-400">Pricing</p>
-          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Every project is quoted to its scope.</h1>
-          <p className="mt-4 max-w-2xl text-slate-300">We build custom software, so there is no one-size price list. Quotations are prepared in US dollars after we understand what you need, and every one is customised to the project.</p>
+          <h1 className="mt-3 font-display text-4xl font-semibold sm:text-5xl">Software development pricing in USD</h1>
+          <p className="mt-4 max-w-2xl text-slate-300">Indicative budget ranges for our three divisions. Every project is then scoped and quoted individually, in US dollars, after we understand what you need.</p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/contact?intent=quote#inquiry" className="rounded-full bg-blue-500 px-6 py-3 text-sm font-semibold text-slate-950 hover:bg-blue-400">Request a customised quotation</Link>
             <Link href="/contact#meeting" className="rounded-full border border-slate-600 px-6 py-3 text-sm font-semibold text-white hover:border-blue-400">Request a call</Link>
                       </div>
         </div>
       </section>
+      <nav aria-label="Pricing divisions" className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur" data-testid="pricing-nav">
+        <div className="mx-auto flex max-w-7xl flex-wrap gap-2 px-4 py-3 sm:px-6 lg:px-8">
+          {PRICING.map((d) => <a key={d.id} href={`#${d.id}`} className="rounded-full border border-stone-300 px-4 py-1.5 text-sm font-semibold text-stone-800 hover:border-blue-600 hover:text-blue-700">{d.name}</a>)}
+        </div>
+      </nav>
+      {PRICING.map((d, i) => (
+        <section key={d.id} id={d.id} className={`scroll-mt-16 ${i % 2 ? "bg-stone-50" : ""}`} aria-labelledby={`${d.id}-h`} data-testid={`pricing-${d.id}`}>
+          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+            <SectionHead eyebrow="Pricing" title={d.name}><span id={`${d.id}-h`} className="sr-only">{d.name} pricing</span></SectionHead>
+            <div className="mt-8 grid gap-5 lg:grid-cols-3">
+              {(["BASIC", "STANDARD", "PREMIUM"] as Tier[]).map((t) => {
+                const x = d.tiers[t], std = t === "STANDARD";
+                return (
+                  <article key={t} data-testid={`tier-${d.id}-${t}`} data-standard={std} className={`flex flex-col rounded-2xl bg-white p-7 ${std ? "border-2 border-blue-600 bg-blue-50/40 shadow-md" : "border border-stone-200"}`}>
+                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-700">{t}</p>
+                    <p className="mt-2 font-display text-3xl font-semibold text-stone-900" data-testid="range">{RANGES[t]} <span className="text-sm font-normal text-stone-500">USD</span></p>
+                    <p className="mt-1 text-xs text-stone-500">Indicative project budget</p>
+                    <h3 className="mt-5 text-sm font-semibold text-stone-900">Suitable for</h3>
+                    <ul className="mt-2 space-y-1.5 text-sm text-stone-700">{x.suitable.map((s) => <li key={s} className="flex gap-2"><span aria-hidden className="text-blue-600">✓</span>{s}</li>)}</ul>
+                    <h3 className="mt-5 text-sm font-semibold text-stone-900">Typical deliverables</h3>
+                    <ul className="mt-2 space-y-1.5 text-sm text-stone-700">{x.deliverables.map((s) => <li key={s} className="flex gap-2"><span aria-hidden className="text-blue-600">•</span>{s}</li>)}</ul>
+                    <Link href={`/contact?division=${d.slug}&intent=quote#inquiry`} className={`mt-auto inline-block rounded-full px-5 py-2.5 text-center text-sm font-semibold ${std ? "bg-blue-600 text-white hover:bg-blue-700" : "border border-blue-600 text-blue-700 hover:bg-blue-50"}`} style={{ marginTop: "1.5rem" }}>Request a Quote</Link>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+      ))}
+      <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8"><p role="note" data-testid="pricing-disclaimer" className="rounded-xl border border-stone-300 bg-stone-50 p-5 text-sm leading-relaxed text-stone-700">{PRICING_DISCLAIMER}</p></section>
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <SectionHead eyebrow="What affects the cost" title="Four things decide the price" />
         <div className="mt-8 grid gap-5 sm:grid-cols-2">
@@ -72,7 +103,7 @@ export default function Pricing() {
         <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {INCLUDED.map(([t, b]) => <div key={t} className="rounded-2xl border border-stone-200 bg-white p-6"><h3 className="font-display text-lg font-semibold text-stone-900">{t}</h3><p className="mt-2 text-sm leading-relaxed text-stone-600">{b}</p></div>)}
         </div>
-        <p className="mt-6 max-w-3xl text-sm text-stone-600">We do not publish fixed prices because the same service (for example &ldquo;ANPR software&rdquo;) can be a small integration or a multi-site system. The price follows the scope in your quotation.</p>
+        <p className="mt-6 max-w-3xl text-sm text-stone-600">The ranges above are indicative, not fixed prices: the same service (for example &ldquo;ANPR software&rdquo;) can be a small integration or a multi-site system. The price in your quotation follows its scope.</p>
       </section>
       <section className="bg-stone-50">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
@@ -88,7 +119,7 @@ export default function Pricing() {
         <div className="mt-8 grid gap-5 md:grid-cols-3">
           {BUDGETS.map(([t, b]) => <div key={t} className="rounded-2xl border border-stone-200 bg-white p-6"><h3 className="font-display text-lg font-semibold text-stone-900">{t}</h3><p className="mt-2 text-sm leading-relaxed text-stone-600">{b}</p></div>)}
         </div>
-        <p className="mt-6 max-w-3xl text-sm text-stone-600">The budget ranges in our inquiry form help us suggest an approach. They are not price lists.</p>
+        <p className="mt-6 max-w-3xl text-sm text-stone-600">The budget options in our inquiry form help us suggest an approach. They are not price lists.</p>
       </section>
       <section className="bg-stone-50">
         <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">

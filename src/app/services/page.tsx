@@ -5,6 +5,7 @@ import JsonLd from "@/components/JsonLd";
 import LandingArt from "@/components/landing/LandingArt";
 import { getCategories } from "@/lib/db";
 import { DIVISIONS } from "@/lib/divisions";
+import { DIVISION_SERVICES } from "@/lib/division-services";
 import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { HUB_FAQS, HUB_ITEMS } from "@/lib/services-hub";
 import { siteUrl } from "@/lib/utils";
@@ -77,6 +78,19 @@ export default async function Services() {
         <SectionHead eyebrow="Technologies" title="Technologies and capabilities" />
         <div className="mt-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {[["AI and vision", ["Python", "PyTorch", "TensorFlow", "OpenCV", "ONNX Runtime", "scikit-learn"]], ["Video and 3D", ["RTSP and FFmpeg", "YOLO-family detectors", "COLMAP", "Open3D", "Three.js"]], ["CAD and BIM", ["Revit API", "AutoCAD .NET API", "IFC", "Autodesk Platform Services"]], ["Business systems", ["TypeScript and Next.js", "Node.js", "PostgreSQL", "REST APIs and webhooks"]]].map(([g, items]) => <div key={g as string}><h3 className="text-sm font-semibold uppercase tracking-wider text-blue-700">{g as string}</h3><div className="mt-3"><Chips items={items as string[]} /></div></div>)}
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-labelledby="three-divisions" data-testid="three-divisions">
+        <SectionHead eyebrow="Three divisions" title="What we build, by division"><span id="three-divisions" className="sr-only">Services by division</span></SectionHead>
+        <div className="mt-8 grid gap-6 lg:grid-cols-3">
+          {DIVISION_SERVICES.map((d) => (
+            <article key={d.slug} className="flex flex-col rounded-2xl border border-stone-200 bg-white p-7" data-testid={`division-${d.slug}`}>
+              <h3 className="font-display text-xl font-semibold text-stone-900"><Link href={d.landing} className="hover:text-blue-700">{d.name}</Link></h3>
+              <ul className="mt-4 space-y-1.5 text-sm">{d.items.map(([n, h]) => <li key={n}><Link href={h} className="text-stone-700 hover:text-blue-700 hover:underline">{n}</Link></li>)}</ul>
+              <p className="mt-5 flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm font-semibold"><Link href={d.landing} className="text-blue-700 hover:underline">Explore {d.short}</Link><Link href={`/pricing#${d.slug === "computer-vision" ? "computer-vision-ai" : d.slug}`} className="text-blue-700 hover:underline">Pricing</Link></p>
+            </article>
+          ))}
         </div>
       </section>
 

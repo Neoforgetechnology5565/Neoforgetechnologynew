@@ -8,6 +8,7 @@ import JsonLd from "@/components/JsonLd";
 import CookieNotice from "@/components/CookieNotice";
 import Presence from "@/components/Presence";
 import Tracker from "@/components/Tracker";
+import ThirdPartyTags from "@/components/ThirdPartyTags";
 import { organizationLd, websiteLd } from "@/lib/jsonld";
 import { iconUrl } from "@/lib/cloudinary";
 import { getBranding, getCategories, getContactSettings } from "@/lib/db";
@@ -24,6 +25,8 @@ const baseMetadata: Metadata = {
   description:
     "Custom software, computer vision and AI, CRM/HRM/ERP automation and CAD/BIM plugins for engineering and business teams. Tell us what you need.",
   openGraph: { type: "website", siteName: "Neo Forge Technology", locale: "en_US" },
+  // Search console ownership tags: only emitted when the owner sets the (public) verification tokens
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? { verification: { ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } : {}), ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION } } : {}) } } : {}),
   twitter: { card: "summary_large_image" },
 };
 export const viewport: Viewport = { themeColor: "#ffffff", width: "device-width", initialScale: 1 };
@@ -40,6 +43,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <Footer contact={contact} categories={categories} branding={branding} />
         <ContactWidget enabled={contact.chatEnabled} greeting={contact.chatGreeting} whatsapp={contact.whatsapp} email={contact.email} />
         <Tracker />
+        <ThirdPartyTags />
         <Presence />
         <CookieNotice />
       </body>

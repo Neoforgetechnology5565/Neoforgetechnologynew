@@ -1,3 +1,4 @@
+import { fitTitle } from "@/lib/seo-title";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -8,7 +9,7 @@ type Params = { params: Promise<{ slug: string }> };
 export const generateStaticParams = () => ERP_DEMOS.map((d) => ({ slug: d.slug }));
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const d = ERP_MAP[(await params).slug];
-  return d ? { title: `${d.title}: interactive demo`, description: d.problem, alternates: { canonical: `/erp-demos/${d.slug}` } } : {};
+  return d ? { title: { absolute: fitTitle(`${d.title} demo`) }, description: d.problem, alternates: { canonical: `/erp-demos/${d.slug}` } } : {};
 }
 export default async function ErpDemoPage({ params }: Params) {
   const d = ERP_MAP[(await params).slug];

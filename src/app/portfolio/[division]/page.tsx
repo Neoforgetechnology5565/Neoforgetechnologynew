@@ -1,3 +1,4 @@
+import { fitDescription, fitTitle } from "@/lib/seo-title";
 import DemoCenter from "@/components/demos/DemoCenter";
 import CvDemoCenter from "@/components/demos/CvDemoCenter";
 import ErpDemoCenter from "@/components/biz/ErpDemoCenter";
@@ -16,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ division:
   const { division } = await params;
   const d = DIVISION_MAP[division];
   if (!d) return {};
-  return { title: `${d.short} Portfolio`, description: `${d.name} projects by Neo Forge Technology. ${d.metaDescription}`, alternates: { canonical: `/portfolio/${division}` } };
+  return { title: `${d.short} Portfolio`, description: fitDescription(`${d.name} projects by Neo Forge Technology. ${d.metaDescription}`), alternates: { canonical: `/portfolio/${division}` } };
 }
 
 export default async function DivisionPortfolio({ params }: { params: Promise<{ division: string }> }) {

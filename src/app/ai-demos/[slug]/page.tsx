@@ -1,3 +1,4 @@
+import { fitDescription, fitTitle } from "@/lib/seo-title";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -9,7 +10,7 @@ export const generateStaticParams = () => CV_DEMOS.map((d) => ({ slug: d.slug })
 
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const d = CV_MAP[(await params).slug];
-  return d ? { title: `${d.title} — interactive demo`, description: d.problem, alternates: { canonical: `/ai-demos/${d.slug}` } } : {};
+  return d ? { title: { absolute: fitTitle(`${d.title} demo`) }, description: fitDescription(d.problem), alternates: { canonical: `/ai-demos/${d.slug}` } } : {};
 }
 
 export default async function CvDemoPage({ params }: Params) {

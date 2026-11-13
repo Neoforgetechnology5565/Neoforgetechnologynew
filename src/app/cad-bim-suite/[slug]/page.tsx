@@ -1,3 +1,4 @@
+import { fitDescription, fitTitle } from "@/lib/seo-title";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -6,7 +7,7 @@ import { SUITE, SUITE_DISCLAIMER, SUITE_MAP } from "@/lib/bim/suite";
 
 type Params = { params: Promise<{ slug: string }> };
 export const generateStaticParams = () => SUITE.map((d) => ({ slug: d.slug }));
-export async function generateMetadata({ params }: Params): Promise<Metadata> { const d = SUITE_MAP[(await params).slug]; return d ? { title: `${d.title} — CAD/BIM application`, description: d.short, alternates: { canonical: `/cad-bim-suite/${d.slug}` } } : {}; }
+export async function generateMetadata({ params }: Params): Promise<Metadata> { const d = SUITE_MAP[(await params).slug]; return d ? { title: { absolute: fitTitle(d.title) }, description: fitDescription(d.short), alternates: { canonical: `/cad-bim-suite/${d.slug}` } } : {}; }
 export default async function Page({ params }: Params) {
   const d = SUITE_MAP[(await params).slug]; if (!d) notFound();
   return (

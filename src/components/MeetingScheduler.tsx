@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { COUNTRIES } from "@/lib/countries";
+import { pushEvent } from "@/lib/marketing";
 import { dayKey, formatSlot, MEETING_PURPOSES } from "@/lib/meetings";
 
 const F = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 focus:border-blue-600 focus:outline-none";
@@ -44,7 +45,7 @@ export default function MeetingScheduler() {
     try {
       const r = await fetch("/api/meetings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...payload, phoneCountry: phoneCountry || country || undefined, tz, start, startedAt }) });
       const j = await r.json().catch(() => ({}));
-      if (r.ok) { setState("done"); return; }
+      if (r.ok && j.id) { pushEvent("meeting_request", { purpose: String(payload.purpose || "") }); setState("done"); return; } if (r.ok) { setState("done"); return; }
       if (r.status === 409) { setStart(null); load(); }
       setError(Array.isArray(j.issues) ? "Please check your details: name, a valid email, country and (if given) a valid phone number." : j.error || "Something went wrong. Please try again.");
     } catch { setError("We couldn't reach the server. Check your connection and try again."); }
@@ -61,7 +62,7 @@ export default function MeetingScheduler() {
     </div>
   );
   return (
-    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" data-testid="meeting-form">
+    <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2" data-testid="meeting-form" data-clarity-mask="True">
       <div className="sm:col-span-2">
         <label className={L} htmlFor="mtz">Your time zone</label>
         <select id="mtz" className={F} value={tz} onChange={(e) => { setTz(e.target.value); setStart(null); }}>

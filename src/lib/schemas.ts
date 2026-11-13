@@ -191,7 +191,7 @@ export const inquirySchema = z.object({
   phoneCountry: z.string().refine(isCountry).optional(),
   phone: text(30).default(""),
   /** Compulsory: one of the form's own budget options (checked on the server so a direct request cannot skip it) */
-  budget: z.string().refine((v) => (BUDGETS as readonly string[]).includes(v) || v === BUDGET_DISCUSS, "Please select a budget"),
+  budget: z.string("Please select a budget").refine((v) => (BUDGETS as readonly string[]).includes(v) || v === BUDGET_DISCUSS, "Please select a budget"),
   currency: z.enum(CURRENCIES).default("USD"),
   timeline: text(80).default(""),
   preferredContact: z.enum(["email", "phone", "whatsapp", "video"]).default("email"),

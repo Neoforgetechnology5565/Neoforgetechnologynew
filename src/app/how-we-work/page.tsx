@@ -6,7 +6,7 @@ import JsonLd from "@/components/JsonLd";
 import { breadcrumbLd } from "@/lib/jsonld";
 
 export const metadata: Metadata = {
-  title: "How We Work With International Clients | NeoForge Technologies",
+  title: { absolute: "How We Work With International Clients | NeoForge" },
   description: "How NeoForge Technologies works with clients remotely: communication, time zones, onboarding, milestones, delivery and support after hand-over.",
   alternates: { canonical: "/how-we-work" },
 };

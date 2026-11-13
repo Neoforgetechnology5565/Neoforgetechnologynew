@@ -1,3 +1,4 @@
+import { fitDescription, fitTitle } from "@/lib/seo-title";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -19,7 +20,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const s = SERVICE_MAP[(await params).slug];
   if (!s) return {};
   return {
-    title: s.metaTitle,
+    title: { absolute: fitTitle(s.metaTitle) },
     description: s.metaDescription,
     alternates: { canonical: `/services/${s.slug}` },
     openGraph: { title: s.metaTitle, description: s.metaDescription, url: `/services/${s.slug}`, images: [DEFAULT_OG_IMAGE] },
