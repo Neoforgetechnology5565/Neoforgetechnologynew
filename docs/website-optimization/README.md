@@ -1,3 +1,5 @@
+> **Update:** the meeting-request scheduler was removed later; references to it below are historical.
+
 # Website optimization, pricing, SEO, Google Ads and international marketing: what was done
 
 Your brief was cut off in the middle of Part 12 (after "File upload"). Parts 1–11 were done as written; Part 12 was done from the topics that were listed (HTTPS, headers, form validation, spam protection, access control, admin authentication, file upload).

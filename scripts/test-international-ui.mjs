@@ -1,7 +1,7 @@
 // International inquiry form, in a real browser against the production build.
 // Usage: BASE=http://localhost:3011 node scripts/test-international-ui.mjs
 // Validation errors come from the real /api/contact (it rejects before touching the database); successful submissions and
-// meeting slots are mocked because this machine has no Firestore. The server's own logic is covered by `npm run test:inquiry` and `test:meetings`.
+// successful submissions are mocked because this machine has no Firestore. The server's own logic is covered by `npm run test:inquiry`.
 import { createRequire } from "node:module";
 const { chromium } = createRequire(process.env.PW_PATH || "/opt/node-tools/node_modules/")("playwright");
 const BASE = process.env.BASE || "http://localhost:3011";

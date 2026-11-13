@@ -23,6 +23,8 @@ We do not sell your information and we do not use it for automated decision-maki
 
 We use trusted service providers who process data for us: hosting and delivery (Vercel), database and sign-in (Google Firebase), file and image storage (Cloudinary), and email (Zoho Mail), and AI replies (Anthropic). Some of them are based outside the UK and EEA; where that happens we rely on appropriate safeguards such as standard contractual clauses.
 
+Where we have switched them on, and only after you accept statistics (and never if your browser sends Do-Not-Track), we also use Google Analytics, Google Tag Manager and Google Ads conversion measurement (Google), and Microsoft Clarity (Microsoft) to understand how the website is used and which advertising leads to enquiries. These tools may set their own cookies and receive information about your visit, such as pages viewed and approximate location. They do not receive what you type into our forms: the enquiry form is masked from session recordings. You can decline in the privacy notice, or later by clearing this site's stored data.
+
 ## How long we keep it
 
 Enquiries and chats are kept while we are in contact and for up to 24 months afterwards, unless we have a contract with you or the law requires longer. Visitor statistics are kept in aggregate form, and individual visit records are deleted after 180 days.

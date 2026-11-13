@@ -195,7 +195,6 @@ Add as a shared list. **Before adding any exclusion beyond these, read the searc
 
 ## 5. Conversion tracking (implemented in the site, off until you add the IDs)
 **Primary conversion:** a *successfully submitted project inquiry*. The site pushes one `generate_lead` event only after the existing inquiry API answers success (a failed submit, a page view or a visit to the contact page counts for nothing).
-**Meeting requests:** pushed as `meeting_request`. This site only *requests* meetings (a person confirms by email), so it is not a confirmed booking. Treat it as secondary until you record confirmed meetings yourself.
 **Secondary conversions:** `contact_click` with `method` = whatsapp, email or phone.
 
 | Environment variable (public IDs, set in Vercel, then redeploy) | Purpose |
@@ -206,8 +205,8 @@ Add as a shared list. **Before adding any exclusion beyond these, read the searc
 | `NEXT_PUBLIC_CLARITY_ID` | Microsoft Clarity project ID |
 | `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, `NEXT_PUBLIC_BING_SITE_VERIFICATION` | Search Console and Bing Webmaster ownership meta tags |
 
-**How it behaves:** nothing loads and nothing is sent until the visitor accepts statistics in the cookie notice (and Do-Not-Track is off). Events carry no name, email, phone or message. No secret is in the front end (these IDs are public identifiers). Clarity: the inquiry and meeting forms are marked `data-clarity-mask`, and Clarity's own default masking applies to typed input; keep "Balanced" or "Strict" masking in the Clarity project settings.
+**How it behaves:** nothing loads and nothing is sent until the visitor accepts statistics in the cookie notice (and Do-Not-Track is off). Events carry no name, email, phone or message. No secret is in the front end (these IDs are public identifiers). Clarity: the inquiry form is marked `data-clarity-mask`, and Clarity's own default masking applies to typed input; keep "Balanced" or "Strict" masking in the Clarity project settings.
 
-**GTM setup (in your GTM account):** a GA4 Configuration tag; GA4 Event tags for `generate_lead`, `meeting_request` and `contact_click` (custom-event triggers); a Google Ads Conversion tag for `generate_lead` (conversion ID and label from Google Ads, category "Submit lead form", count one). Mark only the lead conversion as a Primary goal in Google Ads; keep `contact_click` and `meeting_request` as secondary. Test with Tag Assistant or GTM preview after accepting the site's notice.
+**GTM setup (in your GTM account):** a GA4 Configuration tag; GA4 Event tags for `generate_lead` and `contact_click` (custom-event triggers); a Google Ads Conversion tag for `generate_lead` (conversion ID and label from Google Ads, category "Submit lead form", count one). Mark only the lead conversion as a Primary goal in Google Ads; keep `contact_click` as secondary. Test with Tag Assistant or GTM preview after accepting the site's notice.
 
 **Consent caveat:** because tags load only after consent, visitors who decline are not measured, so Google Ads will under-count conversions. That is the price of the consent-first design; confirm with your legal advisor what your target markets require (the UK and EU expect consent for advertising cookies).

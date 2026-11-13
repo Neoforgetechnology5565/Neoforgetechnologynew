@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { buildReport } from "./aggregate";
-import { planInquiryStats, planMeetingStats, recordStats, responseStats } from "./intl";
+import { planInquiryStats, recordStats, responseStats } from "./intl";
 import { fakeDb, fakeInc } from "./testing";
 import { COL } from "./consts";
 
@@ -8,15 +8,13 @@ async function main() {
   const db = fakeDb(), now = Date.UTC(2026, 9, 12, 10), day = new Date(now).toISOString().slice(0, 10);
   const inq = (country: string, service: string, intent = "project", preferredContact = "email") => recordStats(db, fakeInc, planInquiryStats({ country, service, intent, preferredContact, currency: "USD" }), now);
   await inq("DE", "ANPR / licence plate recognition"); await inq("DE", "ANPR / licence plate recognition", "quote"); await inq("US", "CAD and BIM software development", "quote", "video"); await inq("zz", ""); // junk country -> Unknown
-  await recordStats(db, fakeInc, planMeetingStats({ country: "GB", purpose: "Request a quotation" }), now);
   const d = db.all.get(COL.daily)!.get(day)!;
   const r = buildReport([{ day, data: d }], undefined, { service: (s) => s, demo: (s) => s, project: (s) => s });
   const i = r.international;
-  assert.equal(i.inquiries, 4); assert.equal(i.meetings, 1); assert.equal(i.distinctCountries, 2);
+  assert.equal(i.inquiries, 4); assert.equal(i.distinctCountries, 2);
   assert.deepEqual(i.countries.map((c) => [c.label, c.n]), [["Germany", 2], ["United States", 1], ["Unknown", 1]]);
   assert.equal(i.services[0].n, 2); assert.equal(i.services[0].label, "ANPR / licence plate recognition");
   assert.equal(i.intents.find((x) => x.key === "quote")?.n, 2); assert.equal(i.methods.find((x) => x.key === "video")?.label, "Video call");
-  assert.equal(i.meetingCountries[0].label, "United Kingdom"); assert.equal(i.meetingPurposes[0].n, 1);
   // privacy: nothing identifying is ever stored in the aggregate document
   const dump = JSON.stringify(d); assert.ok(!/@|\+\d{5,}/.test(dump), "no emails or phone numbers in counters");
   // service names containing dots/slashes must not break Firestore map keys

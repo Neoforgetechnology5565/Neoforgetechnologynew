@@ -14,7 +14,6 @@ async function open(consent, dnt = false) {
   if (consent) await ctx.addInitScript((c) => { try { localStorage.setItem("nf_consent", c); } catch {} }, consent);
   const ext = []; const p = await ctx.newPage();
   await p.route(/googletagmanager\.com|clarity\.ms|google-analytics\.com|doubleclick\.net/, (r) => { ext.push(r.request().url()); r.fulfill({ contentType: "application/javascript", body: "/* stub */" }); });
-  await p.route("**/api/meetings", (r) => r.request().method() === "GET" ? r.fulfill({ json: { enabled: true, slots: [], tz: "UTC", durationMin: 30, bookingUrl: "" } }) : r.fallback());
   await p.route("**/api/contact", (r) => r.fulfill({ json: { ok: true, id: "x", token: "y" } }));
   return { ctx, p, ext, layer: () => p.evaluate(() => (window.dataLayer || []).filter((x) => x && x.event && !String(x.event).startsWith("gtm.")).map((x) => ({ ...x }))) };
 }
@@ -42,5 +41,5 @@ await t("WhatsApp, email and phone link clicks are secondary events; ordinary li
   const ev = (await s.layer()).filter((e) => e.event === "contact_click").map((e) => e.method); ok(JSON.stringify(ev) === JSON.stringify(["whatsapp", "email", "phone"]), JSON.stringify(ev)); await s.ctx.close();
 });
 await t("page views and the contact page visit alone push no conversion", async () => { const s = await open("accepted"); await s.p.goto(BASE + "/contact", { waitUntil: "load" }); await s.p.goto(BASE + "/pricing", { waitUntil: "load" }); ok((await s.layer()).filter((e) => e.event === "generate_lead" || e.event === "meeting_request").length === 0, "conversion on page view"); await s.ctx.close(); });
-await t("the inquiry and meeting forms are masked for Clarity", async () => { const s = await open("accepted"); await s.p.goto(BASE + "/contact", { waitUntil: "load" }); ok((await s.p.locator('form[data-clarity-mask="True"]').count()) >= 1, "form not masked"); await s.ctx.close(); });
+await t("the inquiry form is masked for Clarity", async () => { const s = await open("accepted"); await s.p.goto(BASE + "/contact", { waitUntil: "load" }); ok((await s.p.locator('form[data-clarity-mask="True"]').count()) >= 1, "form not masked"); await s.ctx.close(); });
 await b.close(); console.log(`\n${pass} passed, ${fail} failed`); process.exit(fail ? 1 : 0);

@@ -1,6 +1,6 @@
 /**
  * International inquiry statistics. These are anonymous aggregate counters built from what a person chose in the inquiry or
- * meeting form (country, service, contact method): no name, email, phone or IP, and not tied to the statistics-consent cookie,
+ * inquiry form (country, service, contact method): no name, email, phone or IP, and not tied to the statistics-consent cookie,
  * because the form data itself is already stored when someone writes to us.
  */
 import { SERVICE_OPTIONS } from "../inquiry-options";
@@ -16,10 +16,6 @@ export const serviceLabel = (k: string) => SERVICE_OPTIONS[Number(k.slice(3))]?.
 export function planInquiryStats(i: InquiryStatsInput): Counters {
   const cc = /^[A-Z]{2}$/.test(i.country) ? i.country : "XX";
   return { intlInquiries: 1, intlCountries: { [cc]: 1 }, intlServices: { [serviceKey(i.service)]: 1 }, intlIntents: { [i.intent === "quote" ? "quote" : "project"]: 1 }, intlMethods: { [mapKey(i.preferredContact || "email", 20)]: 1 }, intlCurrencies: { [mapKey(i.currency || "USD", 6)]: 1 } };
-}
-export function planMeetingStats(i: { country: string; purpose: string }): Counters {
-  const cc = /^[A-Z]{2}$/.test(i.country) ? i.country : "XX";
-  return { meetingRequests: 1, meetingCountries: { [cc]: 1 }, meetingPurposes: { [mapKey(i.purpose, 60)]: 1 } };
 }
 export async function recordStats(db: Db, inc: Inc, plan: Counters, now = Date.now()): Promise<void> {
   await db.collection(COL.daily).doc(isoDay(now)).set(withIncrements(plan, inc), { merge: true });

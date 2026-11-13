@@ -21,7 +21,7 @@ export const trackingOn = () => { try { return analyticsAllowed() && navigator.d
 
 type W = Window & { dataLayer?: unknown[]; gtag?: (...a: unknown[]) => void };
 /** Pushes an event for GTM / GA4. Does nothing without consent. Parameters must not contain personal data. */
-export function pushEvent(name: "generate_lead" | "meeting_request" | "contact_click", params: Record<string, string | number> = {}) {
+export function pushEvent(name: "generate_lead" | "contact_click", params: Record<string, string | number> = {}) {
   if (typeof window === "undefined" || !trackingOn()) return;
   const w = window as W; w.dataLayer = w.dataLayer || []; w.dataLayer.push({ event: name, ...params });
   if (w.gtag && IDS.ads && IDS.adsLead && validId.ads(IDS.ads) && validId.adsLabel(IDS.adsLead) && name === "generate_lead") w.gtag("event", "conversion", { send_to: `${IDS.ads}/${IDS.adsLead}` });

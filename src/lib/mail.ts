@@ -2,7 +2,6 @@ import "server-only";
 import nodemailer from "nodemailer";
 import { getContactSettings } from "./db";
 import { siteUrl } from "./utils";
-import { formatSlot } from "./meetings";
 
 /**
  * Email notifications over SMTP using your own mailbox (e.g. Zoho Mail). Entirely optional: when SMTP is not
@@ -97,15 +96,5 @@ export async function notifyDeveloperRequested(c: { name: string; email: string;
     replyTo: c.email || undefined,
     text: `A visitor asked to talk to the developer in live chat.\n\nName: ${c.name}\nEmail: ${c.email || "(not given)"}\n\nTheir message:\n${clip(c.lastMessage, 1500)}\n\nReply in admin: ${admin}`,
     html: shell("Visitor wants to talk to the Developer", [["Name", esc(c.name)], ["Email", c.email ? `<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>` : ""]], esc(clip(c.lastMessage, 1500)), { href: admin, label: "Reply in admin" }),
-  });
-}
-
-/** Admin alert for a meeting request. Times are given in the visitor's zone and ours so nobody has to convert. */
-export async function notifyMeeting(m: { name: string; email: string; company: string; country: string; phone: string; tz: string; start: number; durationMin: number; purpose: string; notes: string }, ourTz: string) {
-  const admin = `${siteUrl()}/admin/meetings`, theirs = formatSlot(m.start, m.tz), ours = formatSlot(m.start, ourTz);
-  return sendMail({
-    subject: `Meeting request: ${m.purpose} — ${m.name} (${theirs})`, replyTo: m.email,
-    text: `A visitor requested a meeting (not confirmed yet)\n\nName: ${m.name}\nEmail: ${m.email}\nCompany: ${m.company}\nCountry: ${m.country}\nPhone: ${m.phone}\nPurpose: ${m.purpose}\nDuration: ${m.durationMin} min\nTheir time: ${theirs}\nOur time: ${ours}\n\n${clip(m.notes)}\n\nConfirm or decline: ${admin}`,
-    html: shell("Meeting request", [["Name", esc(m.name)], ["Email", `<a href="mailto:${esc(m.email)}">${esc(m.email)}</a>`], ["Company", esc(m.company)], ["Country", esc(m.country)], ["Phone", esc(m.phone)], ["Purpose", esc(m.purpose)], ["Duration", `${m.durationMin} min`], ["Their time", esc(theirs)], ["Our time", esc(ours)]], esc(clip(m.notes)), { href: admin, label: "Confirm or decline" }),
   });
 }

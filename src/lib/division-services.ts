@@ -4,7 +4,7 @@ export const DIVISION_SERVICES: DivisionServices[] = [
   { slug: "computer-vision", name: "Computer Vision / AI / ML / DL", short: "Computer Vision and AI", landing: "/computer-vision-development", items: [
     ["Computer Vision Software Development", "/computer-vision-development"], ["Artificial Intelligence Development", "/ai-development"], ["Machine Learning Development", "/ai-development"], ["Deep Learning Solutions", "/ai-development"],
     ["CCTV Analytics", "/cctv-analytics"], ["ANPR Software Development", "/anpr-software"], ["Object Detection and Tracking", "/computer-vision-development"], ["Video Analytics", "/cctv-analytics"],
-    ["Industrial Inspection AI", "/computer-vision-development"], ["Medical Imaging AI", "/medical-imaging-ai"], ["Sports Analytics", "/demos"], ["Image Processing", "/computer-vision-development"], ["Custom AI Software", "/ai-development"],
+    ["Industrial Inspection AI", "/computer-vision-development"], ["Medical Imaging AI", "/medical-imaging-ai"], ["Sports Analytics", "/services#sports-analytics"], ["Image Processing", "/computer-vision-development"], ["Custom AI Software", "/ai-development"],
   ] },
   { slug: "cad-bim", name: "CAD/BIM Development", short: "CAD/BIM", landing: "/cad-bim-development", items: [
     ["Custom CAD Software Development", "/cad-bim-development"], ["Revit Plugin Development", "/cad-bim-development"], ["AutoCAD Plugin Development", "/cad-bim-development"], ["BIM Software Development", "/cad-bim-development"],

@@ -184,12 +184,3 @@ export interface Inquiry {
   /** Replies you sent from the admin (also emailed to the visitor) */
   replies?: { at: number; text: string }[];
 }
-
-export interface MeetingRequest {
-  id: string; name: string; email: string; company: string; country: string; phone: string; tz: string;
-  /** UTC ms of the requested start and its length in minutes */
-  start: number; durationMin: number; purpose: string; notes: string;
-  /** requested = waiting for us; confirmed / declined = we replied by email */
-  status: "requested" | "confirmed" | "declined";
-  createdAt: number; decidedAt?: number; message?: string;
-}
