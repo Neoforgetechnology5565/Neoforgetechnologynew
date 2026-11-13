@@ -1,6 +1,15 @@
 # PropertyVision AI (CV/AI demo 25)
 
-Route: `/ai-demos/ai-property-vision/app` (short path `/property-vision-demo`). Frontend `src/components/ml/PropertyApp.tsx`; backend `services/ml-lab/app/property.py` and three endpoints in `services/ml-lab/app/main.py`. It runs on the same FastAPI service as demos 12–21 and needs `ML_API_URL` set (CLIP and YOLO run on the server, not in the browser).
+Route: `/ai-demos/ai-property-vision/app` (short path `/property-vision-demo`). It is listed as demo 25 in the Computer Vision portfolio.
+
+**It runs inside the website.** Like demos 12–21 and 22–24, with no server configured the whole demo runs in the visitor's browser (ONNX Runtime Web): the photo never leaves the device and nothing needs to be deployed besides the site. The first analysis downloads about 100 MB of model files (CLIP int8 95 MB, YOLOX-tiny 20 MB), which the browser then caches. If `ML_API_URL` is set, the same page uses the Python FastAPI service instead (`services/ml-lab/app/property.py`; CLIP fp32 + YOLOX-S) for the same three modules.
+
+| | In the browser (default) | Python service (optional) |
+|---|---|---|
+| Classification | CLIP ViT-B/32 **int8-quantised** (`public/ml/models/clip_vit_b32_visual_int8.onnx`, 95 MB; embedding cosine 0.99 to the full model on the samples, probabilities within a few points) | CLIP ViT-B/32 fp32 (351 MB, downloaded by `fetch_clip.py`) |
+| Detection | YOLOX-tiny, 416 px (finds fewer small objects) | YOLOX-S, 640 px |
+| Scoring | `src/lib/ml/property-score.ts` | `services/ml-lab/app/property.py`; same rules, tested to give the same numbers |
+| Code | `src/lib/ml/browser/property.ts`, `src/components/ml/PropertyApp.tsx` | `services/ml-lab/app/main.py` (`/api/property/*`) |
 
 ## Scope (revised)
 Exactly three modules on one uploaded photograph. The earlier, larger plan (hand-built damage and distress detection, anomaly heat maps, model training, dataset collection) was stopped and removed.
@@ -37,7 +46,7 @@ No code was copied from these projects. The revised scope uses pretrained CLIP a
 ## API (service)
 `GET /api/samples?kind=property` · `POST /api/property/classify` (file or `sample_id`) · `POST /api/property/detect` (+ `threshold` 0.05–0.95) · `POST /api/property/analyze` (all three; returns classification, detection with an annotated JPEG as a data URL, measurements, score, timings, model info). Interactive docs at `/docs` on the service. Limits: 15 MB images, per-IP rate limit, same as the other ML lab endpoints.
 
-## Setup
+## Setup (only for the optional Python service)
 ```
 cd services/ml-lab
 pip install -r requirements.txt
@@ -49,4 +58,5 @@ Docker: `docker build -f services/ml-lab/Dockerfile -t neoforge-ml .` downloads 
 
 ## Tests (all real models, nothing mocked)
 - `cd services/ml-lab && pytest tests/test_property.py`: 17 tests: CLIP on real photographs, YOLO boxes and thresholds, the analyze pipeline, upload and bad input, and every scoring rule with controlled inputs.
-- `npm run test:property:ui` (site started with `ML_API_URL`): 18 browser checks: the three modules, UI values equal to the API's for the same image, upload, threshold, rejection of bad files, phone width.
+- `npm run test:property:ui` runs 18 browser checks in either mode. `MODE=browser` (site started without `ML_API_URL`): CLIP int8 and YOLOX-tiny run in the page, the score is checked to equal 60 + the displayed factors, and the class and probability are compared with the service. `MODE=server` (site started with `ML_API_URL`): the UI values must equal the service's for the same image. Both modes cover upload, threshold, rejection of bad files and phone width.
+- `npx tsx src/lib/ml/property-score.test.ts`: the TypeScript scoring engine on the same controlled cases as the Python tests.

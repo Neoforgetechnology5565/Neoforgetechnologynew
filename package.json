@@ -26,6 +26,7 @@
     "seo:audit": "node scripts/seo-audit.mjs",
     "test:ads": "tsx src/lib/ads-plan.test.ts",
     "docs:ads": "tsx scripts/make-ads-doc.ts",
+    "test:property": "tsx src/lib/ml/property-score.test.ts",
     "test:property:ui": "node scripts/test-property-ui.mjs",
     "test:seo": "tsx src/lib/landing-pages.test.ts",
     "test:seo:ui": "node scripts/test-seo-pages.mjs",

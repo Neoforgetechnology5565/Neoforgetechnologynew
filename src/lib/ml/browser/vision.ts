@@ -3,9 +3,9 @@
 import { COCO, COLORS, ctx2, decodeImage, err, fileOf, INFO, inputName, LIMITS, mk, models, numOf, PALETTE, pixels, readUpload, run, sampleBlob, scaled, session, strOf, toUrl, VOC, cleanName, type Cvs } from "./core";
 
 /* ───────── input ───────── */
-export async function imageInput(f: FormData): Promise<{ img: Cvs; name: string }> {
+export async function imageInput(f: FormData, kind = "image"): Promise<{ img: Cvs; name: string }> {
   const file = fileOf(f, "file"), sid = strOf(f, "sample_id"); if ((file === null) === (sid === null)) err(400, "Send either an image file or a sample_id.");
-  if (sid !== null) { const { blob, item } = await sampleBlob(sid, "image"); return { img: await decodeImage(blob), name: item.file }; }
+  if (sid !== null) { const { blob, item } = await sampleBlob(sid, kind); return { img: await decodeImage(blob), name: item.file }; }
   const u = await readUpload(file!, LIMITS.max_image_mb, ["jpg", "png", "webp", "tiff"], "a JPEG, PNG, WebP or TIFF image"); return { img: await decodeImage(u.blob), name: cleanName(file!.name) };
 }
 

@@ -23,17 +23,16 @@ export default function PropertyApp({ branding, serviceUrl }: { branding: Brandi
   const { api, service, health, samples } = useMl(serviceUrl, "property");
   const { busy, error, result, source, run } = useRun<Res>(api, "/api/property/analyze", /\.(jpe?g|png|webp)$|^image\//i, health?.limits.max_image_mb ?? 15);
   const [thr, setThr] = useState(0.35);
-  const svc = serviceUrl ? service : "offline";
+  const svc = service; // with no server configured everything runs in the browser
   const clipMissing = svc === "online" && health && !health.available.property_clip;
   const ready = svc === "online" && !clipMissing;
   const maxScore = result ? Math.max(...result.classification.scores.map((s) => s.probability)) : 0;
   return (
     <MlShell branding={branding} title="PropertyVision AI" project={source?.name ?? "No photo selected"} service={svc}
-      notice="Experimental demonstration by Neo Forge Technology. A pretrained CLIP model picks the most likely of four property types; a pretrained YOLOX detector finds the everyday objects it was trained on (COCO's 80 classes: it has no tree, fence, roof or crack class); a small Python scoring engine combines their real outputs into a 0–100 score. The score is not validated, is not a valuation or inspection, and generic object detection cannot prove that a property is distressed."
+      notice="Experimental demonstration by Neo Forge Technology. Runs in your browser by default (the photo never leaves your device; the first analysis downloads about 100 MB of model files), or on the Python service when one is configured. A pretrained CLIP model picks the most likely of four property types; a pretrained YOLOX detector finds the everyday objects it was trained on (COCO's 80 classes: it has no tree, fence, roof or crack class); a small Python scoring engine combines their real outputs into a 0–100 score. The score is not validated, is not a valuation or inspection, and generic object detection cannot prove that a property is distressed."
       footer="Working: CLIP zero-shot classification, YOLOX object detection with boxes and confidences, rule-based condition scoring with observed evidence kept separate from assumptions. Not implemented: model training, damage or crack detection, valuation, history across sessions. Sample photographs are real; their sources and licences are shown with each.">
       <ErrorBox msg={error} />
-      {!serviceUrl && <div className={CARD} role="alert" data-testid="needs-service"><p className="text-sm text-slate-200">PropertyVision AI needs the Python service (CLIP and YOLO run on the server). Set <code>ML_API_URL</code> to a running <code>services/ml-lab</code> and run <code>python scripts/fetch_clip.py</code> there once to download the CLIP weights.</p></div>}
-      {clipMissing && <div className={CARD} role="alert" data-testid="clip-missing"><p className="text-sm text-slate-200">The service is running but the CLIP weights are not installed. Run <code>python scripts/fetch_clip.py</code> in <code>services/ml-lab</code> and restart it.</p></div>}
+      {clipMissing && <div className={CARD} role="alert" data-testid="clip-missing"><p className="text-sm text-slate-200">The Python service is connected but the CLIP weights are not installed on it. Run <code>python scripts/fetch_clip.py</code> in <code>services/ml-lab</code> and restart it.</p></div>}
       <div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)]">
         <section className={CARD} aria-label="Photo source">
           <h2 className={H3}>Property photo <StatusChip s="working" /></h2>

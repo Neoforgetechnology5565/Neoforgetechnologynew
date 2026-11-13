@@ -7,9 +7,11 @@ const url = (p: string) => p.replace(/^\/api\/products\/([^/]+)\/image$/, "/ml/s
 type Handler = (f: FormData, q: URLSearchParams, m: RegExpMatchArray) => Promise<unknown> | unknown;
 const lazy = <T,>(load: () => Promise<T>) => { let p: Promise<T> | null = null; return () => (p ??= load()); };
 const vision = lazy(() => import("./vision")), video = lazy(() => import("./video"));
+const property = lazy(() => import("./property"));
 const tabular = lazy(() => import("./tabular-api")), search = lazy(() => import("./search")), ocr = lazy(() => import("./ocr"));
 
 const routes: { method: string; re: RegExp; h: Handler }[] = [
+  { method: "POST", re: /^\/api\/property\/analyze$/, h: async (f) => (await property()).analyze(f) },
   { method: "POST", re: /^\/api\/classify$/, h: async (f) => (await vision()).classify(f) },
   { method: "POST", re: /^\/api\/detect\/image$/, h: async (f) => (await vision()).detectImage(f) },
   { method: "POST", re: /^\/api\/detect\/video$/, h: async (f) => (await video()).detectVideo(f) },
@@ -37,7 +39,7 @@ async function call<T>(method: string, path: string, body?: FormData): Promise<T
 }
 export const browserMl = (): MlApi & { browser: true } => ({
   browser: true, url,
-  health: async (): Promise<MlHealth> => ({ ok: true, models: INFO, available: { classifier: true, detector: true, segmenter: true, pose: true, ocr: true, search_vectors: true, catalogue: true, ffmpeg: false }, limits: LIMITS }),
+  health: async (): Promise<MlHealth> => ({ ok: true, models: INFO, available: { property_clip: true, classifier: true, detector: true, segmenter: true, pose: true, ocr: true, search_vectors: true, catalogue: true, ffmpeg: false }, limits: LIMITS }),
   samples: async (kind?: string) => ({ samples: (await samples()).filter((s) => !kind || s.kind === kind) }),
   sampleUrl: (id: string) => { void err; return `/ml/samples/${(manifestFile(id))}`; },
   post: <T,>(path: string, body: FormData) => call<T>("POST", path, body), get: <T,>(path: string) => call<T>("GET", path), del: <T,>(path: string) => call<T>("DELETE", path),
