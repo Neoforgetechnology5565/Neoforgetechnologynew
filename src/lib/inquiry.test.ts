@@ -3,7 +3,7 @@ import { contactSettingsSchema, inquirySchema } from "./schemas";
 import { CONTACT_DEFAULTS } from "./defaults";
 import { checkPhone } from "./phone";
 
-const base = { name: "Anna Schmidt", email: "anna@example.de", country: "DE", message: "We need a computer vision pipeline for inspection." };
+const base = { name: "Anna Schmidt", email: "anna@example.de", country: "DE", budget: "$5k – $15k", message: "We need a computer vision pipeline for inspection." };
 function bad(o: object, path: string) { const r = inquirySchema.safeParse({ ...base, ...o }); assert.ok(!r.success, `expected failure for ${path}`); assert.ok(r.error.issues.some((i) => i.path[0] === path), `issue on ${path}: ${JSON.stringify(r.error.issues)}`); }
 async function main() {
   const ok = inquirySchema.parse({ ...base, service: "ANPR / licence plate recognition", phone: "030 123456", phoneCountry: "DE", budget: "$15k – $50k", preferredContact: "phone", intent: "quote" });
@@ -13,6 +13,9 @@ async function main() {
   bad({ country: "ZZ" }, "country"); bad({ country: undefined }, "country");
   bad({ phone: "123", phoneCountry: "GB" }, "phone"); bad({ phone: "abc" }, "phone");
   bad({ preferredContact: "whatsapp" }, "phone"); // needs a number
+  // budget is compulsory, on the server too
+  bad({ budget: undefined }, "budget"); bad({ budget: "" }, "budget"); bad({ budget: "A million" }, "budget");
+  for (const b of ["Under $5k", "$5k – $15k", "$15k – $50k", "$50k – $150k", "$150k+", "Not sure yet", "Prefer to discuss"]) assert.equal(inquirySchema.parse({ ...base, budget: b }).budget, b);
   bad({ email: "nope" }, "email"); bad({ message: "short" }, "message");
   bad({ tz: "Not/A Zone!" }, "tz");
   assert.equal(inquirySchema.parse({ ...base, name: "<b>Bob</b>" }).name, "Bob");

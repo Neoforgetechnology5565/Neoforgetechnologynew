@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { COUNTRIES, DIAL, PRIORITY_COUNTRIES } from "@/lib/countries";
-import { BUDGETS, CONTACT_METHODS, CURRENCIES, SERVICE_OPTIONS, TIMELINES } from "@/lib/inquiry-options";
+import { BUDGET_DISCUSS, BUDGETS, CONTACT_METHODS, CURRENCIES, SERVICE_OPTIONS, TIMELINES } from "@/lib/inquiry-options";
 import type { MediaRef } from "@/lib/types";
 import { analyticsAllowed } from "@/lib/consent";
 import { enablePush, pushSupported } from "@/lib/push-client";
@@ -11,7 +11,7 @@ import FileDrop from "./FileDrop";
 const F = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2.5 text-sm text-stone-900 placeholder:text-stone-400 focus:border-blue-600 focus:outline-none";
 const L = "mb-1.5 block text-xs font-semibold uppercase tracking-wider text-stone-500";
 const ORDERED = [...PRIORITY_COUNTRIES.map((c) => COUNTRIES.find((x) => x[0] === c)!), ...COUNTRIES.filter((x) => !PRIORITY_COUNTRIES.includes(x[0]))];
-const FIELD_LABEL: Record<string, string> = { name: "name", email: "a valid business email", country: "country", phone: "phone number", message: "project description (at least 10 characters)", service: "service" };
+const FIELD_LABEL: Record<string, string> = { name: "name", email: "a valid business email", country: "country", phone: "phone number", message: "project description (at least 10 characters)", service: "service", budget: "budget" };
 
 /** Only when the visitor accepted statistics: lets us see which visit led to this message. */
 function visitorLink(): { vid?: string } {
@@ -54,7 +54,7 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "",
     const j = await res.json().catch(() => ({}));
     if (Array.isArray(j.issues)) {
       const fe: Record<string, string> = {};
-      for (const it of j.issues as { path?: (string | number)[]; message?: string }[]) { const k = String(it.path?.[0] ?? ""); if (k && !fe[k]) fe[k] = k === "phone" && it.message ? it.message : `Please check the ${FIELD_LABEL[k] || k}.`; }
+      for (const it of j.issues as { path?: (string | number)[]; message?: string }[]) { const k = String(it.path?.[0] ?? ""); if (k && !fe[k]) fe[k] = (k === "phone" || k === "budget") && it.message ? it.message : `Please check the ${FIELD_LABEL[k] || k}.`; }
       setFieldErrors(fe);
       setError(`Please fix: ${Object.keys(fe).map((k) => FIELD_LABEL[k] || k).join(", ")}.`);
     } else setError(j.error || "Something went wrong. Please try again.");
@@ -108,7 +108,7 @@ export default function ContactForm({ initialDivision = "", defaultMessage = "",
         </select>{fieldErrors.service && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.service}</p>}
       </div>
       <div className="grid grid-cols-[1fr_6rem] gap-2">
-        <div><label className={L} htmlFor="budget">Estimated budget</label><select id="budget" name="budget" className={F} defaultValue=""><option value="">Prefer to discuss</option>{BUDGETS.map((b) => <option key={b}>{b}</option>)}</select></div>
+        <div><label className={L} htmlFor="budget">Estimated budget *</label><select id="budget" name="budget" required className={F} defaultValue="" onInvalid={(e) => e.currentTarget.setCustomValidity("Please select a budget")} onChange={(e) => e.currentTarget.setCustomValidity("")} aria-invalid={!!fieldErrors.budget}><option value="" disabled>Select a budget…</option><option>{BUDGET_DISCUSS}</option>{BUDGETS.map((b) => <option key={b}>{b}</option>)}</select>{fieldErrors.budget && <p className="mt-1 text-xs text-red-600" role="alert">{fieldErrors.budget}</p>}</div>
         <div><label className={L} htmlFor="currency">Currency</label><select id="currency" name="currency" className={F} defaultValue="USD">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</select></div>
       </div>
       <div><label className={L} htmlFor="timeline">Expected timeline</label><select id="timeline" name="timeline" className={F} defaultValue=""><option value="">Flexible</option>{TIMELINES.map((b) => <option key={b}>{b}</option>)}</select></div>

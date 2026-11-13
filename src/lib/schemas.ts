@@ -1,6 +1,6 @@
 import { validZone } from "./meetings";
 import { isCountry } from "./countries";
-import { CURRENCIES, serviceInfo } from "./inquiry-options";
+import { BUDGETS, BUDGET_DISCUSS, CURRENCIES, serviceInfo } from "./inquiry-options";
 import { checkPhone } from "./phone";
 import { z } from "zod";
 import { DIVISIONS, PROJECT_TYPES } from "./divisions";
@@ -190,7 +190,8 @@ export const inquirySchema = z.object({
   /** ISO code of the dial code the number was entered with, and the number itself (validated against that country's numbering plan) */
   phoneCountry: z.string().refine(isCountry).optional(),
   phone: text(30).default(""),
-  budget: text(80).default(""),
+  /** Compulsory: one of the form's own budget options (checked on the server so a direct request cannot skip it) */
+  budget: z.string().refine((v) => (BUDGETS as readonly string[]).includes(v) || v === BUDGET_DISCUSS, "Please select a budget"),
   currency: z.enum(CURRENCIES).default("USD"),
   timeline: text(80).default(""),
   preferredContact: z.enum(["email", "phone", "whatsapp", "video"]).default("email"),

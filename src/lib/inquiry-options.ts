@@ -14,6 +14,8 @@ export const SERVICE_OPTIONS: { value: string; division: DivisionSlug | ""; proj
   { value: "Other or not sure yet", division: "", projectType: "Other" },
 ];
 export const BUDGETS = ["Under $5k", "$5k – $15k", "$15k – $50k", "$50k – $150k", "$150k+", "Not sure yet"];
+/** The form's existing "Prefer to discuss" choice. It used to be the empty value; it is now a real choice because the budget is compulsory. */
+export const BUDGET_DISCUSS = "Prefer to discuss";
 export const TIMELINES = ["ASAP", "1–3 months", "3–6 months", "6+ months", "Flexible"];
 export const CURRENCIES = ["USD", "GBP", "EUR", "CAD", "AUD"] as const;
 export const CONTACT_METHODS = [["email", "Email"], ["video", "Video call"], ["phone", "Phone call"], ["whatsapp", "WhatsApp"]] as const;
