@@ -14,7 +14,7 @@ async function open({ consent, dnt, init } = {}) {
   await page.route("**/api/presence**", (r) => r.fulfill({ contentType: "application/json", body: "{}" }));
   return { ctx, page, hits, contacts };
 }
-const form = (p) => p.locator("form", { has: p.locator("select[name=projectType]") });
+const form = (p) => p.locator("form", { has: p.locator("select[name=service]") });
 const views = (h) => h.filter((x) => !x.type || x.type === "view"), clicks = (h) => h.filter((x) => x.type === "clicks");
 console.log("consent and Do-Not-Track");
 await t("nothing is sent before the visitor chooses, and the notice describes what is collected", async () => {
@@ -47,9 +47,9 @@ await t("anything typed into a form is never read; email and phone links are red
   const raw = JSON.stringify(S.hits); ok(!/Jane|secret|example\.com|555|private message/i.test(raw), "typed or personal text leaked: " + raw.slice(0, 300)); const items = clicks(S.hits).flatMap((x) => x.items); ok(items.some((i) => i.l === "Email us" && i.h === "mailto:") && items.some((i) => i.l === "Call us" && i.h === "tel:"), JSON.stringify(items.slice(-3)));
 });
 await t("submitting the contact form links the message to the visit; declining or Do-Not-Track does not", async () => {
-  await form(S.page).locator("select[name=projectType]").selectOption({ index: 1 }); await form(S.page).locator("button[type=submit], button:has-text(\"Send\")").first().click(); await S.page.waitForTimeout(1200);
+  await form(S.page).locator("select[name=service]").selectOption({ index: 1 }); await form(S.page).locator("select[name=country]").selectOption({ index: 1 }); await form(S.page).locator("button[type=submit], button:has-text(\"Send\")").first().click(); await S.page.waitForTimeout(1200);
   ok(S.contacts.length === 1 && /^[a-zA-Z0-9_-]{8,}$/.test(S.contacts[0].vid || ""), "vid in contact: " + JSON.stringify(S.contacts[0] || {}).slice(0, 200)); ok(S.contacts[0].vid === views(S.hits)[0].vid, "same visitor id");
-  for (const o of [{ consent: "declined" }, { consent: "accepted", dnt: true }]) { const s = await open(o); await s.page.goto(BASE + "/contact", { waitUntil: "load" }); await form(s.page).locator("input[name=name]").fill("A B"); await form(s.page).locator("input[name=email]").fill("a@b.co"); await form(s.page).locator("textarea[name=message]").fill("A message with enough length"); await form(s.page).locator("select[name=projectType]").selectOption({ index: 1 }); await form(s.page).locator("button[type=submit], button:has-text(\"Send\")").first().click(); await s.page.waitForTimeout(1000); ok(s.contacts.length === 1 && s.contacts[0].vid === undefined, "no visitor link: " + JSON.stringify(s.contacts[0] || {})); await s.ctx.close(); }
+  for (const o of [{ consent: "declined" }, { consent: "accepted", dnt: true }]) { const s = await open(o); await s.page.goto(BASE + "/contact", { waitUntil: "load" }); await form(s.page).locator("input[name=name]").fill("A B"); await form(s.page).locator("input[name=email]").fill("a@b.co"); await form(s.page).locator("textarea[name=message]").fill("A message with enough length"); await form(s.page).locator("select[name=service]").selectOption({ index: 1 }); await form(s.page).locator("select[name=country]").selectOption({ index: 1 }); await form(s.page).locator("button[type=submit], button:has-text(\"Send\")").first().click(); await s.page.waitForTimeout(1000); ok(s.contacts.length === 1 && s.contacts[0].vid === undefined, "no visitor link: " + JSON.stringify(s.contacts[0] || {})); await s.ctx.close(); }
 });
 await S.ctx.close();
 console.log("sources, visits and exclusions");

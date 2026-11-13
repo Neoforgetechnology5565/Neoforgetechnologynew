@@ -28,6 +28,13 @@ export default async function About() {
         <div><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Approach</p><p className="mt-4 whitespace-pre-line leading-relaxed text-stone-600">{about.approach}</p></div>
         <div><p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Where we work</p><div className="mt-4"><Chips items={about.capabilities} /></div></div>
       </section>
+      <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8" aria-label="Working with international clients">
+        <div className="rounded-2xl border border-stone-200 bg-white p-7 sm:p-8">
+          <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Working with clients abroad</p>
+          <p className="mt-3 max-w-3xl text-sm leading-relaxed text-stone-600">We work with clients remotely. You can send an inquiry from any country, request a call in your own time zone, and receive a written quotation in US dollars. We do not operate offices outside the location shown on our contact page.</p>
+          <p className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm"><Link href="/how-we-work" className="font-semibold text-blue-700 underline">How we work</Link><Link href="/pricing" className="font-semibold text-blue-700 underline">Pricing and quotations</Link><Link href="/contact#meeting" className="font-semibold text-blue-700 underline">Request a call</Link></p>
+        </div>
+      </section>
       <section className="bg-stone-50 py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <SectionHead eyebrow="Three divisions" title="Focused depth in each area." />

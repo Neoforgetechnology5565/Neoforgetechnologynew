@@ -144,7 +144,7 @@ export const aboutSchema = z.object({
 export const contactSettingsSchema = z.object({
   email: z.string().max(200).refine((v) => v === "" || z.string().email().safeParse(v).success, "Invalid email"),
   phone: text(40),
-  whatsapp: z.string().max(20).transform((v) => v.replace(/[^\d]/g, "")),
+  whatsapp: z.string().max(25).transform((v) => v.replace(/[^\d]/g, "")).refine((v) => v === "" || (v.length >= 8 && v.length <= 15 && !v.startsWith("0")), "WhatsApp number must include the country code (8–15 digits, no leading 0), e.g. 2348012345678"),
   location: text(120),
   linkedin: httpUrl,
   github: httpUrl,
