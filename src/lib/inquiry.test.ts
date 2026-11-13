@@ -26,6 +26,11 @@ async function main() {
   assert.ok(wa("").success && wa("+234 801 234 5678").success && wa("+44 7700 900123").success);
   assert.equal((wa("+234 801 234 5678") as { data: { whatsapp: string } }).data.whatsapp, "2348012345678");
   assert.ok(!wa("08012345678").success, "local format with leading 0 breaks wa.me"); assert.ok(!wa("12345").success);
+  // other official profiles (structured data): https only, de-duplicated, blanks dropped
+  const prof = (a: string[]) => contactSettingsSchema.safeParse({ ...CONTACT_DEFAULTS, otherProfiles: a });
+  const okp = prof(["https://www.fiverr.com/neoforge", "", "https://www.fiverr.com/neoforge", "https://clutch.co/profile/x"]);
+  assert.ok(okp.success && JSON.stringify(okp.data.otherProfiles) === JSON.stringify(["https://www.fiverr.com/neoforge", "https://clutch.co/profile/x"]));
+  assert.ok(!prof(["http://insecure.example"]).success && !prof(["javascript:alert(1)"]).success && !prof(["not a url"]).success && !prof(Array(21).fill("https://a.example")).success);
   console.log("inquiry schema tests passed");
 }
 main().catch((e) => { console.error(e); process.exit(1); });

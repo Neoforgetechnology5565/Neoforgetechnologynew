@@ -150,6 +150,7 @@ export const contactSettingsSchema = z.object({
   github: httpUrl,
   x: httpUrl,
   youtube: httpUrl,
+  otherProfiles: z.array(z.string().trim().max(500)).max(20).transform((a) => [...new Set(a.filter(Boolean))]).refine((a) => a.every((u) => /^https:\/\/[^\s]+$/i.test(u)), "Each profile must be an https:// URL").default([]),
   chatEnabled: z.boolean(),
   chatGreeting: text(300),
   aiChatReply: z.boolean().default(true),

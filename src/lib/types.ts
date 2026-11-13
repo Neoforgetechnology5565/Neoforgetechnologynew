@@ -141,6 +141,8 @@ export interface ContactSettings {
   github: string;
   x: string;
   youtube: string;
+  /** Other official profile pages (Google Business Profile, Fiverr, Upwork, Clutch, GoodFirms, Crunchbase, Facebook, Instagram …). Used only in the site's structured data (schema.org sameAs). */
+  otherProfiles?: string[];
   chatEnabled: boolean;
   chatGreeting: string;
   /** Answer live-chat messages automatically with an AI assistant (needs ANTHROPIC_API_KEY) */
