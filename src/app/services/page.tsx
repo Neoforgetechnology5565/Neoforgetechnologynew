@@ -5,7 +5,6 @@ import JsonLd from "@/components/JsonLd";
 import { getCategories } from "@/lib/db";
 import { DIVISIONS } from "@/lib/divisions";
 import { DIVISION_SERVICES } from "@/lib/division-services";
-import { SPORTS, SPORT_CAPABILITIES } from "@/lib/sports-analytics";
 import { DEFAULT_OG_IMAGE } from "@/lib/seo";
 import { HUB_FAQS, HUB_ITEMS } from "@/lib/services-hub";
 import { siteUrl } from "@/lib/utils";
@@ -66,18 +65,6 @@ export default async function Services() {
               <p className="mt-5 flex flex-wrap gap-x-4 gap-y-1 pt-1 text-sm font-semibold"><Link href={d.landing} className="text-blue-700 hover:underline">Explore {d.short}</Link><Link href={`/pricing#${d.slug === "computer-vision" ? "computer-vision-ai" : d.slug}`} className="text-blue-700 hover:underline">Pricing</Link></p>
             </article>
           ))}
-        </div>
-      </section>
-
-      <section id="sports-analytics" className="scroll-mt-20 mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8" aria-labelledby="sports-h" data-testid="sports-analytics">
-        <SectionHead eyebrow="Computer vision" title="Sports analytics"><span id="sports-h" className="sr-only">Sports analytics</span>Video analytics for coaches, clubs, academies and sports technology companies: track players and the ball, map the court or pitch, and turn match footage into heat maps, events and review tools.</SectionHead>
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
-          <div><h3 className="font-display text-lg font-semibold text-stone-900">What we build</h3>
-            <ul className="mt-3 space-y-3 text-sm text-stone-700">{SPORT_CAPABILITIES.map(([t, d]) => <li key={t}><b className="text-stone-900">{t}.</b> {d}</li>)}</ul></div>
-          <div><h3 className="font-display text-lg font-semibold text-stone-900">Sports we can build for</h3>
-            <ul className="mt-3 flex flex-wrap gap-2 text-sm" data-testid="sports-list">{SPORTS.map((x) => <li key={x.name} className="rounded-full border border-stone-300 bg-white px-3 py-1 text-stone-800">{x.demo ? <Link href={x.demo.href} className="font-semibold text-blue-700 hover:underline" title={x.demo.label}>{x.name} · demo</Link> : x.name}</li>)}</ul>
-            <p className="mt-4 text-sm leading-relaxed text-stone-600">Working demonstrations exist for football, table tennis and basketball (sample footage, labelled as such). The other sports are ones we can build for, not ready-made products: each needs its own camera set-up, court or pitch calibration and tuning on your footage, so accuracy is measured on your video, not promised in advance.</p>
-            <p className="mt-3"><Link href="/contact?division=computer-vision&intent=quote#inquiry" className="text-sm font-semibold text-blue-700 hover:underline">Request a sports analytics quotation →</Link></p></div>
         </div>
       </section>
 
