@@ -8,6 +8,7 @@ import DefectApp from "@/components/defects/DefectApp";
 import FarmApp from "@/components/farm/FarmApp";
 import ClassifyApp from "@/components/ml/ClassifyApp";
 import PropertyApp from "@/components/ml/PropertyApp";
+import PhotoApp from "@/components/photo/PhotoApp";
 import DetectApp from "@/components/ml/DetectApp";
 import SegmentApp from "@/components/ml/SegmentApp";
 import OcrApp from "@/components/ml/OcrApp";
@@ -43,6 +44,7 @@ export default async function CvDemoApp({ params }: Params) {
   if (slug === "ai-animal-detection-smart-farming") return <FarmApp branding={await getBranding()} />;
   if (slug === "ai-human-activity-fall-aggression-detection") return <ActivityApp branding={await getBranding()} serviceUrl={process.env.ACTIVITY_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "ai-document-intelligence-ocr") return <DocumentApp branding={await getBranding()} serviceUrl={process.env.DOCS_API_URL?.replace(/\/$/, "") || null} />;
+  if (slug === "ai-photogrammetry-cleanup") return <PhotoApp branding={await getBranding()} />;
   if (slug === "ai-property-vision") return <PropertyApp branding={await getBranding()} serviceUrl={process.env.ML_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "ai-image-classification") return <ClassifyApp branding={await getBranding()} serviceUrl={process.env.ML_API_URL?.replace(/\/$/, "") || null} />;
   if (slug === "ai-object-detection-video-analytics") return <DetectApp branding={await getBranding()} serviceUrl={process.env.ML_API_URL?.replace(/\/$/, "") || null} />;

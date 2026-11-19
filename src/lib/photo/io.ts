@@ -15,7 +15,7 @@ export function parsePLY(buf: ArrayBuffer): Parsed {
   if (end < 0) throw new Error("This is not a valid PLY file (no end_header).");
   const head = new TextDecoder().decode(u8.subarray(0, end)).split(/\r?\n/).map((l) => l.trim());
   if (head[0] !== "ply") throw new Error("This is not a PLY file.");
-  let fmt = "", els: { name: string; n: number; props: Prop[] }[] = [];
+  let fmt = ""; const els: { name: string; n: number; props: Prop[] }[] = [];
   for (const l of head.slice(1)) { const p = l.split(/\s+/); if (p[0] === "format") fmt = p[1]; else if (p[0] === "element") els.push({ name: p[1], n: Number(p[2]), props: [] }); else if (p[0] === "property" && els.length) { if (p[1] === "list") els[els.length - 1].props.push({ name: p[4], type: p[3], list: { count: p[2], item: p[3] } }); else els[els.length - 1].props.push({ name: p[2], type: p[1] }); } }
   if (!["ascii", "binary_little_endian", "binary_big_endian"].includes(fmt)) throw new Error(`Unsupported PLY format "${fmt}".`);
   const vel = els.find((e) => e.name === "vertex"); if (!vel || !vel.n) throw new Error("The PLY file has no vertices.");
@@ -83,7 +83,7 @@ function normalOf(p: Float64Array, a: number, b: number, c: number): [number, nu
 }
 /** Binary STL stores float32 coordinates; large world coordinates lose precision, so the mesh is written relative to its minimum corner (the offset is returned and must be reported). */
 export function writeSTL(m: Mesh): { blob: Blob; offset: [number, number, number] } {
-  const nf = m.idx.length / 3; let mn = [Infinity, Infinity, Infinity]; for (let i = 0; i < m.pos.length; i += 3) for (let k = 0; k < 3; k++) mn[k] = Math.min(mn[k], m.pos[i + k]);
+  const nf = m.idx.length / 3; const mn = [Infinity, Infinity, Infinity]; for (let i = 0; i < m.pos.length; i += 3) for (let k = 0; k < 3; k++) mn[k] = Math.min(mn[k], m.pos[i + k]);
   const dv = new DataView(new ArrayBuffer(84 + nf * 50)); dv.setUint32(80, nf, true); let o = 84;
   for (let t = 0; t < nf; t++) { const a = m.idx[t * 3], b = m.idx[t * 3 + 1], c = m.idx[t * 3 + 2], n = normalOf(m.pos, a, b, c); for (const x of n) { dv.setFloat32(o, x, true); o += 4; } for (const v of [a, b, c]) for (let k = 0; k < 3; k++) { dv.setFloat32(o, m.pos[v * 3 + k] - mn[k], true); o += 4; } o += 2; }
   return { blob: new Blob([dv.buffer], { type: "model/stl" }), offset: mn as [number, number, number] };

@@ -12,7 +12,7 @@ export function cleanCloud(pos: Float64Array, k: number, std: number, frac: numb
   const grid = new PointGrid(pos, Math.max(spacing * 3, 1e-9)), md = new Float64Array(n); let sum = 0, cnt = 0;
   for (let i = 0; i < n; i++) { const d = grid.knnMean(i, Math.min(k, n - 1)); md[i] = d; if (Number.isFinite(d)) { sum += d; cnt++; } }
   const mean = sum / Math.max(1, cnt); let v = 0; for (let i = 0; i < n; i++) if (Number.isFinite(md[i])) v += (md[i] - mean) ** 2; const sd = Math.sqrt(v / Math.max(1, cnt)), thr = mean + std * sd;
-  let keep: number[] = []; for (let i = 0; i < n; i++) if (md[i] <= thr) keep.push(i);
+  const keep: number[] = []; for (let i = 0; i < n; i++) if (md[i] <= thr) keep.push(i);
   stages.push({ name: "Outlier removal", removed: n - keep.length, detail: `mean neighbour distance ${(mean * 1000).toFixed(1)} mm, limit ${(thr * 1000).toFixed(1)} mm (mean + ${std}σ, k=${k})` });
   // floating components on a voxel grid of 3x spacing
   const vs = spacing * 3, mn = [Infinity, Infinity, Infinity]; for (const i of keep) for (let a = 0; a < 3; a++) mn[a] = Math.min(mn[a], pos[i * 3 + a]);

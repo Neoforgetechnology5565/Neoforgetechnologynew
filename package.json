@@ -27,6 +27,8 @@
     "docs:ads": "tsx scripts/make-ads-doc.ts",
     "test:property": "tsx src/lib/ml/property-score.test.ts",
     "test:property:ui": "node scripts/test-property-ui.mjs",
+    "test:photo": "tsx src/lib/photo/photo.test.ts",
+    "test:photo:ui": "node scripts/test-photo-ui.mjs",
     "test:seo": "tsx src/lib/landing-pages.test.ts",
     "test:seo:ui": "node scripts/test-seo-pages.mjs",
     "test:reviews": "tsx src/lib/schemas.reviews.test.ts",

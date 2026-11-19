@@ -85,7 +85,8 @@ export function runPipeline(input: Parsed, p: Params, progress: Progress = () =>
   const grid = new PointGrid(cleaned.pos, Math.max(startR * 2, 1e-9)); const nv = mesh.pos.length / 3, deviation = new Float32Array(nv);
   for (let i = 0; i < nv; i++) { let r = grid.cell, best = Infinity; for (let t = 0; t < 6 && best === Infinity; t++, r *= 2) grid.near(mesh.pos[i * 3], mesh.pos[i * 3 + 1], mesh.pos[i * 3 + 2], r, (_j, d2) => { if (d2 < best) best = d2; }); deviation[i] = Number.isFinite(best) ? Math.sqrt(best) : 0; }
   stages.push({ name: "Validation", detail: `${sample.toLocaleString()} cleaned points compared with the surface; ${pairs.length} point pairs compared before and after`, ms: Math.round(performance.now() - t0) });
-  const maxBbox = Math.max(...dm.map(Math.abs)), tol = p.toleranceMm, smoothMm = p.smoothIterations > 0 ? p.maxMoveMm : 0, guaranteed = smoothMm + (p.keepRatio < 1 ? p.errorMm : 0) + (input.cloud ? p.snapMm : 0);
+  const maxBbox = Math.max(Math.abs(dm[0]), Math.abs(dm[1])), // pass/fail uses the in-plane size (width and height); the depth extent of a noisy scan is dominated by noise tails and is shown for information only
+     tol = p.toleranceMm, smoothMm = p.smoothIterations > 0 ? p.maxMoveMm : 0, guaranteed = smoothMm + (p.keepRatio < 1 ? p.errorMm : 0) + (input.cloud ? p.snapMm : 0);
   const mm4 = (s: Stats) => ({ mean: kMm(s.mean), rms: kMm(s.rms), p95: kMm(s.p95), max: kMm(s.max) });
   const report: Report = {
     input: { kind: input.cloud ? "cloud" : "mesh", points: rawCount, triangles: input.faceCount, format: input.format }, stages,
