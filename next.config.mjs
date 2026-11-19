@@ -41,6 +41,7 @@ const nextConfig = {
       { source: "/restaurant-employee-monitoring-demo", destination: "/ai-demos/ai-restaurant-employee-monitoring/app", permanent: false },
       { source: "/table-tennis-intelligence-demo", destination: "/ai-demos/ai-table-tennis-video-intelligence/app", permanent: false },
       { source: "/human-pose-3d-demo", destination: "/ai-demos/ai-3d-human-pose-motion/app", permanent: false },
+      { source: "/scene-segmentation-3d-demo", destination: "/ai-demos/ai-3d-scene-segmentation/app", permanent: false },
       { source: "/photogrammetry-cleanup-demo", destination: "/ai-demos/ai-photogrammetry-cleanup/app", permanent: false },
       { source: "/property-vision-demo", destination: "/ai-demos/ai-property-vision/app", permanent: false },
       { source: "/basketball-intelligence-demo", destination: "/ai-demos/ai-basketball-video-intelligence/app", permanent: false },
