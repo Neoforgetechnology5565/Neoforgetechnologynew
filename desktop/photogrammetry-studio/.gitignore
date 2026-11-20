@@ -1,0 +1,11 @@
+ui/node_modules/
+ui/dist/
+engine/.venv/
+engine/dist/
+engine/build/
+engine/**/__pycache__/
+engine/.pytest_cache/
+src-tauri/target/
+src-tauri/gen/
+engine-dist/*
+!engine-dist/README.md

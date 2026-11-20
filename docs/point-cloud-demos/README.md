@@ -17,3 +17,6 @@ Route `/ai-demos/ai-3d-scene-segmentation/app` (short link `/scene-segmentation-
 - **UI:** reference or computed labels, colour by class / instance / original colour, per-class toggles and colour pickers, hover highlight, click inspector (category, ID, point count, bounding box, dimensions, centre, confidence), hide/isolate/reset, bounding boxes, point size, scene analytics and spatial relationships.
 - **Not implemented:** loading your own point clouds, learned models.
 - **Tests:** `npm run test:scene3d`, `npm run test:scene3d:ui`.
+
+## Demo 29: PhotoMesh Studio (desktop software)
+Route `/ai-demos/ai-photomesh-studio/app` (short link `/photomesh-studio-demo`). The software itself is in `desktop/photogrammetry-studio/` (see its README). The web page only **displays the real output** of that software's engine on the bundled sample (`public/models/photomesh-studio/*.bin` and `report.json`, regenerated with `desktop/photogrammetry-studio/scripts/make_web_demo.py`); it does not run the engine and takes no uploads. Test: `npm run test:studio:ui`.

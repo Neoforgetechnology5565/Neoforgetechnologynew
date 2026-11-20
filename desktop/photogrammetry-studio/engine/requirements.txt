@@ -1,0 +1,17 @@
+numpy>=1.26
+scipy>=1.11
+open3d>=0.18
+trimesh>=4.0
+pymeshlab>=2023.12
+fastapi>=0.110
+uvicorn>=0.27
+python-multipart>=0.0.9
+laspy[lazrs]>=2.5
+pillow>=10
+networkx>=3
+usd-core>=24.0
+pydantic>=2
+# optional: native window without Tauri
+# pywebview>=5
+# development / tests
+# pytest, httpx

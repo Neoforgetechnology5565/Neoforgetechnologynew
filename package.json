@@ -33,6 +33,7 @@
     "test:pose3d:ui": "node scripts/test-pose3d-ui.mjs",
     "test:scene3d": "tsx src/lib/scene3d/scene3d.test.ts",
     "test:scene3d:ui": "node scripts/test-scene3d-ui.mjs",
+    "test:studio:ui": "node scripts/test-studio-ui.mjs",
     "test:seo": "tsx src/lib/landing-pages.test.ts",
     "test:seo:ui": "node scripts/test-seo-pages.mjs",
     "test:reviews": "tsx src/lib/schemas.reviews.test.ts",

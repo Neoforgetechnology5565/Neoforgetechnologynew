@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+html, body, #root { height: 100%; margin: 0; }
+body { background: #0a0d12; color: #d7deea; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; font-size: 13px; overflow: hidden; }
+::-webkit-scrollbar { width: 9px; height: 9px; } ::-webkit-scrollbar-thumb { background: #2d3648; border-radius: 5px; } ::-webkit-scrollbar-track { background: transparent; }
+input[type="number"], select, input[type="text"] { background: #0a0d12; border: 1px solid #2d3648; border-radius: 4px; padding: 3px 6px; color: #e6ecf7; }
+input[type="range"] { accent-color: #4f8cff; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid #4f8cff; outline-offset: 1px; }
+select { appearance: none; -webkit-appearance: none; padding: 3px 22px 3px 6px; background-color: #0a0d12; color: #e6ecf7; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2399a5ba' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 6px center; }
+select option { background: #10141b; color: #e6ecf7; }
+input[type="checkbox"] { accent-color: #4f8cff; }

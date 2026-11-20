@@ -1,0 +1,291 @@
+{
+ "preset": "balanced (reconstruction decimated to 25%)",
+ "seconds": 21.1,
+ "log": [
+  "Starting: pipeline",
+  "Stage 1/4: cleaning",
+  "Remove invalid points: 69,998 -> 69,998 points (removed 0)",
+  "Remove duplicate points: 69,998 -> 68,321 points (removed 1,677)",
+  "Statistical outlier removal: 68,321 -> 67,579 points (removed 742)",
+  "Radius outlier removal: 67,579 -> 67,258 points (removed 321)",
+  "Isolated point detection: 67,258 -> 67,258 points (removed 0)",
+  "Floating artifact removal: 67,258 -> 66,945 points (removed 313)",
+  "Noise filtering (feature-preserving): 66,945 -> 66,945 points",
+  "Stage 2/4: surface reconstruction",
+  "Screened Poisson (PyMeshLab): 355,072 -> 350,773 triangles after trimming",
+  "Stage 3/4: mesh refinement",
+  "degenerate: 350,773 -> 350,757 faces",
+  "small_components: 350,757 -> 350,757 faces",
+  "non_manifold: 350,757 -> 350,757 faces",
+  "normals: 350,757 -> 350,757 faces",
+  "fill_holes: 350,757 -> 351,314 faces",
+  "smooth: 351,314 -> 351,314 faces",
+  "decimate: 351,314 -> 87,828 faces",
+  "non_manifold: 87,828 -> 87,828 faces",
+  "degenerate: 87,828 -> 87,828 faces",
+  "small_components: 87,828 -> 87,828 faces",
+  "optimize: 87,828 -> 87,828 faces",
+  "normals: 87,828 -> 87,828 faces",
+  "Stage 4/4: colour processing",
+  "Finished in 21.1 s"
+ ],
+ "reports": {
+  "cleaned": {
+   "type": "cloud",
+   "count": 66945,
+   "bbox_min": [
+    -0.09437640035779697,
+    0.032415928904717485,
+    -0.06197137717367948
+   ],
+   "bbox_max": [
+    0.061273853600685824,
+    0.18739866258072496,
+    0.059293791798440985
+   ],
+   "size": [
+    0.1556502539584828,
+    0.15498273367600748,
+    0.12126516897212047
+   ],
+   "diagonal": 0.250902153240791,
+   "center": [
+    -0.016551273378555574,
+    0.10990729574272122,
+    -0.001338792687619248
+   ],
+   "has_colors": true,
+   "has_normals": false,
+   "spacing": 0.0005255332647234655,
+   "duplicates": 0
+  },
+  "reconstructed": {
+   "vertices": 175976,
+   "faces": 350773,
+   "edges": 526830,
+   "watertight": false,
+   "boundary_edges": 1341,
+   "holes": 82,
+   "hole_sizes": [
+    249,
+    131,
+    103,
+    91,
+    71,
+    28,
+    21,
+    20,
+    17,
+    17
+   ],
+   "non_manifold_edges": 0,
+   "inconsistent_normal_edges": 0,
+   "normal_consistency": 1.0,
+   "degenerate_triangles": 16,
+   "sliver_triangles": 1646,
+   "unreferenced_vertices": 0,
+   "components": 1,
+   "component_sizes": [
+    350773
+   ],
+   "bbox_min": [
+    -0.09424978336356721,
+    0.0330587760034448,
+    -0.06182336115132961
+   ],
+   "bbox_max": [
+    0.06110209611651725,
+    0.18694017340548322,
+    0.05905027236388252
+   ],
+   "size": [
+    0.15535187948008444,
+    0.15388139740203843,
+    0.12087363351521213
+   ],
+   "surface_area": 0.05584379080350792,
+   "volume": null,
+   "outward_normals": null,
+   "mean_edge": 0.0006491068852770027,
+   "has_colors": true,
+   "has_texture": false,
+   "deviation_from_points": {
+    "mean": 0.00015502620353716786,
+    "p95": 0.0004207309335470193,
+    "max": 0.002231796970590949,
+    "samples": 50000
+   },
+   "type": "mesh",
+   "against_reference": {
+    "mean": 0.00011366617903659217,
+    "p95": 0.000283827501698397,
+    "max": 0.0019695539958775043,
+    "size_error_percent": [
+     -0.2229433200698358,
+     -0.2930033369023687,
+     0.1660131240399657
+    ],
+    "note": "Distance of the result's vertices to the original, noise-free sample mesh."
+   }
+  },
+  "refined": {
+   "vertices": 44234,
+   "faces": 87828,
+   "edges": 132065,
+   "watertight": false,
+   "boundary_edges": 646,
+   "holes": 5,
+   "hole_sizes": [
+    249,
+    131,
+    104,
+    91,
+    71
+   ],
+   "non_manifold_edges": 0,
+   "inconsistent_normal_edges": 0,
+   "normal_consistency": 1.0,
+   "degenerate_triangles": 0,
+   "sliver_triangles": 3,
+   "unreferenced_vertices": 0,
+   "components": 1,
+   "component_sizes": [
+    87828
+   ],
+   "bbox_min": [
+    -0.09418179392317529,
+    0.03306617013366742,
+    -0.0618189431550397
+   ],
+   "bbox_max": [
+    0.06109091807315894,
+    0.18692506036108983,
+    0.058977236905536204
+   ],
+   "size": [
+    0.15527271199633422,
+    0.1538588902274224,
+    0.12079618006057591
+   ],
+   "surface_area": 0.055655225952383355,
+   "volume": null,
+   "outward_normals": null,
+   "mean_edge": 0.00127165551257537,
+   "has_colors": true,
+   "has_texture": false,
+   "deviation_from_points": {
+    "mean": 0.00017530256193056323,
+    "p95": 0.0004618152219336478,
+    "max": 0.002244876464828849,
+    "samples": 50000
+   },
+   "type": "mesh",
+   "against_reference": {
+    "mean": 0.00012101676578695384,
+    "p95": 0.00030163962655933575,
+    "max": 0.0019695539958775043,
+    "size_error_percent": [
+     -0.27378981474881603,
+     -0.30758679417675416,
+     0.10182870657875212
+    ],
+    "note": "Distance of the result's vertices to the original, noise-free sample mesh."
+   }
+  }
+ },
+ "stages": {
+  "original": {
+   "kind": "cloud",
+   "bbox_min": [
+    -0.13128416739128793,
+    -0.004444811749978206,
+    -0.09905579503141787
+   ],
+   "bbox_max": [
+    0.09806549588219693,
+    0.22470192402555567,
+    0.09605531942568941
+   ],
+   "size": [
+    0.22934966327348486,
+    0.22914673577553388,
+    0.19511111445710727
+   ],
+   "has_colors": true,
+   "points": 69998,
+   "has_normals": false
+  },
+  "cleaned": {
+   "kind": "cloud",
+   "bbox_min": [
+    -0.09437640035779697,
+    0.032415928904717485,
+    -0.06197137717367948
+   ],
+   "bbox_max": [
+    0.061273853600685824,
+    0.18739866258072496,
+    0.059293791798440985
+   ],
+   "size": [
+    0.1556502539584828,
+    0.15498273367600748,
+    0.12126516897212047
+   ],
+   "has_colors": true,
+   "points": 66945,
+   "has_normals": false
+  },
+  "reconstructed": {
+   "kind": "mesh",
+   "bbox_min": [
+    -0.09424978336356721,
+    0.0330587760034448,
+    -0.06182336115132961
+   ],
+   "bbox_max": [
+    0.06110209611651725,
+    0.18694017340548322,
+    0.05905027236388252
+   ],
+   "size": [
+    0.15535187948008444,
+    0.15388139740203843,
+    0.12087363351521213
+   ],
+   "has_colors": true,
+   "vertices": 175976,
+   "faces": 350773,
+   "has_texture": false
+  },
+  "refined": {
+   "kind": "mesh",
+   "bbox_min": [
+    -0.09418179392317529,
+    0.03306617013366742,
+    -0.0618189431550397
+   ],
+   "bbox_max": [
+    0.06109091807315894,
+    0.18692506036108983,
+    0.058977236905536204
+   ],
+   "size": [
+    0.15527271199633422,
+    0.1538588902274224,
+    0.12079618006057591
+   ],
+   "has_colors": true,
+   "vertices": 44234,
+   "faces": 87828,
+   "has_texture": false
+  }
+ },
+ "files": {
+  "original": 1050300,
+  "cleaned": 1004508,
+  "reconstructed": 1179172,
+  "refined": 1175152
+ },
+ "note": "Stanford Bunny (Stanford Computer Graphics Laboratory, a real range-scanned object, loaded through Open3D's dataset helper). Degraded on purpose: noise, duplicates, outliers, a floating blob, uneven density and an occlusion hole. Colours are procedural. This is not an iPhone Object Capture scan."
+}
