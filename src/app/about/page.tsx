@@ -5,6 +5,7 @@ import JsonLd from "@/components/JsonLd";
 import { faqLd } from "@/lib/jsonld";
 import { DIVISIONS, WHY_US } from "@/lib/divisions";
 import { getAbout, getFaqs } from "@/lib/db";
+import { TEAM } from "@/lib/team";
 
 export const metadata: Metadata = {
   title: "About",
@@ -33,6 +34,31 @@ export default async function About() {
           <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-700">Working with clients abroad</p>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-stone-600">We work with clients remotely. You can send an inquiry from any country, choose how you would like to be contacted, and receive a written quotation in US dollars. We do not operate offices outside the location shown on our contact page.</p>
           <p className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm"><Link href="/how-we-work" className="font-semibold text-blue-700 underline">How we work</Link><Link href="/pricing" className="font-semibold text-blue-700 underline">Pricing and quotations</Link></p>
+        </div>
+      </section>
+      <section className="bg-white py-20" aria-label="Our team" id="team">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <SectionHead eyebrow="Our team" title="The people leading the work." />
+          <div className="mt-10 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {TEAM.map((m) => (
+              <article key={m.name} className="flex flex-col rounded-2xl border border-stone-200 bg-white p-6 shadow-sm" data-testid="team-card">
+                <p className="text-xs font-semibold uppercase tracking-wider text-blue-700">{m.department}</p>
+                <h3 className="mt-2 font-display text-xl font-semibold text-stone-900">{m.name}</h3>
+                <p className="text-sm font-medium text-stone-700">{m.title}</p>
+                <dl className="mt-4 grid grid-cols-[96px_1fr] gap-y-1 text-xs text-stone-600">
+                  <dt className="font-semibold text-stone-500">Level</dt><dd>{m.level}</dd>
+                  <dt className="font-semibold text-stone-500">Reports to</dt><dd>{m.reportsTo}</dd>
+                  <dt className="font-semibold text-stone-500">Company</dt><dd>{m.company}</dd>
+                </dl>
+                <p className="mt-4 text-sm leading-relaxed text-stone-600">{m.overview}</p>
+                <details className="mt-4 text-sm">
+                  <summary className="cursor-pointer font-semibold text-blue-700">Key responsibilities ({m.responsibilities.length})</summary>
+                  <ol className="mt-2 list-decimal space-y-1 pl-5 text-stone-600">{m.responsibilities.map((r) => <li key={r}>{r}</li>)}</ol>
+                </details>
+                <p className="mt-auto border-t border-stone-100 pt-4 text-xs font-semibold text-stone-500">Official designation: <span className="text-stone-800">{m.designation}</span></p>
+              </article>
+            ))}
+          </div>
         </div>
       </section>
       <section className="bg-stone-50 py-20">
